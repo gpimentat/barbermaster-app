@@ -1,0 +1,399 @@
+
+import React, { useState, useEffect } from 'react';
+import {
+  BarChart3,
+  Users,
+  CalendarCheck,
+  Wallet,
+  TrendingUp,
+  Crown,
+  Percent,
+  Scissors,
+  Clock,
+  User,
+  Plus,
+  Loader2
+} from 'lucide-react';
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer
+} from 'recharts';
+import StatsCard from '../components/StatsCard';
+import { useAuth } from '../AuthContext';
+import { Link } from 'react-router-dom';
+import { dashboardService, DashboardStats } from '../src/services/dashboardService';
+
+const Dashboard: React.FC = () => {
+  const { role, currentUser } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [barberStats, setBarberStats] = useState<any>(null);
+
+  useEffect(() => {
+    if (currentUser?.tenantId) {
+      loadData();
+    }
+  }, [currentUser, role]);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      if (role === 'barber') {
+        const data = await dashboardService.getBarberStats(currentUser!.tenantId, currentUser!.id);
+        setBarberStats(data);
+      } else {
+        const data = await dashboardService.getAdminStats(currentUser!.tenantId);
+        setStats(data);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar dashboard:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center space-y-4 animate-in fade-in">
+        <Loader2 className="w-12 h-12 text-primary-500 animate-spin" />
+        <p className="text-gray-400 font-medium font-inter">Carregando painel de controle...</p>
+      </div>
+    );
+  }
+
+  // --- RENDERIZAÇÃO: VISÃO DO BARBEIRO ---
+  if (role === 'barber' && currentUser && barberStats) {
+    return (
+      <div className="space-y-6 animate-in fade-in">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-white">Olá, {currentUser.name} 👋</h1>
+            <p className="text-gray-400">Aqui está o resumo da sua produção hoje.</p>
+          </div>
+          <div className="bg-primary-500/10 text-primary-500 px-4 py-2 rounded-lg border border-primary-500/20 font-bold text-sm">
+            Taxa de Comissão: {currentUser.commissionRate}%
+          </div>
+        </div>
+
+        {/* KPI Grid Pessoal */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <StatsCard
+            title="Minha Produção Total"
+            value={`R$ ${barberStats.totalProduction.toFixed(2)}`}
+            positive={true}
+            icon={Scissors}
+            color="text-white"
+          />
+          <StatsCard
+            title="Minha Comissão (Est.)"
+            value={`R$ ${(barberStats.totalProduction * (currentUser.commissionRate / 100)).toFixed(2)}`}
+            change="Disponível em breve"
+            positive={true}
+            icon={Wallet}
+            color="text-green-500"
+          />
+          <StatsCard
+            title="Meus Atendimentos"
+            value={barberStats.appointmentsCount}
+            change={`${barberStats.upcomingAppointments.length} pendentes`}
+            positive={true}
+            icon={CalendarCheck}
+            color="text-blue-500"
+          />
+        </div>
+
+        {/* Agenda Rápida do Barbeiro */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-dark-900 rounded-xl border border-gray-800 overflow-hidden">
+            <div className="p-6 border-b border-gray-800">
+              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                <Clock size={20} className="text-primary-500" /> Meus Atendimentos Hoje
+              </h3>
+            </div>
+            <div className="divide-y divide-gray-800">
+              {barberStats.todayAppointments.length > 0 ? (
+                barberStats.todayAppointments.map((appt: any, idx: number) => {
+                  return (
+                    <div key={idx} className="p-4 flex items-center justify-between hover:bg-gray-800/50 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className="flex flex-col items-center justify-center bg-gray-800 w-12 h-12 rounded-lg border border-gray-700">
+                          <span className="text-white font-bold">{appt.start_time}</span>
+                        </div>
+                        <div>
+                          <p className="text-white font-medium">{appt.clients?.name || 'Cliente'}</p>
+                          <p className="text-xs text-gray-500">{appt.services?.name}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <span className={`text-xs font-bold px-2 py-1 rounded inline-block mb-1 ${appt.status === 'Agendado' ? 'bg-blue-500/10 text-blue-500' :
+                          appt.status === 'Confirmado' ? 'bg-green-500/10 text-green-500' :
+                            'bg-gray-700 text-gray-400'
+                          }`}>{appt.status}</span>
+                        <span className="block text-sm font-bold text-gray-300">R$ {Number(appt.price).toFixed(2)}</span>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="p-8 text-center text-gray-500">
+                  Nenhum agendamento para hoje.
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Quick Stats / Dicas */}
+          <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl border border-gray-800 p-6 flex flex-col justify-center items-center text-center">
+            <div className="w-16 h-16 bg-yellow-500/10 rounded-full flex items-center justify-center text-yellow-500 mb-4">
+              <Crown size={32} />
+            </div>
+            <h3 className="text-white font-bold text-xl mb-2">Meta Semanal</h3>
+            <p className="text-gray-400 text-sm mb-6">Continue assim! Cada atendimento aproxima você da meta de produção da barbearia.</p>
+            <div className="w-full bg-gray-700 h-2 rounded-full overflow-hidden mb-2">
+              <div className="bg-yellow-500 h-full w-[45%]"></div>
+            </div>
+            <p className="text-xs text-gray-500">45% Concluído</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // --- RENDERIZAÇÃO: VISÃO DA RECEPÇÃO ---
+  if (role === 'receptionist' && stats) {
+    return (
+      <div className="space-y-6 animate-in fade-in">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-white">Painel da Recepção</h1>
+            <p className="text-gray-400">Visão geral operacional e fluxo do dia.</p>
+          </div>
+          <div className="text-sm bg-gray-800 px-3 py-1 rounded border border-gray-700 text-gray-400">
+            {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
+          </div>
+        </div>
+
+        {/* KPI Grid Operacional */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <StatsCard
+            title="Agendamentos Hoje"
+            value={stats.totalAppointments}
+            change="Visualizar Agenda"
+            positive={true}
+            icon={CalendarCheck}
+            color="text-primary-500"
+          />
+          <StatsCard
+            title="Total de Clientes"
+            value={stats.newClients}
+            change="Base cadastrada"
+            positive={true}
+            icon={Users}
+            color="text-purple-500"
+          />
+          <StatsCard
+            title="Ticket Médio"
+            value={`R$ ${stats.ticketMedio.toFixed(2)}`}
+            change="Baseado em comandas"
+            positive={true}
+            icon={TrendingUp}
+            color="text-green-500"
+          />
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 bg-dark-900 rounded-xl border border-gray-800 overflow-hidden">
+            <div className="p-6 border-b border-gray-800 flex justify-between items-center">
+              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                <Clock size={20} className="text-primary-500" /> Fluxo do Dia
+              </h3>
+              <Link to="/schedule" className="text-sm text-primary-500 hover:underline">Ver Agenda Completa</Link>
+            </div>
+            <div className="divide-y divide-gray-800">
+              {stats.todayAppointments.length > 0 ? (
+                stats.todayAppointments.map((appt: any, idx: number) => (
+                  <div key={idx} className="p-4 flex items-center justify-between hover:bg-gray-800/50 transition-colors">
+                    <div className="flex items-center gap-4">
+                      <div className="flex flex-col items-center justify-center bg-gray-800 w-14 h-14 rounded-lg border border-gray-700 text-primary-500">
+                        <span className="font-bold text-lg">{appt.start_time}</span>
+                      </div>
+                      <div>
+                        <p className="text-white font-bold">{appt.clients?.name || 'Cliente'}</p>
+                        <p className="text-sm text-gray-400">{appt.services?.name}</p>
+                        <div className="flex items-center gap-1 mt-1 text-xs text-gray-500">
+                          <User size={12} /> Profissional: <span className="text-gray-300">{appt.profiles?.name}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className={`inline-block px-2 py-1 rounded text-xs font-bold border ${appt.status === 'Confirmado' ? 'bg-green-500/10 text-green-500 border-green-500/20' :
+                        appt.status === 'Agendado' ? 'bg-blue-500/10 text-blue-500 border-blue-500/20' :
+                          'bg-gray-800 text-gray-400 border-gray-700'
+                        }`}>
+                        {appt.status}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="p-8 text-center text-gray-500">
+                  Sem agendamentos para hoje.
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            <div className="bg-dark-900 p-6 rounded-xl border border-gray-800">
+              <h3 className="text-lg font-semibold text-white mb-4">Ações Rápidas</h3>
+              <div className="space-y-3">
+                <Link to="/schedule" className="w-full py-3 bg-primary-500 hover:bg-primary-600 text-dark-950 font-bold rounded-lg transition-colors flex items-center justify-center gap-2">
+                  <Plus size={20} /> Novo Agendamento
+                </Link>
+                <Link to="/clients" className="w-full py-3 bg-gray-800 hover:bg-gray-700 text-white font-bold rounded-lg transition-colors flex items-center justify-center gap-2">
+                  <User size={20} /> Cadastrar Cliente
+                </Link>
+                <Link to="/comandas" className="w-full py-3 bg-gray-800 hover:bg-gray-700 text-white font-bold rounded-lg transition-colors flex items-center justify-center gap-2">
+                  <Scissors size={20} /> Abrir Comanda
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // --- RENDERIZAÇÃO: VISÃO DO ADMINISTRADOR ---
+  if (stats) {
+    return (
+      <div className="space-y-6 animate-in fade-in">
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold text-white">Dashboard Admin</h1>
+          <p className="text-gray-400">Visão geral da Barbearia</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <StatsCard
+            title="Receita de Hoje"
+            value={`R$ ${stats.totalRevenue.toFixed(2)}`}
+            change="Baseado em comandas pagas"
+            positive={true}
+            icon={Wallet}
+          />
+          <StatsCard
+            title="Agendamentos"
+            value={stats.totalAppointments}
+            change="Hoje"
+            positive={true}
+            icon={CalendarCheck}
+            color="text-blue-500"
+          />
+          <StatsCard
+            title="Total de Clientes"
+            value={stats.newClients}
+            change="Base cadastrada"
+            positive={true}
+            icon={Users}
+            color="text-purple-500"
+          />
+          <StatsCard
+            title="Ticket Médio"
+            value={`R$ ${stats.ticketMedio.toFixed(2)}`}
+            change="Faturamento/Atendimentos"
+            positive={true}
+            icon={TrendingUp}
+            color="text-green-500"
+          />
+          <StatsCard
+            title="MRR (Assinaturas)"
+            value={`R$ ${stats.mrr.toFixed(2)}`}
+            change="Plano VIP"
+            positive={true}
+            icon={Crown}
+            color="text-yellow-500"
+          />
+          <StatsCard
+            title="Comissões (Est.)"
+            value={`R$ ${stats.commissions.toFixed(2)}`}
+            positive={true}
+            icon={Percent}
+            color="text-pink-500"
+          />
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 bg-dark-900 p-6 rounded-xl border border-gray-800">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                <BarChart3 size={20} className="text-primary-500" />
+                Faturamento nos Últimos 7 Dias
+              </h3>
+            </div>
+            <div className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={stats.weeklyRevenue}>
+                  <defs>
+                    <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#eab308" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#eab308" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" vertical={false} />
+                  <XAxis
+                    dataKey="name"
+                    stroke="#9ca3af"
+                    tick={{ fill: '#9ca3af' }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    stroke="#9ca3af"
+                    tick={{ fill: '#9ca3af' }}
+                    axisLine={false}
+                    tickLine={false}
+                    tickFormatter={(value) => `R$${value}`}
+                  />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px' }}
+                    itemStyle={{ color: '#eab308' }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="revenue"
+                    stroke="#eab308"
+                    strokeWidth={3}
+                    fillOpacity={1}
+                    fill="url(#colorRevenue)"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div className="bg-dark-900 p-6 rounded-xl border border-gray-800">
+            <h3 className="text-lg font-semibold text-white mb-4">Ações do Administrador</h3>
+            <div className="space-y-4">
+              <Link to="/comandas" className="block w-full text-center py-3 bg-primary-500 hover:bg-primary-600 text-dark-950 font-bold rounded-lg transition-colors">
+                Gerenciar Comandas
+              </Link>
+              <Link to="/financial" className="block w-full text-center py-3 bg-gray-800 hover:bg-gray-700 text-white font-bold rounded-lg transition-colors">
+                Ver Fluxo de Caixa
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
+};
+
+
+export default Dashboard;
