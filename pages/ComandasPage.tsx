@@ -502,7 +502,10 @@ const ComandasPage: React.FC = () => {
       <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-white">Comandas</h1>
-          <p className="text-gray-400">Gerencie atendimentos e vendas em aberto.</p>
+          <div className="flex items-center gap-2">
+            <p className="text-gray-400">Gerencie atendimentos e vendas em aberto.</p>
+            <span className="text-[10px] bg-gray-800 text-gray-500 px-1 rounded border border-gray-700">{role}</span>
+          </div>
         </div>
         <button
           onClick={handleNewComanda}
