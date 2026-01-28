@@ -23,7 +23,7 @@ import { supabase } from '../src/supabaseClient';
 import { useAuth } from '../AuthContext';
 
 const ComandasPage: React.FC = () => {
-  const { currentUser } = useAuth();
+  const { currentUser, role } = useAuth();
   const [comandas, setComandas] = useState<Comanda[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -452,6 +452,49 @@ const ComandasPage: React.FC = () => {
     }
   };
 
+  const handleDeleteComanda = async () => {
+    if (!selectedComanda) return;
+
+    if (role !== 'super_admin') {
+      alert('Apenas Super Admins podem excluir comandas.');
+      return;
+    }
+
+    if (!window.confirm('TEM CERTEZA? Isso excluirá a comanda e todos os itens (serviços/produtos) associados permanentemente. O estoque NÃO será retornado automaticamente.')) {
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+
+      // 1. Delete Items first (optional depending on cascade, but safer)
+      const { error: itemsError } = await supabase
+        .from('comanda_items')
+        .delete()
+        .eq('comanda_id', selectedComanda.id);
+
+      if (itemsError) throw itemsError;
+
+      // 2. Delete Comanda
+      const { error: comandaError } = await supabase
+        .from('comandas')
+        .delete()
+        .eq('id', selectedComanda.id);
+
+      if (comandaError) throw comandaError;
+
+      alert('Comanda excluída com sucesso.');
+      setSelectedComanda(null);
+      fetchData();
+
+    } catch (error: any) {
+      console.error('Erro ao excluir comanda:', error);
+      alert(`Erro ao excluir: ${error.message}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const getBarberName = (id?: string) => dbBarbers.find(b => b.id === id)?.name || 'N/A';
 
   return (
@@ -584,9 +627,20 @@ const ComandasPage: React.FC = () => {
                 </div>
                 <p className="text-sm text-gray-500 mt-1">ID: {selectedComanda.id}</p>
               </div>
-              <button onClick={() => setSelectedComanda(null)} className="text-gray-400 hover:text-white">
-                <X size={24} />
-              </button>
+              <div className="flex gap-2">
+                {role === 'super_admin' && (
+                  <button
+                    onClick={handleDeleteComanda}
+                    className="text-red-500 hover:text-red-400 p-2 hover:bg-red-500/10 rounded-lg transition-colors border border-transparent hover:border-red-500/20"
+                    title="Excluir Comanda (Super Admin)"
+                  >
+                    <Trash2 size={20} />
+                  </button>
+                )}
+                <button onClick={() => setSelectedComanda(null)} className="text-gray-400 hover:text-white">
+                  <X size={24} />
+                </button>
+              </div>
             </div>
 
             <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
