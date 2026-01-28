@@ -16,7 +16,8 @@ import {
   Filter,
   CalendarCheck,
   Gift,
-  Loader2
+  Loader2,
+  Ban
 } from 'lucide-react';
 import { Comanda, ComandaItem, Client, Service, Product, Barber, PaymentMethod, Transaction } from '../types';
 import { supabase } from '../src/supabaseClient';
@@ -455,41 +456,69 @@ const ComandasPage: React.FC = () => {
   const handleDeleteComanda = async () => {
     if (!selectedComanda) return;
 
-    if (role !== 'super_admin') {
-      alert('Apenas Super Admins podem excluir comandas.');
+    // Permission Check: Admin or Super Admin
+    if (!['admin', 'super_admin'].includes(role)) {
+      alert('Você não tem permissão para excluir comandas permanentemente.');
       return;
     }
 
-    if (!window.confirm('TEM CERTEZA? Isso excluirá a comanda e todos os itens (serviços/produtos) associados permanentemente. O estoque NÃO será retornado automaticamente.')) {
+    if (!window.confirm('TEM CERTEZA? Isso excluirá a comanda e todos os itens permanentemente. Use "Cancelar" se quiser apenas invalidar. Continuar com Exclusão?')) {
       return;
     }
 
     try {
       setIsSubmitting(true);
 
-      // 1. Delete Items first (optional depending on cascade, but safer)
-      const { error: itemsError } = await supabase
-        .from('comanda_items')
-        .delete()
-        .eq('comanda_id', selectedComanda.id);
-
+      const { error: itemsError } = await supabase.from('comanda_items').delete().eq('comanda_id', selectedComanda.id);
       if (itemsError) throw itemsError;
 
-      // 2. Delete Comanda
-      const { error: comandaError } = await supabase
-        .from('comandas')
-        .delete()
-        .eq('id', selectedComanda.id);
-
+      const { error: comandaError } = await supabase.from('comandas').delete().eq('id', selectedComanda.id);
       if (comandaError) throw comandaError;
 
-      alert('Comanda excluída com sucesso.');
+      alert('Comanda excluída permanentemente.');
       setSelectedComanda(null);
       fetchData();
 
     } catch (error: any) {
       console.error('Erro ao excluir comanda:', error);
-      alert(`Erro ao excluir: ${error.message}`);
+      alert(`Erro: ${error.message}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCancelComanda = async () => {
+    if (!selectedComanda) return;
+
+    // Permission Check: Admin, Super Admin, or possibly Receptionist/Gerente
+    if (!['admin', 'super_admin', 'receptionist'].includes(role)) {
+      alert('Você não tem permissão para cancelar comandas.');
+      return;
+    }
+
+    const reason = prompt("Motivo do cancelamento (Opcional):");
+    if (reason === null) return; // Cancelled prompt
+
+    try {
+      setIsSubmitting(true);
+
+      const { error } = await supabase
+        .from('comandas')
+        .update({
+          status: 'canceled',
+          close_date: new Date().toISOString()
+          // removed notes update to avoid schema issues, can add if 'notes' column exists
+        })
+        .eq('id', selectedComanda.id);
+
+      if (error) throw error;
+
+      alert('Comanda cancelada com sucesso.');
+      setSelectedComanda(null);
+      fetchData();
+    } catch (error: any) {
+      console.error('Erro ao cancelar:', error);
+      alert(`Erro: ${error.message}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -631,11 +660,23 @@ const ComandasPage: React.FC = () => {
                 <p className="text-sm text-gray-500 mt-1">ID: {selectedComanda.id}</p>
               </div>
               <div className="flex gap-2">
-                {role === 'super_admin' && (
+                {/* Botão Cancelar (Status = Canceled) */}
+                {['admin', 'super_admin'].includes(role) && !isReadOnly && (
+                  <button
+                    onClick={handleCancelComanda}
+                    className="text-orange-500 hover:text-orange-400 p-2 hover:bg-orange-500/10 rounded-lg transition-colors"
+                    title="Cancelar Comanda (Manter Histórico)"
+                  >
+                    <Ban size={20} />
+                  </button>
+                )}
+
+                {/* Botão Excluir (Delete Record) */}
+                {['admin', 'super_admin'].includes(role) && (
                   <button
                     onClick={handleDeleteComanda}
                     className="text-red-500 hover:text-red-400 p-2 hover:bg-red-500/10 rounded-lg transition-colors border border-transparent hover:border-red-500/20"
-                    title="Excluir Comanda (Super Admin)"
+                    title="Excluir Permanentemente"
                   >
                     <Trash2 size={20} />
                   </button>
