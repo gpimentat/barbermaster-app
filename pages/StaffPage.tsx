@@ -82,33 +82,52 @@ const StaffPage: React.FC = () => {
         tenantIdToSend = '63f22a97-eb14-4862-93b6-815ca41b83a4';
       }
 
-      console.log('Enviando dados para RPC:', {
-        id: selectedBarber.id.length > 30 ? selectedBarber.id : 'NOVO (NULL)',
+      console.log('Enviando dados para Edge Function:', {
+        id: selectedBarber.id.length > 30 ? selectedBarber.id : 'NOVO',
         name: selectedBarber.name,
         email: selectedBarber.email,
         tenantId: tenantIdToSend
       });
 
-      const { data, error } = await supabase.rpc('upsert_staff_member', {
-        p_id: selectedBarber.id.length > 30 ? selectedBarber.id : null,
-        p_name: selectedBarber.name,
-        p_email: selectedBarber.email,
-        p_password: selectedBarber.password || null,
-        p_role: selectedBarber.role,
-        p_avatar: selectedBarber.avatar || null,
-        p_active: selectedBarber.active,
-        p_commission_rate: selectedBarber.commissionRate || 0,
-        p_permissions: selectedBarber.permissions || [],
-        p_login_enabled: selectedBarber.loginEnabled || false,
-        p_tenant_id: tenantIdToSend
-      });
-
-      if (error) {
-        console.error('Erro RPC:', error);
-        throw error;
+      // Get current session token
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Sessão não encontrada. Faça login novamente.');
       }
 
-      console.log('Sucesso RPC:', data);
+      // Call Edge Function
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const response = await fetch(
+        `${supabaseUrl}/functions/v1/manage-staff`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            id: selectedBarber.id.length > 30 ? selectedBarber.id : null,
+            name: selectedBarber.name,
+            email: selectedBarber.email,
+            password: selectedBarber.password || null,
+            role: selectedBarber.role,
+            avatar: selectedBarber.avatar || null,
+            active: selectedBarber.active,
+            commission_rate: selectedBarber.commissionRate || 0,
+            permissions: selectedBarber.permissions || [],
+            login_enabled: selectedBarber.loginEnabled || false,
+            tenant_id: tenantIdToSend
+          })
+        }
+      );
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || 'Erro desconhecido');
+      }
+
+      console.log('Sucesso Edge Function:', result);
       alert('✅ Profissional salvo com sucesso!');
       addBarber(selectedBarber);
       setSelectedBarber(null);

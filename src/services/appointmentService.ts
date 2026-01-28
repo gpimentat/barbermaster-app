@@ -75,17 +75,76 @@ export const appointmentService = {
 
     async confirmAppointment(appointmentId: string): Promise<{ success: boolean; message: string }> {
         try {
-            const { error } = await supabase
+            // 1. Fetch appointment details with related data
+            const { data: appt, error: fetchError } = await supabase
+                .from('appointments')
+                .select(`
+                    *,
+                    clients (id, name),
+                    services (id, name, price),
+                    profiles!appointments_barber_id_fkey (id, name)
+                `)
+                .eq('id', appointmentId)
+                .single();
+
+            if (fetchError || !appt) {
+                throw new Error('Agendamento não encontrado.');
+            }
+
+            // 2. Update appointment status to Confirmado
+            const { error: updateError } = await supabase
                 .from('appointments')
                 .update({ status: 'Confirmado' })
                 .eq('id', appointmentId);
 
-            if (error) throw error;
+            if (updateError) throw updateError;
 
-            return { success: true, message: 'Agendamento confirmado com sucesso.' };
+            // 3. Create comanda automatically
+            const comandaData = {
+                client_id: appt.client_id,
+                client_name: appt.clients?.name || 'Cliente',
+                total: appt.services?.price || appt.price || 0,
+                status: 'open',
+                open_date: new Date().toISOString(),
+                tenant_id: appt.tenant_id
+            };
+
+            const { data: newComanda, error: comandaError } = await supabase
+                .from('comandas')
+                .insert([comandaData])
+                .select()
+                .single();
+
+            if (comandaError) throw comandaError;
+
+            // 4. Add service as comanda_item
+            const itemData = {
+                comanda_id: newComanda.id,
+                type: 'service',
+                item_id: appt.service_id,
+                name: appt.services?.name || 'Serviço',
+                price: appt.services?.price || appt.price || 0,
+                quantity: 1,
+                barber_id: appt.barber_id,
+                tenant_id: appt.tenant_id
+            };
+
+            const { error: itemError } = await supabase
+                .from('comanda_items')
+                .insert([itemData]);
+
+            if (itemError) throw itemError;
+
+            return {
+                success: true,
+                message: 'Agendamento confirmado e comanda criada com sucesso!'
+            };
         } catch (error: any) {
             console.error('Confirm Error:', error);
-            return { success: false, message: error.message || 'Erro ao confirmar agendamento.' };
+            return {
+                success: false,
+                message: error.message || 'Erro ao confirmar agendamento.'
+            };
         }
     },
 

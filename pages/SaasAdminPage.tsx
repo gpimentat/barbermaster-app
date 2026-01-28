@@ -18,8 +18,11 @@ const SaasAdminPage: React.FC = () => {
     }, []);
 
     const fetchStats = async () => {
-        // 1. Get total users
-        const { count, data } = await supabase.from('profiles').select('*', { count: 'exact' });
+        // 1. Get total users (excluding staff - only tenant admins)
+        const { count, data } = await supabase
+            .from('profiles')
+            .select('*', { count: 'exact' })
+            .in('role', ['admin', 'super_admin', 'Gerente']); // Only show tenant admins, not staff
 
         // Mock MRR calculation (e.g. $97 per user)
         const total = count || 0;
@@ -181,8 +184,8 @@ const SaasAdminPage: React.FC = () => {
                                     </td>
                                     <td className="px-6 py-4">
                                         <span className={`px-2 py-1 rounded text-xs font-bold ${user.role === 'super_admin' ? 'bg-purple-500/10 text-purple-500' :
-                                                user.role === 'admin' ? 'bg-primary-500/10 text-primary-500' :
-                                                    'bg-gray-700 text-gray-300'
+                                            user.role === 'admin' ? 'bg-primary-500/10 text-primary-500' :
+                                                'bg-gray-700 text-gray-300'
                                             }`}>
                                             {user.role}
                                         </span>

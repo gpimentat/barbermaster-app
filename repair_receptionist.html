@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+
+<body>
+    <h1>Reparar Senha da Recepcionista</h1>
+    <button onclick="repair()">Reparar Agora</button>
+    <div id="result"></div>
+    <script>
+        async function repair() {
+            document.getElementById('result').innerText = 'Processando...';
+            try {
+                const res = await fetch('https://aogsaxrduljhmrdajvlo.supabase.co/functions/v1/repair-user', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: '520_barbershop1@gmail.com',
+                        password: '1234'
+                    })
+                });
+                const data = await res.json();
+                document.getElementById('result').innerText = JSON.stringify(data, null, 2);
+            } catch (e) {
+                document.getElementById('result').innerText = 'Erro: ' + e.message;
+            }
+        }
+    </script>
+</body>
+
+</html>

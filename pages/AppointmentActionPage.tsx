@@ -32,11 +32,12 @@ const AppointmentActionPage: React.FC = () => {
             if (fetchError || !appt) throw new Error('Agendamento não encontrado.');
 
             if (action === 'confirm') {
-                const { error } = await supabase
-                    .from('appointments')
-                    .update({ status: 'Confirmado' })
-                    .eq('id', id);
-                if (error) throw error;
+                const result = await appointmentService.confirmAppointment(id);
+
+                if (!result.success) {
+                    throw new Error(result.message);
+                }
+
                 setMessage(`Obrigado ${appt.clients?.name || ''}! Seu agendamento foi confirmado.`);
                 setStatus('success');
             }

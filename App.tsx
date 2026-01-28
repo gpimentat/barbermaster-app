@@ -46,6 +46,7 @@ import AppointmentActionPage from './pages/AppointmentActionPage';
 import SaasAdminPage from './pages/SaasAdminPage';
 import SubscriptionLockedPage from './pages/SubscriptionLockedPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
+// import ProfilePage from './pages/ProfilePage'; // Removed in favor of consolidated SettingsPage
 import ClientApp from './pages/client/ClientApp'; // Cliente App PWA
 
 // Componente para Forçar Troca de Senha
@@ -290,6 +291,7 @@ const MainLayout: React.FC = () => {
             <Route path="/products" element={<ProductsPage />} />
             <Route path="/clients" element={<ClientsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
+            {/* <Route path="/profile" element={<ProfilePage />} /> */}
             <Route path="*" element={<div className="p-8 text-center text-gray-500">Página não encontrada.</div>} />
           </Routes>
         </main>
