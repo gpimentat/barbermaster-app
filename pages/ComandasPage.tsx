@@ -52,6 +52,12 @@ const ComandasPage: React.FC = () => {
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(PaymentMethod.PIX);
 
+  // Discount Modal States
+  const [showDiscountModal, setShowDiscountModal] = useState(false);
+  const [discountAmount, setDiscountAmount] = useState(0);
+  const [discountReason, setDiscountReason] = useState('');
+
+
   // --- FETCH DATA ---
   const fetchData = async () => {
     try {
@@ -85,6 +91,9 @@ const ComandasPage: React.FC = () => {
         closeDate: c.close_date,
         total: Number(c.total),
         paymentMethod: c.payment_method as any,
+        discountAmount: Number(c.discount_amount) || 0,
+        discountReason: c.discount_reason,
+        discountAppliedBy: c.discount_applied_by,
         items: (c.comanda_items || []).map((item: any) => ({
           id: item.id,
           type: item.type as any,
@@ -240,6 +249,39 @@ const ComandasPage: React.FC = () => {
     }
   };
 
+  const handleApplyDiscount = () => {
+    if (!selectedComanda) return;
+
+    // Validation for receptionist
+    if (role === 'receptionist' && !discountReason.trim()) {
+      alert('Recepcionistas devem informar o motivo do desconto.');
+      return;
+    }
+
+    // Apply discount
+    const itemsTotal = selectedComanda.items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+    const finalTotal = Math.max(0, itemsTotal - discountAmount);
+
+    setSelectedComanda({
+      ...selectedComanda,
+      discountAmount,
+      discountReason: discountReason.trim() || undefined,
+      discountAppliedBy: currentUser?.id,
+      total: finalTotal
+    });
+
+    setShowDiscountModal(false);
+    setDiscountAmount(0);
+    setDiscountReason('');
+  };
+
+  const handleOpenDiscountModal = () => {
+    if (!selectedComanda) return;
+    setDiscountAmount(selectedComanda.discountAmount || 0);
+    setDiscountReason(selectedComanda.discountReason || '');
+    setShowDiscountModal(true);
+  };
+
   const handleSaveComanda = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedComanda || !selectedComanda.clientId) {
@@ -259,6 +301,9 @@ const ComandasPage: React.FC = () => {
         total: selectedComanda.total,
         status: 'open',
         open_date: selectedComanda.openDate,
+        discount_amount: selectedComanda.discountAmount || 0,
+        discount_reason: selectedComanda.discountReason,
+        discount_applied_by: selectedComanda.discountAppliedBy,
         tenant_id: currentUser?.tenantId
       };
 
@@ -347,6 +392,9 @@ const ComandasPage: React.FC = () => {
         status: 'paid',
         close_date: new Date().toISOString(),
         payment_method: paymentMethod,
+        discount_amount: selectedComanda.discountAmount || 0,
+        discount_reason: selectedComanda.discountReason,
+        discount_applied_by: selectedComanda.discountAppliedBy,
         tenant_id: currentUser?.tenantId
       };
 
@@ -399,19 +447,24 @@ const ComandasPage: React.FC = () => {
         tenant_id: currentUser?.tenantId
       }));
 
-      // Commission Transactions (Expense)
+      // Commission Transactions (Expense) - Apply discount proportionally
       const commissionTransactions: any[] = [];
+      const itemsTotal = selectedComanda.items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+      const discountRatio = itemsTotal > 0 ? (selectedComanda.total / itemsTotal) : 1;
+
       selectedComanda.items.forEach(item => {
         if (item.type === 'service' && item.barberId) {
           const barber = dbBarbers.find(b => b.id === item.barberId);
           if (barber && barber.commissionRate > 0) {
+            const itemValue = item.price * item.quantity;
+            const discountedItemValue = itemValue * discountRatio;
             commissionTransactions.push({
               date: new Date().toISOString().split('T')[0],
               description: `Comissão: ${barber.name} - ${item.name}`,
-              amount: (item.price * item.quantity) * (barber.commissionRate / 100),
+              amount: discountedItemValue * (barber.commissionRate / 100),
               type: 'expense',
               category: 'Comissões',
-              method: paymentMethod, // Optional: method of the original pay
+              method: paymentMethod,
               tenant_id: currentUser?.tenantId
             });
           }
@@ -672,6 +725,17 @@ const ComandasPage: React.FC = () => {
                     title="Cancelar Comanda (Manter Histórico)"
                   >
                     <Ban size={20} />
+                  </button>
+                )}
+
+                {/* Botão Desconto */}
+                {['admin', 'super_admin', 'receptionist'].includes(role) && !isReadOnly && (
+                  <button
+                    onClick={handleOpenDiscountModal}
+                    className="text-yellow-500 hover:text-yellow-400 p-2 hover:bg-yellow-500/10 rounded-lg transition-colors"
+                    title="Aplicar Desconto"
+                  >
+                    <DollarSign size={20} />
                   </button>
                 )}
 
@@ -995,6 +1059,92 @@ const ComandasPage: React.FC = () => {
                     </div>
                   )}
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Desconto */}
+      {showDiscountModal && selectedComanda && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="bg-dark-900 rounded-xl border border-yellow-500/30 shadow-2xl w-full max-w-md p-6">
+            <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+              <DollarSign className="text-yellow-500" size={24} />
+              Aplicar Desconto
+            </h3>
+
+            <div className="space-y-4">
+              {/* Valor do Desconto */}
+              <div>
+                <label className="block text-sm font-medium text-gray-400 mb-1">
+                  Valor do Desconto (R$)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max={selectedComanda.items.reduce((acc, item) => acc + (item.price * item.quantity), 0)}
+                  value={discountAmount}
+                  onChange={(e) => setDiscountAmount(parseFloat(e.target.value) || 0)}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-yellow-500"
+                  placeholder="0.00"
+                />
+              </div>
+
+              {/* Justificativa */}
+              <div>
+                <label className="block text-sm font-medium text-gray-400 mb-1">
+                  Motivo do Desconto {role === 'receptionist' && <span className="text-red-500">*</span>}
+                </label>
+                <textarea
+                  value={discountReason}
+                  onChange={(e) => setDiscountReason(e.target.value)}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-yellow-500 resize-none"
+                  placeholder={role === 'receptionist' ? "Obrigatório para recepcionistas" : "Opcional"}
+                  rows={3}
+                  required={role === 'receptionist'}
+                />
+              </div>
+
+              {/* Preview */}
+              <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
+                <div className="flex justify-between text-sm mb-2">
+                  <span className="text-gray-400">Total Original:</span>
+                  <span className="text-white font-medium">
+                    R$ {selectedComanda.items.reduce((acc, item) => acc + (item.price * item.quantity), 0).toFixed(2)}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm mb-2">
+                  <span className="text-gray-400">Desconto:</span>
+                  <span className="text-yellow-500 font-medium">- R$ {discountAmount.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-lg font-bold pt-2 border-t border-gray-700">
+                  <span className="text-white">Total Final:</span>
+                  <span className="text-green-500">
+                    R$ {Math.max(0, selectedComanda.items.reduce((acc, item) => acc + (item.price * item.quantity), 0) - discountAmount).toFixed(2)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Botões */}
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => {
+                    setShowDiscountModal(false);
+                    setDiscountAmount(0);
+                    setDiscountReason('');
+                  }}
+                  className="flex-1 bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleApplyDiscount}
+                  className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-dark-950 px-4 py-2 rounded-lg font-bold transition-colors"
+                >
+                  Aplicar Desconto
+                </button>
               </div>
             </div>
           </div>

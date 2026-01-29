@@ -143,6 +143,9 @@ export interface Comanda {
   openDate: string; // ISO string
   closeDate?: string; // ISO string
   paymentMethod?: PaymentMethod; // Persist how it was paid
+  discountAmount?: number; // Valor do desconto em R$
+  discountReason?: string; // Justificativa do desconto
+  discountAppliedBy?: string; // ID do usuário que aplicou
 }
 
 // Chat Interfaces
