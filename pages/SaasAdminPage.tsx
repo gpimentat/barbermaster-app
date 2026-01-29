@@ -3,50 +3,41 @@ import React, { useEffect, useState } from 'react';
 import { Users, DollarSign, Activity, TrendingUp, TrendingDown, UserPlus } from 'lucide-react';
 import { supabase } from '../src/supabaseClient';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { dashboardService, SaaSStats } from '../src/services/dashboardService';
+import { useAuth } from '../AuthContext';
 
 const SaasAdminPage: React.FC = () => {
-    const [stats, setStats] = useState({
-        totalUsers: 0,
-        activeUsers: 0,
-        mrr: 0,
-        churnRate: 2.4, // Mocked for now
-    });
-    const [users, setUsers] = useState<any[]>([]);
+    const { currentUser } = useAuth();
+    const [loading, setLoading] = useState(true);
+    const [stats, setStats] = useState<SaaSStats | null>(null);
+    const [tenants, setTenants] = useState<any[]>([]);
 
     useEffect(() => {
         fetchStats();
     }, []);
 
     const fetchStats = async () => {
-        // 1. Get total users (excluding staff - only tenant admins)
-        const { count, data } = await supabase
-            .from('profiles')
-            .select('*', { count: 'exact' })
-            .in('role', ['admin', 'super_admin', 'Gerente']); // Only show tenant admins, not staff
-
-        // Mock MRR calculation (e.g. $97 per user)
-        const total = count || 0;
-        const mrr = total * 97;
-
-        setStats(prev => ({
-            ...prev,
-            totalUsers: total,
-            activeUsers: total, // Assuming all active for now
-            mrr
-        }));
-
-        if (data) setUsers(data);
+        try {
+            setLoading(true);
+            const { stats: saasStats, tenants: tenantList } = await dashboardService.getSaasStats(currentUser?.email);
+            setStats(saasStats);
+            setTenants(tenantList);
+        } catch (error) {
+            console.error('Erro ao buscar estatísticas SaaS:', error);
+        } finally {
+            setLoading(false);
+        }
     };
 
-    // Mock Data for Charts
-    const revenueData = [
-        { name: 'Jan', value: 4000 },
-        { name: 'Fev', value: 3000 },
-        { name: 'Mar', value: 5000 },
-        { name: 'Abr', value: 7000 },
-        { name: 'Mai', value: 9800 },
-        { name: 'Jun', value: stats.mrr || 12000 },
-    ];
+    if (loading || !stats) {
+        return (
+            <div className="h-full flex flex-col items-center justify-center space-y-4 animate-in fade-in">
+                <div className="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
+                <p className="text-gray-400 font-medium">Carregando métricas SaaS...</p>
+            </div>
+        );
+    }
+
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
@@ -64,7 +55,7 @@ const SaasAdminPage: React.FC = () => {
                         </span>
                     </div>
                     <h3 className="text-gray-400 text-sm font-medium">Usuários Totais</h3>
-                    <p className="text-3xl font-bold text-white mt-1">{stats.totalUsers}</p>
+                    <p className="text-3xl font-bold text-white mt-1">{stats.totalTenants}</p>
                 </div>
 
                 <div className="bg-dark-900 border border-gray-800 p-6 rounded-2xl">
@@ -87,7 +78,7 @@ const SaasAdminPage: React.FC = () => {
                         </div>
                     </div>
                     <h3 className="text-gray-400 text-sm font-medium">Usuários Ativos</h3>
-                    <p className="text-3xl font-bold text-white mt-1">{stats.activeUsers}</p>
+                    <p className="text-3xl font-bold text-white mt-1">{stats.activeTenants}</p>
                 </div>
 
                 <div className="bg-dark-900 border border-gray-800 p-6 rounded-2xl">
@@ -110,7 +101,7 @@ const SaasAdminPage: React.FC = () => {
                     <h3 className="text-lg font-bold text-white mb-6">Crescimento de Receita (MRR)</h3>
                     <div className="h-80">
                         <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={revenueData}>
+                            <AreaChart data={stats.revenueGrowth}>
                                 <defs>
                                     <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
                                         <stop offset="5%" stopColor="#D4AF37" stopOpacity={0.3} />
@@ -119,7 +110,7 @@ const SaasAdminPage: React.FC = () => {
                                 </defs>
                                 <CartesianGrid strokeDasharray="3 3" stroke="#333" vertical={false} />
                                 <XAxis dataKey="name" stroke="#666" axisLine={false} tickLine={false} />
-                                <YAxis stroke="#666" axisLine={false} tickLine={false} tickFormatter={(value) => `R$${value / 1000}k`} />
+                                <YAxis stroke="#666" axisLine={false} tickLine={false} tickFormatter={(value) => `R$${value}`} />
                                 <Tooltip
                                     contentStyle={{ backgroundColor: '#1A1A1A', border: '1px solid #333', borderRadius: '8px' }}
                                     itemStyle={{ color: '#fff' }}
@@ -134,7 +125,7 @@ const SaasAdminPage: React.FC = () => {
                     <h3 className="text-lg font-bold text-white mb-6">Novos Usuários (Últimos 6 meses)</h3>
                     <div className="h-80">
                         <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={revenueData}> {/* Reusing mock data for demo */}
+                            <BarChart data={stats.newUserGrowth}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="#333" vertical={false} />
                                 <XAxis dataKey="name" stroke="#666" axisLine={false} tickLine={false} />
                                 <YAxis stroke="#666" axisLine={false} tickLine={false} />
@@ -169,33 +160,30 @@ const SaasAdminPage: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-800">
-                            {users.map((user) => (
-                                <tr key={user.id} className="hover:bg-gray-800/30 transition-colors">
+                            {tenants.map((tenant) => (
+                                <tr key={tenant.id} className="hover:bg-gray-800/30 transition-colors">
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-3">
                                             <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-xs font-bold text-white">
-                                                {user.name?.[0] || 'U'}
+                                                {tenant.name?.[0] || 'T'}
                                             </div>
                                             <div>
-                                                <p className="font-medium text-white text-sm">{user.name || 'Sem Nome'}</p>
-                                                <p className="text-xs text-gray-500">{user.email}</p>
+                                                <p className="font-medium text-white text-sm">{tenant.name || 'Sem Nome'}</p>
+                                                <p className="text-xs text-gray-500">ID: {tenant.id.split('-')[0]}...</p>
                                             </div>
                                         </div>
                                     </td>
                                     <td className="px-6 py-4">
-                                        <span className={`px-2 py-1 rounded text-xs font-bold ${user.role === 'super_admin' ? 'bg-purple-500/10 text-purple-500' :
-                                            user.role === 'admin' ? 'bg-primary-500/10 text-primary-500' :
-                                                'bg-gray-700 text-gray-300'
-                                            }`}>
-                                            {user.role}
+                                        <span className={`px-2 py-1 rounded text-xs font-bold bg-gray-700 text-gray-300`}>
+                                            Tenant
                                         </span>
                                     </td>
                                     <td className="px-6 py-4">
-                                        <span className={`inline-block w-2 h-2 rounded-full ${user.active ? 'bg-green-500' : 'bg-red-500'} mr-2`}></span>
-                                        <span className="text-sm text-gray-300">{user.active ? 'Ativo' : 'Inativo'}</span>
+                                        <span className={`inline-block w-2 h-2 rounded-full ${tenant.active !== false ? 'bg-green-500' : 'bg-red-500'} mr-2`}></span>
+                                        <span className="text-sm text-gray-300">{tenant.active !== false ? 'Ativo' : 'Inativo'}</span>
                                     </td>
                                     <td className="px-6 py-4 text-right">
-                                        <button className="text-gray-400 hover:text-white transition-colors text-sm">Editar</button>
+                                        <button className="text-gray-400 hover:text-white transition-colors text-sm">Gerenciar</button>
                                     </td>
                                 </tr>
                             ))}

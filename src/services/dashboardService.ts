@@ -12,7 +12,99 @@ export interface DashboardStats {
     weeklyRevenue: { name: string; revenue: number }[];
 }
 
+export interface SaaSStats {
+    totalTenants: number;
+    activeTenants: number;
+    mrr: number;
+    churnRate: number;
+    revenueGrowth: { name: string; value: number }[];
+    newUserGrowth: { name: string; value: number }[];
+}
+
 export const dashboardService = {
+    async getSaasStats(adminEmail?: string): Promise<{ stats: SaaSStats, tenants: any[] }> {
+        // 1. Fetch all tenants
+        const { data: tenants, error: tenantError } = await supabase
+            .from('tenants')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (tenantError) throw tenantError;
+
+        // 2. Fetch all profiles to filter by admin email if needed
+        const { data: adminProfiles } = await supabase
+            .from('profiles')
+            .select('tenant_id')
+            .eq('email', adminEmail || 'g.pimentat@gmail.com');
+
+        const adminTenantIds = adminProfiles?.map(p => p.tenant_id) || [];
+
+        // 3. Filter tenants (excluding admin's)
+        const realTenants = tenants.filter(t => !adminTenantIds.includes(t.id));
+
+        // 4. Calculate MRR based on subscription module usage
+        // A tenant is considered "Premium" ($377) if they have at least one active subscription in their client base.
+        // This is a proxy for "using the module".
+        const { data: activeSubs } = await supabase
+            .from('clients')
+            .select('tenant_id')
+            .eq('subscription_status', 'active');
+
+        const premiumTenantIds = new Set(activeSubs?.map(s => s.tenant_id) || []);
+
+        let mrr = 0;
+        realTenants.forEach(t => {
+            if (premiumTenantIds.has(t.id)) {
+                mrr += 377;
+            } else {
+                mrr += 97;
+            }
+        });
+
+        // 5. Churn Rate calculation
+        // Simplified: (Tenants inactive) / (Total tenants)
+        const inactiveTenants = realTenants.filter(t => t.subscription_status === 'inactive').length;
+        const churnRate = realTenants.length > 0 ? (inactiveTenants / realTenants.length) * 100 : 0;
+
+        // 6. Growth Data (Last 6 Months)
+        const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+        const newUserGrowth = [];
+        const revenueGrowth = [];
+
+        const now = new Date();
+        for (let i = 5; i >= 0; i--) {
+            const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            const monthName = months[d.getMonth()];
+
+            // Count tenants created up to this month
+            const tenantsUpToMonth = realTenants.filter(t => new Date(t.created_at || '') <= new Date(d.getFullYear(), d.getMonth() + 1, 0));
+
+            let monthlyMrr = 0;
+            tenantsUpToMonth.forEach(t => {
+                // Only count active ones for past revenue projection in this simple model
+                if (t.subscription_status === 'active') {
+                    if (premiumTenantIds.has(t.id)) monthlyMrr += 377;
+                    else monthlyMrr += 97;
+                }
+            });
+
+            newUserGrowth.push({ name: monthName, value: tenantsUpToMonth.length });
+            revenueGrowth.push({ name: monthName, value: monthlyMrr });
+        }
+
+        return {
+            stats: {
+                totalTenants: realTenants.length,
+                activeTenants: realTenants.filter(t => t.subscription_status === 'active').length,
+                mrr,
+                churnRate: parseFloat(churnRate.toFixed(1)),
+                revenueGrowth,
+                newUserGrowth
+            },
+            tenants: realTenants
+        };
+    },
+
     async getAdminStats(tenantId: string, adminEmail?: string): Promise<DashboardStats> {
         const today = new Date().toISOString().split('T')[0];
 
