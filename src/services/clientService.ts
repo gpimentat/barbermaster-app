@@ -318,10 +318,38 @@ export const clientService = {
 
         const { error } = await supabase
             .from('clients')
-            .update({ loyalty_points: client.loyalty_points + points })
+            .update({ loyalty_points: Math.max(0, (client.loyalty_points || 0) + points) })
             .eq('id', clientId);
 
         if (error) throw error;
+    },
+
+    // Resgatar Recompensa
+    async redeemReward(tenantId: string, clientId: string, reward: any): Promise<void> {
+        // 1. Verificar se o cliente tem pontos suficientes
+        const client = await this.getById(clientId);
+        if (!client) throw new Error('client_not_found');
+
+        if ((client.loyalty_points || 0) < reward.pointsCost) {
+            throw new Error('insufficient_points');
+        }
+
+        // 2. Criar o registro de resgate
+        const { error: redemptionError } = await supabase
+            .from('reward_redemptions')
+            .insert({
+                tenant_id: tenantId,
+                client_id: clientId,
+                reward_id: reward.id,
+                reward_title: reward.title,
+                points_cost: reward.pointsCost,
+                status: 'pending'
+            });
+
+        if (redemptionError) throw redemptionError;
+
+        // 3. Deduzir os pontos
+        await this.addLoyaltyPoints(clientId, -reward.pointsCost);
     }
 };
 

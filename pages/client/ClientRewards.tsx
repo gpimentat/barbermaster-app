@@ -43,14 +43,19 @@ const ClientRewards: React.FC<ClientRewardsProps> = ({ tenant, clientData }) => 
         const confirm = window.confirm(`Resgatar ${reward.title} por ${reward.pointsCost} pontos?`);
         if (!confirm) return;
 
+        setLoading(true);
         try {
-            // Deduzir pontos
-            await clientService.addLoyaltyPoints(clientData.clientId, -reward.pointsCost);
+            // Realizar o resgate via serviço
+            await clientService.redeemReward(tenant.id, clientData.clientId, reward);
+
+            // Atualizar estado local
             setLoyaltyPoints(prev => prev - reward.pointsCost);
-            alert('✅ Recompensa resgatada com sucesso!');
+            alert('✅ Recompensa resgatada com sucesso! Mostre esta tela ao barbeiro para receber seu prêmio.');
         } catch (error) {
             console.error('Redeem error:', error);
             alert('Erro ao resgatar. Tente novamente.');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -181,8 +186,8 @@ const ClientRewards: React.FC<ClientRewardsProps> = ({ tenant, clientData }) => 
                                         onClick={() => handleRedeem(reward)}
                                         disabled={!canRedeem}
                                         className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${canRedeem
-                                                ? 'text-dark-950 hover:scale-105'
-                                                : 'text-gray-600 border border-gray-800 cursor-not-allowed'
+                                            ? 'text-dark-950 hover:scale-105'
+                                            : 'text-gray-600 border border-gray-800 cursor-not-allowed'
                                             }`}
                                         style={{
                                             backgroundColor: canRedeem ? primaryColor : 'transparent'
