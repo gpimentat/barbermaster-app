@@ -51,7 +51,7 @@ const Dashboard: React.FC = () => {
         const data = await dashboardService.getBarberStats(currentUser!.tenantId, currentUser!.id);
         setBarberStats(data);
       } else {
-        const data = await dashboardService.getAdminStats(currentUser!.tenantId);
+        const data = await dashboardService.getAdminStats(currentUser!.tenantId, currentUser!.email);
         setStats(data);
       }
     } catch (error) {

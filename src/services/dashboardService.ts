@@ -13,7 +13,7 @@ export interface DashboardStats {
 }
 
 export const dashboardService = {
-    async getAdminStats(tenantId: string): Promise<DashboardStats> {
+    async getAdminStats(tenantId: string, adminEmail?: string): Promise<DashboardStats> {
         const today = new Date().toISOString().split('T')[0];
 
         // 1. Appointments for today (Status/Count)
@@ -45,14 +45,31 @@ export const dashboardService = {
             .select('*', { count: 'exact', head: true })
             .eq('tenant_id', tenantId);
 
-        // 4. MRR (Subscriptions)
+        // 4. MRR (Subscriptions) - Dados Reais
         const { data: subscribers } = await supabase
             .from('clients')
-            .select('subscription_status')
+            .select('subscription_plan_id, email')
             .eq('tenant_id', tenantId)
             .eq('subscription_status', 'active');
 
-        const mrr = (subscribers || []).length * 89.90; // Fallback value assuming average plan price
+        // Filtrar o admin se o e-mail for fornecido
+        const activeSubscribers = adminEmail
+            ? (subscribers || []).filter(s => s.email !== adminEmail)
+            : (subscribers || []);
+
+        // Mapa de preços dos planos (importado ou definido localmente se necessário, 
+        // mas para precisão absoluta deveríamos buscar da tabela se existisse, 
+        // como não existe, usamos o mapeamento dos MOCKs que refletem os IDs usados)
+        const planPrices: Record<string, number> = {
+            'sub1': 89.90,
+            'sub2': 69.90,
+            'sub3': 149.90
+        };
+
+        const mrr = activeSubscribers.reduce((acc, s) => {
+            const price = planPrices[s.subscription_plan_id] || 0;
+            return acc + price;
+        }, 0);
 
         // 5. Weekly Revenue (from paid comandas)
         const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
