@@ -160,10 +160,12 @@ const Sidebar = ({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
       <div className="px-6 py-4">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-10 h-10 rounded-full bg-gray-800 border border-gray-700 overflow-hidden">
-            {currentUser ? (
+            {currentUser?.avatar ? (
               <img src={currentUser.avatar} className="w-full h-full object-cover" />
             ) : (
-              <div className="w-full h-full flex items-center justify-center bg-primary-500 text-dark-950 font-bold">A</div>
+              <div className="w-full h-full flex items-center justify-center bg-primary-500 text-dark-950 font-bold text-xl">
+                {currentUser?.name?.charAt(0).toUpperCase() || 'A'}
+              </div>
             )}
           </div>
           <div>

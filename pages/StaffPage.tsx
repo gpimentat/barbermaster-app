@@ -272,8 +272,14 @@ const StaffPage: React.FC = () => {
             </div>
             <div className="px-6 pb-6">
               <div className="relative -top-12 flex flex-col items-center">
-                <div className="w-24 h-24 rounded-full border-4 border-dark-900 overflow-hidden bg-gray-800 shadow-lg">
-                  <img src={barber.avatar} alt={barber.name} className="w-full h-full object-cover" />
+                <div className="w-24 h-24 rounded-full border-4 border-dark-900 overflow-hidden bg-gray-800 shadow-lg flex items-center justify-center relative">
+                  {barber.avatar ? (
+                    <img src={barber.avatar} alt={barber.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-primary-500 flex items-center justify-center text-4xl font-bold text-dark-950">
+                      {barber.name.charAt(0).toUpperCase()}
+                    </div>
+                  )}
                 </div>
                 <h3 className="mt-3 text-xl font-bold text-white">{barber.name}</h3>
                 <div className="flex flex-col items-center">
@@ -344,13 +350,17 @@ const StaffPage: React.FC = () => {
                     <div className="relative group">
                       <div
                         onClick={triggerFileInput}
-                        className={`w-32 h-32 rounded-full border-4 flex items-center justify-center overflow-hidden cursor-pointer transition-all ${selectedBarber.avatar
-                          ? 'border-gray-700 hover:border-primary-500'
-                          : 'border-dashed border-gray-600 hover:border-primary-500 bg-gray-800'
+                        className={`w-32 h-32 rounded-full border-4 flex items-center justify-center overflow-hidden cursor-pointer transition-all relative ${selectedBarber.avatar
+                            ? 'border-gray-700 hover:border-primary-500'
+                            : 'border-dashed border-gray-600 hover:border-primary-500 bg-gray-800'
                           }`}
                       >
                         {selectedBarber.avatar ? (
                           <img src={selectedBarber.avatar} alt="Avatar" className="w-full h-full object-cover" />
+                        ) : selectedBarber.name ? (
+                          <div className="w-full h-full bg-primary-500 flex items-center justify-center text-5xl font-bold text-dark-950">
+                            {selectedBarber.name.charAt(0).toUpperCase()}
+                          </div>
                         ) : (
                           <div className="flex flex-col items-center text-gray-500">
                             <Upload size={24} />
