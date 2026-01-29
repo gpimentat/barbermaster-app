@@ -35,7 +35,7 @@ export interface Service {
   id: string;
   name: string;
   price: number;
-  durationMinutes: number;
+  duration: number; // Renomeado de durationMinutes para duration
   description: string;
   chips: number; // Novo: Quantidade de fichas para rateio de assinatura
   hidden?: boolean; // Novo: Serviço oculto para clientes (interno)

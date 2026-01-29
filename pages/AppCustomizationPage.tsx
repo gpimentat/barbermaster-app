@@ -11,6 +11,7 @@ import {
     Layout,
     Star,
     Gift,
+    Package,
     Image as ImageIcon,
     Calendar,
     Grid,
@@ -128,6 +129,9 @@ const AppCustomizationPage: React.FC = () => {
     const [previewSelectedProfessional, setPreviewSelectedProfessional] = useState<any>(null);
     const [previewSelectedDate, setPreviewSelectedDate] = useState<Date | null>(null);
     const [previewSelectedTime, setPreviewSelectedTime] = useState<string>('');
+
+    // Estado para Navegação do Perfil
+    const [previewProfileSubscreen, setPreviewProfileSubscreen] = useState<'main' | 'history' | 'purchases' | 'rewards' | 'notifications'>('main');
 
     const [showSuccess, setShowSuccess] = useState(false);
 
@@ -1627,31 +1631,138 @@ const AppCustomizationPage: React.FC = () => {
                                     )}
 
                                     {appTab === 'profile' && (
-                                        <div className="p-5 pt-12 text-center">
-                                            <div className="w-20 h-20 rounded-3xl bg-gray-800 mx-auto mb-4 border-2 p-1 overflow-hidden shadow-2xl" style={{ borderColor: settings.primaryColor }}>
-                                                <img src={simulationUser.avatar} className="w-full h-full object-cover rounded-2xl" />
-                                            </div>
-                                            <h2 className="text-lg font-black text-white">{simulationUser.name}</h2>
-                                            <p className="text-gray-500 text-xs mb-8">{simulationUser.email}</p>
+                                        <div className="p-5 pt-12 h-full flex flex-col">
+                                            {previewProfileSubscreen === 'main' && (
+                                                <div className="text-center animate-in fade-in slide-in-from-left-4 duration-300">
+                                                    <div className="w-20 h-20 rounded-3xl bg-gray-800 mx-auto mb-4 border-2 p-1 overflow-hidden shadow-2xl" style={{ borderColor: settings.primaryColor }}>
+                                                        <img src={simulationUser.avatar} className="w-full h-full object-cover rounded-2xl" />
+                                                    </div>
+                                                    <h2 className="text-lg font-black text-white">{simulationUser.name}</h2>
+                                                    <p className="text-gray-500 text-xs mb-8">{simulationUser.email}</p>
 
-                                            <div className="grid grid-cols-1 gap-2 text-left">
-                                                {[
-                                                    { icon: Clock, label: 'Histórico de Cortes' },
-                                                    { icon: CreditCard, label: 'Minhas Compras' },
-                                                    { icon: Gift, label: 'Prêmios Resgatados' },
-                                                    { icon: Bell, label: 'Notificações' }
-                                                ].map((item, idx) => (
-                                                    <button key={idx} className="w-full px-4 py-3 bg-gray-900/50 rounded-xl flex justify-between items-center text-white border border-gray-800 hover:bg-gray-800 transition-colors">
-                                                        <span className="flex items-center gap-3 text-xs font-bold text-gray-300">
-                                                            <item.icon size={16} style={{ color: settings.primaryColor }} /> {item.label}
-                                                        </span>
-                                                        <ChevronRight size={14} className="text-gray-700" />
-                                                    </button>
-                                                ))}
-                                                <button onClick={() => setPreviewScreen('login')} className="w-full p-3 bg-red-500/10 rounded-xl flex justify-center items-center text-red-500 border border-red-500/20 mt-4 text-xs font-black uppercase tracking-widest transition-colors hover:bg-red-500/20">
-                                                    Sair da Conta
-                                                </button>
-                                            </div>
+                                                    <div className="grid grid-cols-1 gap-2 text-left">
+                                                        {[
+                                                            { id: 'history', icon: Clock, label: 'Histórico de Cortes' },
+                                                            { id: 'purchases', icon: CreditCard, label: 'Minhas Compras' },
+                                                            { id: 'rewards', icon: Gift, label: 'Prêmios Resgatados' },
+                                                            { id: 'notifications', icon: Bell, label: 'Notificações' }
+                                                        ].map((item) => (
+                                                            <button
+                                                                key={item.id}
+                                                                onClick={() => setPreviewProfileSubscreen(item.id as any)}
+                                                                className="w-full px-4 py-3 bg-gray-900/50 rounded-xl flex justify-between items-center text-white border border-gray-800 hover:bg-gray-800 transition-colors"
+                                                            >
+                                                                <span className="flex items-center gap-3 text-xs font-bold text-gray-300">
+                                                                    <item.icon size={16} style={{ color: settings.primaryColor }} /> {item.label}
+                                                                </span>
+                                                                <ChevronRight size={14} className="text-gray-700" />
+                                                            </button>
+                                                        ))}
+                                                        <button onClick={() => setPreviewScreen('login')} className="w-full p-3 bg-red-500/10 rounded-xl flex justify-center items-center text-red-500 border border-red-500/20 mt-4 text-xs font-black uppercase tracking-widest transition-colors hover:bg-red-500/20">
+                                                            Sair da Conta
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Sub-telas do Perfil */}
+                                            {previewProfileSubscreen !== 'main' && (
+                                                <div className="h-full flex flex-col animate-in fade-in slide-in-from-right-4 duration-300">
+                                                    <div className="flex items-center gap-3 mb-6">
+                                                        <button
+                                                            onClick={() => setPreviewProfileSubscreen('main')}
+                                                            className="p-2 bg-gray-800 rounded-full text-white hover:bg-gray-700 transition-colors"
+                                                        >
+                                                            <ArrowLeft size={16} />
+                                                        </button>
+                                                        <h2 className="text-lg font-bold text-white">
+                                                            {previewProfileSubscreen === 'history' && 'Histórico'}
+                                                            {previewProfileSubscreen === 'purchases' && 'Compras'}
+                                                            {previewProfileSubscreen === 'rewards' && 'Meus Prêmios'}
+                                                            {previewProfileSubscreen === 'notifications' && 'Notificações'}
+                                                        </h2>
+                                                    </div>
+
+                                                    <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar space-y-3">
+                                                        {previewProfileSubscreen === 'history' && (
+                                                            <>
+                                                                {[1, 2, 3].map(i => (
+                                                                    <div key={i} className="bg-gray-900 border border-gray-800 p-3 rounded-xl flex justify-between items-center">
+                                                                        <div className="flex items-center gap-3">
+                                                                            <div className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center">
+                                                                                <Scissors size={18} className="text-gray-500" />
+                                                                            </div>
+                                                                            <div>
+                                                                                <p className="text-white font-bold text-xs">Corte Clássico</p>
+                                                                                <p className="text-gray-500 text-[10px]">2{i} de Out, 15:00</p>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className="text-right">
+                                                                            <p className="text-white font-bold text-xs">R$ 60,00</p>
+                                                                            <span className="text-[9px] text-green-500 bg-green-500/10 px-1.5 py-0.5 rounded uppercase font-bold">Concluído</span>
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </>
+                                                        )}
+
+                                                        {previewProfileSubscreen === 'purchases' && (
+                                                            <>
+                                                                {[1, 2].map(i => (
+                                                                    <div key={i} className="bg-gray-900 border border-gray-800 p-3 rounded-xl flex justify-between items-center">
+                                                                        <div className="flex items-center gap-3">
+                                                                            <div className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center">
+                                                                                <Package size={18} className="text-gray-500" />
+                                                                            </div>
+                                                                            <div>
+                                                                                <p className="text-white font-bold text-xs">Pomada Matte</p>
+                                                                                <p className="text-gray-500 text-[10px]">1{i} de Out, 10:30</p>
+                                                                            </div>
+                                                                        </div>
+                                                                        <p className="text-white font-bold text-xs">R$ 45,00</p>
+                                                                    </div>
+                                                                ))}
+                                                            </>
+                                                        )}
+
+                                                        {previewProfileSubscreen === 'rewards' && (
+                                                            <>
+                                                                <div className="bg-gray-900 border border-gray-800 p-3 rounded-xl flex justify-between items-center opacity-50">
+                                                                    <div className="flex items-center gap-3">
+                                                                        <div className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center">
+                                                                            <Gift size={18} className="text-gray-500" />
+                                                                        </div>
+                                                                        <div>
+                                                                            <p className="text-white font-bold text-xs">Corte Grátis</p>
+                                                                            <p className="text-gray-500 text-[10px]">Resgatado em 10/10/2023</p>
+                                                                        </div>
+                                                                    </div>
+                                                                    <span className="text-[9px] text-gray-400 bg-gray-800 px-1.5 py-0.5 rounded uppercase font-bold">Usado</span>
+                                                                </div>
+                                                            </>
+                                                        )}
+
+                                                        {previewProfileSubscreen === 'notifications' && (
+                                                            <>
+                                                                <div className="bg-gray-900 border border-gray-800 p-3 rounded-xl space-y-1">
+                                                                    <div className="flex justify-between items-start">
+                                                                        <p className="text-white font-bold text-xs">Lembrete de Agendamento</p>
+                                                                        <span className="text-[9px] text-gray-500">2h atrás</span>
+                                                                    </div>
+                                                                    <p className="text-gray-400 text-[10px]">Seu corte é hoje às 15:00. Não se atrase!</p>
+                                                                </div>
+                                                                <div className="bg-gray-900 border border-gray-800 p-3 rounded-xl space-y-1">
+                                                                    <div className="flex justify-between items-start">
+                                                                        <p className="text-white font-bold text-xs">Promoção Relâmpago</p>
+                                                                        <span className="text-[9px] text-gray-500">1d atrás</span>
+                                                                    </div>
+                                                                    <p className="text-gray-400 text-[10px]">50% OFF em produtos de barba só hoje.</p>
+                                                                </div>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                 </div>
