@@ -490,7 +490,7 @@ const ComandasPage: React.FC = () => {
   const handleCancelComanda = async () => {
     if (!selectedComanda) return;
 
-    // Permission Check: Admin, Super Admin, or possibly Receptionist/Gerente
+    // Permission Check: Admin, Super Admin, or Receptionist
     if (!['admin', 'super_admin', 'receptionist'].includes(role)) {
       alert('Você não tem permissão para cancelar comandas.');
       return;
@@ -661,7 +661,7 @@ const ComandasPage: React.FC = () => {
               </div>
               <div className="flex gap-2">
                 {/* Botão Cancelar (Status = Canceled) */}
-                {['admin', 'super_admin'].includes(role) && !isReadOnly && (
+                {['admin', 'super_admin', 'receptionist'].includes(role) && !isReadOnly && (
                   <button
                     onClick={handleCancelComanda}
                     className="text-orange-500 hover:text-orange-400 p-2 hover:bg-orange-500/10 rounded-lg transition-colors"
