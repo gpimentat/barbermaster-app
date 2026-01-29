@@ -48,11 +48,11 @@ export const MOCK_BARBERS: Barber[] = [
 ];
 
 export const MOCK_SERVICES: Service[] = [
-  { id: 's1', name: 'Corte Clássico', price: 60.00, durationMinutes: 45, description: 'Corte tradicional com tesoura e máquina.', chips: 2 },
-  { id: 's2', name: 'Barba Completa', price: 45.00, durationMinutes: 30, description: 'Modelagem de barba com toalha quente.', chips: 1 },
-  { id: 's3', name: 'Corte + Barba', price: 95.00, durationMinutes: 75, description: 'Combo completo.', chips: 3 },
-  { id: 's4', name: 'Pezinho / Acabamento', price: 20.00, durationMinutes: 15, description: 'Apenas acabamento nas laterais e nuca.', chips: 0.5 },
-  { id: 's5', name: 'Hidratação Capilar', price: 35.00, durationMinutes: 20, description: 'Tratamento profundo para os fios.', chips: 1 },
+  { id: 's1', name: 'Corte Clássico', price: 60.00, duration: 45, description: 'Corte tradicional com tesoura e máquina.', chips: 2 },
+  { id: 's2', name: 'Barba Completa', price: 45.00, duration: 30, description: 'Modelagem de barba com toalha quente.', chips: 1 },
+  { id: 's3', name: 'Corte + Barba', price: 95.00, duration: 75, description: 'Combo completo.', chips: 3 },
+  { id: 's4', name: 'Pezinho / Acabamento', price: 20.00, duration: 15, description: 'Apenas acabamento nas laterais e nuca.', chips: 0.5 },
+  { id: 's5', name: 'Hidratação Capilar', price: 35.00, duration: 20, description: 'Tratamento profundo para os fios.', chips: 1 },
 ];
 
 export const MOCK_PRODUCTS: Product[] = [

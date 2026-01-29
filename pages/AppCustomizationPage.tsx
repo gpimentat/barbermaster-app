@@ -116,6 +116,19 @@ const AppCustomizationPage: React.FC = () => {
     const [previewScreen, setPreviewScreen] = useState<'login' | 'app'>('login');
     const [appTab, setAppTab] = useState<'home' | 'schedule' | 'rewards' | 'profile'>('home');
 
+    // Estados para Login com OTP
+    const [previewPhone, setPreviewPhone] = useState('');
+    const [previewOTP, setPreviewOTP] = useState('');
+    const [previewLoginStep, setPreviewLoginStep] = useState<'phone' | 'otp'>('phone');
+    const [previewOTPSent, setPreviewOTPSent] = useState(false);
+
+    // Estados para Agendamento
+    const [previewBookingStep, setPreviewBookingStep] = useState<'service' | 'professional' | 'datetime' | 'confirm'>('service');
+    const [previewSelectedService, setPreviewSelectedService] = useState<any>(null);
+    const [previewSelectedProfessional, setPreviewSelectedProfessional] = useState<any>(null);
+    const [previewSelectedDate, setPreviewSelectedDate] = useState<Date | null>(null);
+    const [previewSelectedTime, setPreviewSelectedTime] = useState<string>('');
+
     const [showSuccess, setShowSuccess] = useState(false);
 
     // Estados locais para inputs do preview (Simulação)
@@ -1391,30 +1404,175 @@ const AppCustomizationPage: React.FC = () => {
                                     )}
 
                                     {appTab === 'schedule' && (
-                                        <div className="p-5 pt-12">
-                                            <h2 className="text-2xl font-bold text-white mb-6">Agendar Horário</h2>
-                                            <div className="bg-gray-900 rounded-xl p-4 mb-6 border border-gray-800">
-                                                <div className="flex justify-between items-center mb-4">
-                                                    <h3 className="text-white font-bold">Janeiro 2026</h3>
-                                                    <div className="flex gap-2">
-                                                        <button className="p-1 text-gray-400"><ArrowLeft size={16} /></button>
-                                                        <button className="p-1 text-white"><ArrowRight size={16} /></button>
-                                                    </div>
+                                        <div className="p-5 pt-12 h-full flex flex-col">
+                                            {/* Cabeçalho */}
+                                            <div className="flex justify-between items-center mb-6">
+                                                <div>
+                                                    <h2 className="text-xl font-black text-white leading-tight">Agendar<br />Horário</h2>
                                                 </div>
-                                                <div className="grid grid-cols-7 gap-2 text-center text-[10px] mb-2 font-bold text-gray-600">
-                                                    <span>D</span><span>S</span><span>T</span><span>Q</span><span>Q</span><span>S</span><span>S</span>
-                                                </div>
-                                                <div className="grid grid-cols-7 gap-1 text-center">
-                                                    {[...Array(31)].map((_, i) => (
-                                                        <span key={i} className={`p-1.5 text-xs rounded-lg ${i === 28 ? 'bg-primary-500 text-dark-950 font-black' : 'text-white'}`}>{i + 1}</span>
-                                                    ))}
-                                                </div>
+                                                {previewBookingStep !== 'service' && (
+                                                    <button onClick={() => setPreviewBookingStep(prev => prev === 'confirm' ? 'datetime' : prev === 'datetime' ? 'professional' : 'service')} className="p-2 bg-white/10 rounded-full hover:bg-white/20 transition-colors">
+                                                        <ArrowLeft size={18} className="text-white" />
+                                                    </button>
+                                                )}
                                             </div>
-                                            <h3 className="text-white font-bold mb-3 text-sm">Horários</h3>
-                                            <div className="grid grid-cols-3 gap-2">
-                                                {['09:00', '10:00', '11:30', '14:00', '16:30', '18:00'].map(t => (
-                                                    <button key={t} className="bg-gray-800 text-white py-2 rounded-lg text-[10px] font-bold hover:bg-primary-500 hover:text-dark-950">{t}</button>
-                                                ))}
+
+                                            {/* Steps */}
+                                            <div className="flex gap-1 mb-6">
+                                                {['service', 'professional', 'datetime', 'confirm'].map((step, idx) => {
+                                                    const steps = ['service', 'professional', 'datetime', 'confirm'];
+                                                    const currentIdx = steps.indexOf(previewBookingStep);
+                                                    const isActive = idx <= currentIdx;
+                                                    return (
+                                                        <div
+                                                            key={step}
+                                                            className={`h-1 flex-1 rounded-full transition-all duration-500 ${isActive ? 'bg-primary-500' : 'bg-gray-800'}`}
+                                                            style={{ backgroundColor: isActive ? settings.primaryColor : undefined }}
+                                                        />
+                                                    );
+                                                })}
+                                            </div>
+
+                                            {/* Conteúdo Dinâmico */}
+                                            <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar">
+                                                {previewBookingStep === 'service' && (
+                                                    <div className="space-y-3 animate-in fade-in slide-in-from-right-4 duration-300">
+                                                        <h3 className="text-white text-sm font-bold mb-2">Selecione o Serviço</h3>
+                                                        {MOCK_SERVICES.map(service => (
+                                                            <button
+                                                                key={service.id}
+                                                                onClick={() => {
+                                                                    setPreviewSelectedService(service);
+                                                                    setPreviewBookingStep('professional');
+                                                                }}
+                                                                className="w-full p-3 rounded-xl bg-gray-900 border border-gray-800 flex justify-between items-center hover:bg-gray-800 hover:border-gray-700 transition-all group"
+                                                            >
+                                                                <div className="flex items-center gap-3 text-left">
+                                                                    <div className="w-10 h-10 rounded-lg bg-gray-800 flex items-center justify-center">
+                                                                        <Scissors size={18} className="text-gray-400 group-hover:text-primary-500 transition-colors" />
+                                                                    </div>
+                                                                    <div>
+                                                                        <p className="text-white font-bold text-xs">{service.name}</p>
+                                                                        <p className="text-gray-500 text-[10px]">{service.duration} min • R$ {service.price.toFixed(2)}</p>
+                                                                    </div>
+                                                                </div>
+                                                                <ChevronRight size={16} className="text-gray-600" />
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                )}
+
+                                                {previewBookingStep === 'professional' && (
+                                                    <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
+                                                        <h3 className="text-white text-sm font-bold mb-2">Selecione o Profissional</h3>
+                                                        {[
+                                                            { id: 1, name: 'Carlos Oliveira', role: 'Master Barber', avatar: 'https://images.unsplash.com/photo-1583336633292-2ec016fb15d3?w=100&h=100&fit=crop' },
+                                                            { id: 2, name: 'Lucas Santos', role: 'Barber', avatar: 'https://images.unsplash.com/photo-1618077553763-ebfba3d3ab29?w=100&h=100&fit=crop' },
+                                                            { id: 3, name: 'Marcos Silva', role: 'Barber', avatar: 'https://images.unsplash.com/photo-1480455624313-e29b44bbfde1?w=100&h=100&fit=crop' }
+                                                        ].map(prof => (
+                                                            <button
+                                                                key={prof.id}
+                                                                onClick={() => {
+                                                                    setPreviewSelectedProfessional(prof);
+                                                                    setPreviewBookingStep('datetime');
+                                                                }}
+                                                                className="w-full p-3 rounded-xl bg-gray-900 border border-gray-800 flex items-center gap-3 hover:bg-gray-800 hover:border-gray-700 transition-all"
+                                                            >
+                                                                <img src={prof.avatar} className="w-12 h-12 rounded-full object-cover border-2 border-gray-800" />
+                                                                <div className="text-left">
+                                                                    <p className="text-white font-bold text-sm">{prof.name}</p>
+                                                                    <p className="text-gray-500 text-xs">{prof.role}</p>
+                                                                </div>
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                )}
+
+                                                {previewBookingStep === 'datetime' && (
+                                                    <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                                                        <div>
+                                                            <div className="flex justify-between items-center mb-4">
+                                                                <h3 className="text-white font-bold">Hoje</h3>
+                                                                <div className="flex gap-2">
+                                                                    <button className="p-1 text-gray-400 hover:text-white"><ArrowLeft size={16} /></button>
+                                                                    <button className="p-1 text-white hover:text-white"><ArrowRight size={16} /></button>
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
+                                                                {[...Array(7)].map((_, i) => (
+                                                                    <button
+                                                                        key={i}
+                                                                        onClick={() => setPreviewSelectedDate(new Date())}
+                                                                        className={`min-w-[45px] p-2 rounded-xl flex flex-col items-center gap-1 border border-gray-800 transition-colors ${i === 0 ? 'bg-primary-500 border-transparent' : 'bg-gray-900'
+                                                                            }`}
+                                                                        style={i === 0 ? { backgroundColor: settings.primaryColor } : {}}
+                                                                    >
+                                                                        <span className={`text-[9px] font-bold uppercase ${i === 0 ? 'text-dark-950' : 'text-gray-500'}`}>SEG</span>
+                                                                        <span className={`text-sm font-black ${i === 0 ? 'text-dark-950' : 'text-white'}`}>{10 + i}</span>
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+
+                                                        <div>
+                                                            <h3 className="text-white font-bold mb-3 text-sm">Disponíveis</h3>
+                                                            <div className="grid grid-cols-3 gap-2">
+                                                                {['09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00'].map(t => (
+                                                                    <button
+                                                                        key={t}
+                                                                        onClick={() => {
+                                                                            setPreviewSelectedTime(t);
+                                                                            setPreviewBookingStep('confirm');
+                                                                        }}
+                                                                        className="bg-gray-800 text-white py-2.5 rounded-lg text-xs font-bold hover:bg-white hover:text-dark-950 transition-colors"
+                                                                    >
+                                                                        {t}
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {previewBookingStep === 'confirm' && (
+                                                    <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                                                        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 text-center space-y-4">
+                                                            <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-2 text-green-500">
+                                                                <CheckCircle2 size={32} />
+                                                            </div>
+                                                            <h3 className="text-white font-black text-lg">Confirmar?</h3>
+                                                            <div className="space-y-3 text-left">
+                                                                <div className="flex justify-between text-sm py-2 border-b border-gray-800">
+                                                                    <span className="text-gray-500">Serviço</span>
+                                                                    <span className="text-white font-bold">{previewSelectedService?.name}</span>
+                                                                </div>
+                                                                <div className="flex justify-between text-sm py-2 border-b border-gray-800">
+                                                                    <span className="text-gray-500">Profissional</span>
+                                                                    <span className="text-white font-bold">{previewSelectedProfessional?.name}</span>
+                                                                </div>
+                                                                <div className="flex justify-between text-sm py-2 border-b border-gray-800">
+                                                                    <span className="text-gray-500">Data</span>
+                                                                    <span className="text-white font-bold">Hoje às {previewSelectedTime}</span>
+                                                                </div>
+                                                                <div className="flex justify-between text-sm py-2">
+                                                                    <span className="text-gray-500">Valor</span>
+                                                                    <span className="text-green-500 font-black">R$ {previewSelectedService?.price.toFixed(2)}</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <button
+                                                            onClick={() => {
+                                                                alert('Agendamento simulado com sucesso! 🎉');
+                                                                setAppTab('home');
+                                                                setPreviewBookingStep('service');
+                                                            }}
+                                                            className="w-full py-4 rounded-xl font-bold bg-green-500 text-white shadow-lg shadow-green-500/20 hover:scale-105 transition-transform"
+                                                        >
+                                                            Confirmar Agendamento
+                                                        </button>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     )}
@@ -1529,10 +1687,81 @@ const AppCustomizationPage: React.FC = () => {
                                 <div className="w-28 h-28 bg-white rounded-3xl shadow-2xl flex items-center justify-center mb-8 p-3 animate-in zoom-in duration-500">
                                     <img src={settings.logoPreview} className="w-full h-full object-contain rounded-xl" />
                                 </div>
-                                <button onClick={() => setPreviewScreen('app')} className="bg-white text-dark-950 px-8 py-4 rounded-xl font-bold shadow-xl hover:scale-105 transition-transform flex items-center gap-2">
-                                    Entrar no App <ArrowRight size={18} />
-                                </button>
-                                <p className="mt-4 text-dark-950/60 text-xs font-medium">Toque para simular o login</p>
+
+                                <div className="w-full max-w-xs space-y-4">
+                                    {previewLoginStep === 'phone' && (
+                                        <div className="space-y-4 animate-in slide-in-from-bottom duration-300">
+                                            <div>
+                                                <label className="block text-white/80 text-xs font-bold mb-2">Número de Telefone</label>
+                                                <input
+                                                    type="tel"
+                                                    placeholder="(11) 99999-9999"
+                                                    value={previewPhone}
+                                                    onChange={(e) => setPreviewPhone(e.target.value)}
+                                                    className="w-full px-4 py-3 rounded-xl bg-white/20 backdrop-blur-sm border-2 border-white/30 text-white placeholder-white/50 font-medium focus:outline-none focus:border-white/60 transition-all"
+                                                />
+                                            </div>
+                                            <button
+                                                onClick={() => {
+                                                    if (previewPhone.length >= 10) {
+                                                        setPreviewLoginStep('otp');
+                                                        setPreviewOTPSent(true);
+                                                    }
+                                                }}
+                                                disabled={previewPhone.length < 10}
+                                                className="w-full bg-white text-dark-950 px-8 py-4 rounded-xl font-bold shadow-xl hover:scale-105 transition-transform flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                                            >
+                                                Enviar Código <Send size={18} />
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {previewLoginStep === 'otp' && (
+                                        <div className="space-y-4 animate-in slide-in-from-bottom duration-300">
+                                            <button
+                                                onClick={() => setPreviewLoginStep('phone')}
+                                                className="flex items-center gap-2 text-white/80 text-sm font-medium mb-2 hover:text-white transition-colors"
+                                            >
+                                                <ArrowLeft size={16} /> Voltar
+                                            </button>
+                                            <div>
+                                                <label className="block text-white/80 text-xs font-bold mb-2">
+                                                    Código enviado para {previewPhone}
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    placeholder="000000"
+                                                    maxLength={6}
+                                                    value={previewOTP}
+                                                    onChange={(e) => setPreviewOTP(e.target.value.replace(/\D/g, ''))}
+                                                    className="w-full px-4 py-3 rounded-xl bg-white/20 backdrop-blur-sm border-2 border-white/30 text-white text-center text-2xl font-bold tracking-widest placeholder-white/50 focus:outline-none focus:border-white/60 transition-all"
+                                                />
+                                            </div>
+                                            <button
+                                                onClick={() => {
+                                                    if (previewOTP.length === 6) {
+                                                        setPreviewScreen('app');
+                                                        setPreviewLoginStep('phone');
+                                                        setPreviewPhone('');
+                                                        setPreviewOTP('');
+                                                    }
+                                                }}
+                                                disabled={previewOTP.length !== 6}
+                                                className="w-full bg-white text-dark-950 px-8 py-4 rounded-xl font-bold shadow-xl hover:scale-105 transition-transform flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                                            >
+                                                Entrar no App <ArrowRight size={18} />
+                                            </button>
+                                            <button
+                                                onClick={() => setPreviewOTPSent(true)}
+                                                className="w-full text-white/60 text-sm font-medium hover:text-white transition-colors"
+                                            >
+                                                Reenviar código
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <p className="mt-6 text-white/60 text-xs font-medium">Preview do fluxo de login</p>
                             </div>
                         )}
                     </div>
