@@ -119,7 +119,7 @@ const Dashboard: React.FC = () => {
               <StatsCard
                 title="Minha Comissão (Est.)"
                 value={`R$ ${(barberStats.totalProduction * (currentUser.commissionRate / 100)).toFixed(2)}`}
-                change="Disponível em breve"
+                change="Hoje"
                 positive={true}
                 icon={Wallet}
                 color="text-green-500"
@@ -353,9 +353,9 @@ const Dashboard: React.FC = () => {
                             </div>
                           </div>
                           <span className={`text-[10px] font-bold px-2 py-1 rounded ${appt.status === 'Agendado' ? 'bg-blue-500/10 text-blue-500' :
-                              appt.status === 'Confirmado' ? 'bg-green-500/10 text-green-500' :
-                                appt.status === 'Concluído' ? 'bg-purple-500/10 text-purple-500' :
-                                  'bg-gray-700 text-gray-400'
+                            appt.status === 'Confirmado' ? 'bg-green-500/10 text-green-500' :
+                              appt.status === 'Concluído' ? 'bg-purple-500/10 text-purple-500' :
+                                'bg-gray-700 text-gray-400'
                             }`}>
                             {appt.status}
                           </span>
