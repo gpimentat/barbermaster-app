@@ -377,7 +377,7 @@ const CommissionsPage: React.FC = () => {
             )}
 
             {/* Modal Detalhes (Admin Only) */}
-            {selectedBarber && role === 'admin' && (
+            {selectedBarber && (role === 'admin' || role === 'super_admin') && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
                     <div className="bg-dark-900 rounded-xl border border-gray-800 shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh]">
                         <div className="flex items-center justify-between p-6 border-b border-gray-800 bg-gray-900/50">
