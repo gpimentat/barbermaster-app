@@ -99,7 +99,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         // @ts-ignore - Supabase join returns object
         tenantName: data.tenants?.name,
         // @ts-ignore
-        subscriptionStatus: data.tenants?.subscription_status
+        subscriptionStatus: data.tenants?.subscription_status,
+        weeklyGoal: data.weekly_goal || 0
       };
       setCurrentUser(barber);
     } else {
@@ -221,7 +222,34 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const switchUser = () => { console.warn("Switch user disabled in production"); };
-  const updateBarber = () => { fetchBarbers(); }; // Refresh list
+  const updateBarber = async (barber: Barber) => {
+    try {
+      if (!currentUser) return;
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          name: barber.name,
+          email: barber.email,
+          role: barber.role,
+          avatar: barber.avatar,
+          commission_rate: barber.commissionRate,
+          weekly_goal: barber.weeklyGoal,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', barber.id);
+
+      if (!error) {
+        // Optimistic update
+        if (currentUser.id === barber.id) {
+          setCurrentUser(barber);
+        }
+        fetchBarbers();
+      }
+    } catch (err) {
+      console.error('Error updating profile:', err);
+    }
+  };
   const addBarber = () => { fetchBarbers(); };
 
   return (

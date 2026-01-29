@@ -30,10 +30,12 @@ import { Link } from 'react-router-dom';
 import { dashboardService, DashboardStats } from '../src/services/dashboardService';
 
 const Dashboard: React.FC = () => {
-  const { role, currentUser } = useAuth();
+  const { role, currentUser, updateBarber } = useAuth();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [barberStats, setBarberStats] = useState<any>(null);
+  const [activeTabBarber, setActiveTabBarber] = useState<'summary' | 'goals'>('summary');
+  const [newGoal, setNewGoal] = useState<string>('');
 
   useEffect(() => {
     if (currentUser?.tenantId) {
@@ -76,91 +78,176 @@ const Dashboard: React.FC = () => {
             <h1 className="text-3xl font-bold text-white">Olá, {currentUser.name} 👋</h1>
             <p className="text-gray-400">Aqui está o resumo da sua produção hoje.</p>
           </div>
-          <div className="bg-primary-500/10 text-primary-500 px-4 py-2 rounded-lg border border-primary-500/20 font-bold text-sm">
-            Taxa de Comissão: {currentUser.commissionRate}%
+          <div className="flex flex-col items-end gap-2">
+            <div className="bg-primary-500/10 text-primary-500 px-4 py-2 rounded-lg border border-primary-500/20 font-bold text-sm">
+              Taxa de Comissão: {currentUser.commissionRate}%
+            </div>
           </div>
         </div>
 
-        {/* KPI Grid Pessoal */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <StatsCard
-            title="Minha Produção Total"
-            value={`R$ ${barberStats.totalProduction.toFixed(2)}`}
-            positive={true}
-            icon={Scissors}
-            color="text-white"
-          />
-          <StatsCard
-            title="Minha Comissão (Est.)"
-            value={`R$ ${(barberStats.totalProduction * (currentUser.commissionRate / 100)).toFixed(2)}`}
-            change="Disponível em breve"
-            positive={true}
-            icon={Wallet}
-            color="text-green-500"
-          />
-          <StatsCard
-            title="Meus Atendimentos"
-            value={barberStats.appointmentsCount}
-            change={`${barberStats.upcomingAppointments.length} pendentes`}
-            positive={true}
-            icon={CalendarCheck}
-            color="text-blue-500"
-          />
+        {/* Tabs para Barbeiro */}
+        <div className="flex border-b border-gray-800 gap-8">
+          <button
+            onClick={() => setActiveTabBarber('summary')}
+            className={`pb-4 text-sm font-bold transition-all relative ${activeTabBarber === 'summary' ? 'text-primary-500' : 'text-gray-500 hover:text-gray-300'}`}
+          >
+            Resumo de Hoje
+            {activeTabBarber === 'summary' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-500 animate-in fade-in slide-in-from-left-2" />}
+          </button>
+          <button
+            onClick={() => setActiveTabBarber('goals')}
+            className={`pb-4 text-sm font-bold transition-all relative ${activeTabBarber === 'goals' ? 'text-primary-500' : 'text-gray-500 hover:text-gray-300'}`}
+          >
+            Minhas Metas Semanais
+            {activeTabBarber === 'goals' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-500 animate-in fade-in slide-in-from-left-2" />}
+          </button>
         </div>
 
-        {/* Agenda Rápida do Barbeiro */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-dark-900 rounded-xl border border-gray-800 overflow-hidden">
-            <div className="p-6 border-b border-gray-800">
-              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                <Clock size={20} className="text-primary-500" /> Meus Atendimentos Hoje
-              </h3>
+        {activeTabBarber === 'summary' ? (
+          <>
+            {/* KPI Grid Pessoal */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <StatsCard
+                title="Minha Produção Total"
+                value={`R$ ${barberStats.totalProduction.toFixed(2)}`}
+                positive={true}
+                icon={Scissors}
+                color="text-white"
+              />
+              <StatsCard
+                title="Minha Comissão (Est.)"
+                value={`R$ ${(barberStats.totalProduction * (currentUser.commissionRate / 100)).toFixed(2)}`}
+                change="Disponível em breve"
+                positive={true}
+                icon={Wallet}
+                color="text-green-500"
+              />
+              <StatsCard
+                title="Meus Atendimentos"
+                value={barberStats.appointmentsCount}
+                change={`${barberStats.upcomingAppointments.length} pendentes`}
+                positive={true}
+                icon={CalendarCheck}
+                color="text-blue-500"
+              />
             </div>
-            <div className="divide-y divide-gray-800">
-              {barberStats.todayAppointments.length > 0 ? (
-                barberStats.todayAppointments.map((appt: any, idx: number) => {
-                  return (
-                    <div key={idx} className="p-4 flex items-center justify-between hover:bg-gray-800/50 transition-colors">
-                      <div className="flex items-center gap-3">
-                        <div className="flex flex-col items-center justify-center bg-gray-800 w-12 h-12 rounded-lg border border-gray-700">
-                          <span className="text-white font-bold">{appt.start_time}</span>
-                        </div>
-                        <div>
-                          <p className="text-white font-medium">{appt.clients?.name || 'Cliente'}</p>
-                          <p className="text-xs text-gray-500">{appt.services?.name}</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <span className={`text-xs font-bold px-2 py-1 rounded inline-block mb-1 ${appt.status === 'Agendado' ? 'bg-blue-500/10 text-blue-500' :
-                          appt.status === 'Confirmado' ? 'bg-green-500/10 text-green-500' :
-                            'bg-gray-700 text-gray-400'
-                          }`}>{appt.status}</span>
-                        <span className="block text-sm font-bold text-gray-300">R$ {Number(appt.price).toFixed(2)}</span>
-                      </div>
-                    </div>
-                  );
-                })
-              ) : (
-                <div className="p-8 text-center text-gray-500">
-                  Nenhum agendamento para hoje.
+
+            {/* Agenda Rápida do Barbeiro */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="bg-dark-900 rounded-xl border border-gray-800 overflow-hidden">
+                <div className="p-6 border-b border-gray-800">
+                  <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                    <Clock size={20} className="text-primary-500" /> Meus Atendimentos Hoje
+                  </h3>
                 </div>
-              )}
-            </div>
-          </div>
+                <div className="divide-y divide-gray-800">
+                  {barberStats.todayAppointments.length > 0 ? (
+                    barberStats.todayAppointments.map((appt: any, idx: number) => {
+                      return (
+                        <div key={idx} className="p-4 flex items-center justify-between hover:bg-gray-800/50 transition-colors">
+                          <div className="flex items-center gap-3">
+                            <div className="flex flex-col items-center justify-center bg-gray-800 w-12 h-12 rounded-lg border border-gray-700">
+                              <span className="text-white font-bold">{appt.start_time}</span>
+                            </div>
+                            <div>
+                              <p className="text-white font-medium">{appt.clients?.name || 'Cliente'}</p>
+                              <p className="text-xs text-gray-500">{appt.services?.name}</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <span className={`text-xs font-bold px-2 py-1 rounded inline-block mb-1 ${appt.status === 'Agendado' ? 'bg-blue-500/10 text-blue-500' :
+                              appt.status === 'Confirmado' ? 'bg-green-500/10 text-green-500' :
+                                'bg-gray-700 text-gray-400'
+                              }`}>{appt.status}</span>
+                            <span className="block text-sm font-bold text-gray-300">R$ {Number(appt.price).toFixed(2)}</span>
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="p-8 text-center text-gray-500">
+                      Nenhum agendamento para hoje.
+                    </div>
+                  )}
+                </div>
+              </div>
 
-          {/* Quick Stats / Dicas */}
-          <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl border border-gray-800 p-6 flex flex-col justify-center items-center text-center">
-            <div className="w-16 h-16 bg-yellow-500/10 rounded-full flex items-center justify-center text-yellow-500 mb-4">
-              <Crown size={32} />
+              {/* Card de Meta na aba Resumo */}
+              <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl border border-gray-800 p-6 flex flex-col justify-center items-center text-center">
+                <div className="w-16 h-16 bg-yellow-500/10 rounded-full flex items-center justify-center text-yellow-500 mb-4">
+                  <Crown size={32} />
+                </div>
+                <h3 className="text-white font-bold text-xl mb-2">Meta Semanal</h3>
+                <p className="text-gray-400 text-sm mb-6">
+                  {currentUser.weeklyGoal && currentUser.weeklyGoal > 0
+                    ? `Continue assim! Sua meta é de R$ ${currentUser.weeklyGoal.toFixed(2)}.`
+                    : "Defina sua meta semanal na aba 'Minhas Metas' para acompanhar seu progresso."}
+                </p>
+
+                {currentUser.weeklyGoal && currentUser.weeklyGoal > 0 && (
+                  <>
+                    <div className="w-full bg-gray-700 h-2 rounded-full overflow-hidden mb-2">
+                      <div
+                        className="bg-yellow-500 h-full transition-all duration-1000"
+                        style={{ width: `${Math.min(100, (barberStats.totalProduction / currentUser.weeklyGoal) * 100)}%` }}
+                      ></div>
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      {Math.round((barberStats.totalProduction / currentUser.weeklyGoal) * 100)}% Concluído
+                      (R$ {barberStats.totalProduction.toFixed(2)} / R$ {currentUser.weeklyGoal.toFixed(2)})
+                    </p>
+                  </>
+                )}
+              </div>
             </div>
-            <h3 className="text-white font-bold text-xl mb-2">Meta Semanal</h3>
-            <p className="text-gray-400 text-sm mb-6">Continue assim! Cada atendimento aproxima você da meta de produção da barbearia.</p>
-            <div className="w-full bg-gray-700 h-2 rounded-full overflow-hidden mb-2">
-              <div className="bg-yellow-500 h-full w-[45%]"></div>
+          </>
+        ) : (
+          <div className="max-w-2xl mx-auto space-y-6 py-8 animate-in slide-in-from-bottom-4">
+            <div className="bg-dark-900 p-8 rounded-xl border border-gray-800 shadow-xl">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="p-3 bg-primary-500/10 rounded-xl text-primary-500">
+                  <TrendingUp size={28} />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-white">Definir Meta de Faturamento</h2>
+                  <p className="text-sm text-gray-400">Quanto você deseja produzir nesta semana?</p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Valor da Meta Semanal (R$)</label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold">R$</span>
+                    <input
+                      type="number"
+                      value={newGoal}
+                      onChange={(e) => setNewGoal(e.target.value)}
+                      placeholder={currentUser.weeklyGoal?.toString() || "0.00"}
+                      className="w-full bg-dark-950 border border-gray-800 rounded-lg pl-12 pr-4 py-4 text-white text-xl font-bold focus:border-primary-500 outline-none transition-all"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => {
+                    if (!newGoal) return;
+                    updateBarber({ ...currentUser, weeklyGoal: Number(newGoal) });
+                    setNewGoal('');
+                    setActiveTabBarber('summary');
+                  }}
+                  className="w-full bg-primary-500 hover:bg-primary-600 text-dark-950 font-bold py-4 rounded-lg shadow-lg shadow-primary-500/20 transition-all active:scale-[0.98]"
+                >
+                  Salvar Meta Semanal
+                </button>
+
+                <p className="text-center text-xs text-gray-500 italic mt-4">
+                  💡 Dica: Defina metas realistas para se manter motivado durante a semana.
+                </p>
+              </div>
             </div>
-            <p className="text-xs text-gray-500">45% Concluído</p>
           </div>
-        </div>
+        )}
       </div>
     );
   }
@@ -392,6 +479,5 @@ const Dashboard: React.FC = () => {
 
   return null;
 };
-
 
 export default Dashboard;

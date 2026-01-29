@@ -28,6 +28,7 @@ export interface Barber {
   tenantId?: string; // Multi-tenancy
   tenantName?: string; // Display name
   subscriptionStatus?: 'active' | 'inactive' | 'past_due';
+  weeklyGoal?: number; // Nova: Meta semanal de faturamento
 }
 
 export interface Service {
