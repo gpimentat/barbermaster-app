@@ -30,7 +30,8 @@ const ServicesPage: React.FC = () => {
           description: s.description || '',
           chips: Number(s.chips) || 0,
           hidden: s.hidden || false,
-          priceVaries: s.price_varies || false
+          priceVaries: s.price_varies || false,
+          loyaltyPoints: s.loyalty_points ?? undefined
         }));
         setServices(mappedServices);
       }
@@ -54,7 +55,8 @@ const ServicesPage: React.FC = () => {
       description: '',
       chips: 1,
       hidden: false,
-      priceVaries: false
+      priceVaries: false,
+      loyaltyPoints: undefined
     });
     setIsDeleteConfirming(false);
   };
@@ -93,6 +95,7 @@ const ServicesPage: React.FC = () => {
       chips: selectedService.chips,
       hidden: selectedService.hidden,
       price_varies: selectedService.priceVaries,
+      loyalty_points: selectedService.loyaltyPoints,
       tenant_id: currentUser?.tenantId
     };
 
@@ -325,6 +328,30 @@ const ServicesPage: React.FC = () => {
                   />
                   <p className="text-[10px] text-gray-500 mt-1">
                     Utilizado para calcular o repasse quando o serviço é realizado via plano de assinatura.
+                  </p>
+                </div>
+              </div>
+
+              {/* Pontos de Fidelidade */}
+              <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-800">
+                <h3 className="text-xs font-bold text-primary-500 uppercase mb-2 flex items-center gap-2">
+                  🎁 Pontos de Fidelidade
+                </h3>
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-1">
+                    Pontos Ganhos por Serviço
+                  </label>
+                  <input
+                    type="number"
+                    step="1"
+                    min="0"
+                    value={selectedService.loyaltyPoints ?? Math.floor(selectedService.price)}
+                    onChange={(e) => updateField('loyaltyPoints', parseInt(e.target.value) || 0)}
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary-500"
+                    placeholder="Pontos"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Sugestão: {Math.floor(selectedService.price)} pontos (baseado no preço)
                   </p>
                 </div>
               </div>

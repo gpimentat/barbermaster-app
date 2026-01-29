@@ -113,7 +113,8 @@ const ComandasPage: React.FC = () => {
         price: Number(s.price),
         durationMinutes: s.duration_minutes,
         description: s.description || '',
-        chips: Number(s.chips) || 0
+        chips: Number(s.chips) || 0,
+        loyaltyPoints: s.loyalty_points ?? undefined
       })));
       setDbProducts((productsData || []).map(p => ({
         id: p.id,
@@ -419,13 +420,16 @@ const ComandasPage: React.FC = () => {
 
       const txInsertions = supabase.from('transactions').insert([...incomeTransactions, ...commissionTransactions]);
 
-      // Loyalty Points
+      // Loyalty Points - Use custom points if defined, otherwise use price
       let pointsPromise: Promise<any> = Promise.resolve();
-      const servicesTotal = selectedComanda.items
+      const earnedPoints = selectedComanda.items
         .filter(item => item.type === 'service')
-        .reduce((acc, item) => acc + (item.price * item.quantity), 0);
+        .reduce((acc, item) => {
+          const service = dbServices.find(s => s.id === item.itemId);
+          const pointsPerService = service?.loyaltyPoints ?? Math.floor(item.price);
+          return acc + (pointsPerService * item.quantity);
+        }, 0);
 
-      const earnedPoints = Math.floor(servicesTotal);
       if (earnedPoints > 0) {
         const client = dbClients.find(c => c.id === selectedComanda.clientId);
         pointsPromise = (supabase

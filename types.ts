@@ -39,6 +39,7 @@ export interface Service {
   chips: number; // Novo: Quantidade de fichas para rateio de assinatura
   hidden?: boolean; // Novo: Serviço oculto para clientes (interno)
   priceVaries?: boolean; // Novo: Indica "A partir de"
+  loyaltyPoints?: number; // Novo: Pontos de fidelidade customizados
 }
 
 export interface Product {
