@@ -100,6 +100,11 @@ const Schedule: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* DEBUG BANNER - TEMPORARY */}
+      <div className="bg-yellow-900/50 text-yellow-200 text-xs p-2 rounded text-center border border-yellow-700">
+        DEBUG AGENDAMENTO: Role Atual = <strong>{role}</strong> | Cargo Banco = <strong>{currentUser?.role || 'N/A'}</strong> | User = {currentUser?.name}
+      </div>
+
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-white">Agenda</h1>
