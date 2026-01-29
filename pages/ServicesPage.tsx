@@ -252,6 +252,19 @@ const ServicesPage: React.FC = () => {
                       required
                     />
                   </div>
+                  {/* Preço Variável */}
+                  <div className="flex items-center gap-2 mt-2">
+                    <input
+                      type="checkbox"
+                      id="priceVaries"
+                      checked={selectedService.priceVaries || false}
+                      onChange={(e) => updateField('priceVaries', e.target.checked)}
+                      className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-primary-500 focus:ring-primary-500"
+                    />
+                    <label htmlFor="priceVaries" className="text-xs text-gray-400 select-none cursor-pointer">
+                      Preço Variável ("A partir de")
+                    </label>
+                  </div>
                 </div>
 
                 {/* Duração */}
