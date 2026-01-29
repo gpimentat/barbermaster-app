@@ -262,7 +262,7 @@ const ServicesPage: React.FC = () => {
                       className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-primary-500 focus:ring-primary-500"
                     />
                     <label htmlFor="priceVaries" className="text-xs text-gray-400 select-none cursor-pointer">
-                      Preço Variável ("A partir de")
+                      Preço Variável ("A partir de")  {/* Checkbox */}
                     </label>
                   </div>
                 </div>
