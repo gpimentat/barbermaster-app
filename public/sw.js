@@ -36,3 +36,37 @@ self.addEventListener('activate', (event) => {
         })
     );
 });
+// Push Notifications Listener
+self.addEventListener('push', (event) => {
+    let data = { title: 'BarberMaster', body: 'Nova notificação!', icon: '/pwa-icon-192.png' };
+
+    if (event.data) {
+        try {
+            data = event.data.json();
+        } catch (e) {
+            data.body = event.data.text();
+        }
+    }
+
+    const options = {
+        body: data.body,
+        icon: data.icon || '/pwa-icon-192.png',
+        badge: '/pwa-icon-192.png',
+        vibrate: [100, 50, 100],
+        data: {
+            url: data.url || '/'
+        }
+    };
+
+    event.waitUntil(
+        self.registration.showNotification(data.title, options)
+    );
+});
+
+// Notification Click Listener
+self.addEventListener('notificationclick', (event) => {
+    event.notification.close();
+    event.waitUntil(
+        clients.openWindow(event.notification.data.url)
+    );
+});

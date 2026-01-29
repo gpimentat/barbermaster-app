@@ -290,6 +290,16 @@ const ComandasPage: React.FC = () => {
           }));
 
           await supabase.from('notifications').insert(notifications);
+
+          // Invoke real push notification
+          await supabase.functions.invoke('send-push', {
+            body: {
+              user_ids: admins.map(a => a.id),
+              title: 'Desconto Aplicado',
+              message: `${currentUser?.name} aplicou R$ ${discountAmount.toFixed(2)} de desconto em ${selectedComanda.clientName}.`,
+              url: '/comandas'
+            }
+          });
         }
       } catch (error) {
         console.error('Erro ao criar notificações:', error);

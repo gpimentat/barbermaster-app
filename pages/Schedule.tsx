@@ -93,8 +93,14 @@ const Schedule: React.FC = () => {
   }, [selectedDate, currentUser]);
 
   // Filter Logic
+  // FIX: Se for barbeiro, só filtra se NÃO tiver permissão de ver tudo
+  // Se tiver 'view_full_schedule', vê tudo igual admin
   let displayAppointments = appointments;
-  if (role === 'barber' && currentUser) {
+
+  // Função auxiliar para checar permissão localmente se não estiver no context
+  const canViewAll = role === 'admin' || role === 'super_admin' || role === 'receptionist' || (currentUser?.permissions?.includes('view_full_schedule'));
+
+  if (role === 'barber' && currentUser && !canViewAll) {
     displayAppointments = displayAppointments.filter(appt => appt.barberId === currentUser.id);
   }
 
@@ -103,15 +109,19 @@ const Schedule: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-white">Agenda</h1>
-          {role === 'barber' && <p className="text-gray-500 text-sm">Visualizando apenas seus agendamentos.</p>}
+          {role === 'barber' && !canViewAll && <p className="text-gray-500 text-sm">Visualizando apenas seus agendamentos.</p>}
         </div>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 bg-primary-500 hover:bg-primary-600 text-dark-950 px-4 py-2 rounded-lg font-semibold transition-colors"
-        >
-          <Plus size={20} />
-          Novo Agendamento
-        </button>
+
+        {/* FIX: Botão de Novo Agendamento apenas para quem tem permissão */}
+        {(role === 'admin' || role === 'super_admin' || role === 'receptionist' || currentUser?.permissions?.includes('manage_schedule')) && (
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="flex items-center gap-2 bg-primary-500 hover:bg-primary-600 text-dark-950 px-4 py-2 rounded-lg font-semibold transition-colors"
+          >
+            <Plus size={20} />
+            Novo Agendamento
+          </button>
+        )}
       </div>
 
       {/* Date Picker & Stats (Assume existing code here, omitted for brevity in replace if not targeted) */}

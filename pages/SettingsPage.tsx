@@ -23,13 +23,9 @@ const SettingsPage: React.FC = () => {
         confirmPassword: ''
     });
 
-    // Notifications Mock Data
-    const [notifications, setNotifications] = useState({
-        email_auth: true,
-        email_marketing: false,
-        push_appointments: true,
-        push_chat: true
-    });
+    // Real Notifications Data from DB
+    const [notifSettings, setNotifSettings] = useState<any[]>([]);
+    const [pushEnabled, setPushEnabled] = useState(false);
 
     useEffect(() => {
         if (currentUser) {
@@ -39,8 +35,90 @@ const SettingsPage: React.FC = () => {
                 bio: 'Profissional BarberMaster', // Mock field if not in DB
                 phone: currentUser.phone || ''    // Mock field if not in DB
             });
+            fetchNotifSettings();
+            checkPushSubscription();
         }
     }, [currentUser]);
+
+    const fetchNotifSettings = async () => {
+        if (!currentUser) return;
+        const { data, error } = await supabase
+            .from('notification_settings')
+            .select('*')
+            .eq('user_id', currentUser.id);
+
+        if (!error && data) {
+            setNotifSettings(data);
+        }
+    };
+
+    const checkPushSubscription = async () => {
+        if ('serviceWorker' in navigator && 'PushManager' in window) {
+            const registration = await navigator.serviceWorker.ready;
+            const subscription = await registration.pushManager.getSubscription();
+            setPushEnabled(!!subscription);
+        }
+    };
+
+    const handleToggleNotif = async (type: string, currentEnabled: boolean) => {
+        if (!currentUser) return;
+
+        const { error } = await supabase
+            .from('notification_settings')
+            .upsert({
+                user_id: currentUser.id,
+                type,
+                enabled: !currentEnabled,
+                tenant_id: currentUser.tenantId
+            }, { onConflict: 'user_id,type' });
+
+        if (!error) {
+            fetchNotifSettings();
+        }
+    };
+
+    const handleRegisterPush = async () => {
+        if (pushEnabled) {
+            // Unsubscribe logic (optional for now, let's keep it simple)
+            alert("Você já está inscrito para receber notificações push.");
+            return;
+        }
+
+        try {
+            setLoading(true);
+            const registration = await navigator.serviceWorker.ready;
+
+            // Request permission
+            const permission = await Notification.requestPermission();
+            if (permission !== 'granted') {
+                throw new Error('Permissão de notificação negada.');
+            }
+
+            // In a real app, you'd get the public VAPID key from the server
+            // For now, I'll use a placeholder or assume the user will set it up.
+            // But to make it work, we need a real subscription.
+            const subscription = await registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: 'BBhXkh-e_wmX9BGEJ3lX7wJyKzd5xvrlCSz-yB5IQo6B_byJn8o_b2oVikEa8gW_S11ZtNxgrx13k7gotJfZ3p4'
+            });
+
+            const { error } = await supabase
+                .from('push_subscriptions')
+                .insert([{
+                    user_id: currentUser?.id,
+                    subscription: subscription.toJSON(),
+                    tenant_id: currentUser?.tenantId
+                }]);
+
+            if (error) throw error;
+            setPushEnabled(true);
+            setMessage({ type: 'success', text: 'Notificações push ativadas com sucesso!' });
+        } catch (error: any) {
+            setMessage({ type: 'error', text: 'Erro ao ativar notificações: ' + error.message });
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handleUpdateProfile = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -279,57 +357,111 @@ const SettingsPage: React.FC = () => {
                         <div className="space-y-8 animate-in slide-in-from-right-4 duration-300">
                             <h2 className="text-xl font-bold text-white border-b border-gray-800 pb-4">Preferências de Notificação</h2>
 
+                            {/* Push Activation */}
+                            <div className="bg-primary-500/10 border border-primary-500/20 rounded-lg p-6 mb-6">
+                                <div className="flex items-center justify-between gap-4">
+                                    <div>
+                                        <h3 className="text-primary-500 font-bold text-lg flex items-center gap-2">
+                                            <Smartphone size={20} /> Notificações Reais no Celular
+                                        </h3>
+                                        <p className="text-sm text-gray-400 mt-1">
+                                            Receba avisos mesmo com o app fechado para não perder nada.
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={handleRegisterPush}
+                                        disabled={pushEnabled || loading}
+                                        className={`px-6 py-2 rounded-lg font-bold transition-all ${pushEnabled ? 'bg-green-500/20 text-green-500 border border-green-500/40 cursor-default' : 'bg-primary-500 hover:bg-primary-600 text-dark-950 shadow-lg shadow-primary-500/20'}`}
+                                    >
+                                        {pushEnabled ? 'Ativado ✓' : 'Ativar Push'}
+                                    </button>
+                                </div>
+                            </div>
+
                             <div className="space-y-4">
-                                <div className="flex items-center justify-between p-4 bg-dark-950 rounded-lg border border-gray-800">
-                                    <div className="flex items-center gap-3">
-                                        <div className="p-2 bg-primary-500/10 rounded-lg text-primary-500">
-                                            <Bell size={20} />
+                                {/* Barbeiro: Metas e Agenda */}
+                                {(currentUser?.role === 'barber' || currentUser?.role === 'admin' || currentUser?.role === 'super_admin') && (
+                                    <>
+                                        <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mt-6">Para Profissionais</h3>
+                                        <div className="flex items-center justify-between p-4 bg-dark-950 rounded-lg border border-gray-800">
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-2 bg-primary-500/10 rounded-lg text-primary-500">
+                                                    <Bell size={20} />
+                                                </div>
+                                                <div>
+                                                    <h4 className="font-bold text-white">Meta da Semana Atingida</h4>
+                                                    <p className="text-xs text-gray-500">Saber o momento exato que bateu sua meta.</p>
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={() => handleToggleNotif('goal_reached', notifSettings.find(s => s.type === 'goal_reached')?.enabled || false)}
+                                                className={`w-12 h-6 rounded-full relative transition-colors ${notifSettings.find(s => s.type === 'goal_reached')?.enabled ? 'bg-primary-500' : 'bg-gray-700'}`}
+                                            >
+                                                <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${notifSettings.find(s => s.type === 'goal_reached')?.enabled ? 'left-7' : 'left-1'}`} />
+                                            </button>
                                         </div>
-                                        <div>
-                                            <h4 className="font-bold text-white">Notificações de Agendamento</h4>
-                                            <p className="text-xs text-gray-500">Receba alertas sobre novos agendamentos.</p>
-                                        </div>
-                                    </div>
-                                    <button
-                                        onClick={() => setNotifications(prev => ({ ...prev, push_appointments: !prev.push_appointments }))}
-                                        className={`w-12 h-6 rounded-full relative transition-colors ${notifications.push_appointments ? 'bg-primary-500' : 'bg-gray-700'}`}
-                                    >
-                                        <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${notifications.push_appointments ? 'left-7' : 'left-1'}`} />
-                                    </button>
-                                </div>
 
-                                <div className="flex items-center justify-between p-4 bg-dark-950 rounded-lg border border-gray-800">
-                                    <div className="flex items-center gap-3">
-                                        <div className="p-2 bg-blue-500/10 rounded-lg text-blue-500">
-                                            <Smartphone size={20} />
+                                        <div className="flex items-center justify-between p-4 bg-dark-950 rounded-lg border border-gray-800">
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-2 bg-blue-500/10 rounded-lg text-blue-500">
+                                                    <CheckCircle size={20} />
+                                                </div>
+                                                <div>
+                                                    <h4 className="font-bold text-white">Agenda Cheia</h4>
+                                                    <p className="text-xs text-gray-500">Notificar quando a agenda do dia estiver 100% ocupada.</p>
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={() => handleToggleNotif('full_schedule', notifSettings.find(s => s.type === 'full_schedule')?.enabled || false)}
+                                                className={`w-12 h-6 rounded-full relative transition-colors ${notifSettings.find(s => s.type === 'full_schedule')?.enabled ? 'bg-primary-500' : 'bg-gray-700'}`}
+                                            >
+                                                <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${notifSettings.find(s => s.type === 'full_schedule')?.enabled ? 'left-7' : 'left-1'}`} />
+                                            </button>
                                         </div>
-                                        <div>
-                                            <h4 className="font-bold text-white">Notificações do Chat</h4>
-                                            <p className="text-xs text-gray-500">Alertas de novas mensagens de clientes.</p>
-                                        </div>
-                                    </div>
-                                    <button
-                                        onClick={() => setNotifications(prev => ({ ...prev, push_chat: !prev.push_chat }))}
-                                        className={`w-12 h-6 rounded-full relative transition-colors ${notifications.push_chat ? 'bg-primary-500' : 'bg-gray-700'}`}
-                                    >
-                                        <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${notifications.push_chat ? 'left-7' : 'left-1'}`} />
-                                    </button>
-                                </div>
+                                    </>
+                                )}
 
-                                <div className="flex items-center justify-between p-4 bg-dark-950 rounded-lg border border-gray-800 opacity-50 cursor-not-allowed">
-                                    <div className="flex items-center gap-3">
-                                        <div className="p-2 bg-purple-500/10 rounded-lg text-purple-500">
-                                            <Mail size={20} />
+                                {/* Admin: Faturamento e Comissões */}
+                                {(currentUser?.role === 'admin' || currentUser?.role === 'super_admin') && (
+                                    <>
+                                        <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mt-6">Para Administradores</h3>
+                                        <div className="flex items-center justify-between p-4 bg-dark-950 rounded-lg border border-gray-800">
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-2 bg-green-500/10 rounded-lg text-green-500">
+                                                    <Save size={20} />
+                                                </div>
+                                                <div>
+                                                    <h4 className="font-bold text-white">Relatório de Faturamento Diário</h4>
+                                                    <p className="text-xs text-gray-500">Resumo financeiro ao final do dia.</p>
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={() => handleToggleNotif('daily_revenue', notifSettings.find(s => s.type === 'daily_revenue')?.enabled || false)}
+                                                className={`w-12 h-6 rounded-full relative transition-colors ${notifSettings.find(s => s.type === 'daily_revenue')?.enabled ? 'bg-primary-500' : 'bg-gray-700'}`}
+                                            >
+                                                <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${notifSettings.find(s => s.type === 'daily_revenue')?.enabled ? 'left-7' : 'left-1'}`} />
+                                            </button>
                                         </div>
-                                        <div>
-                                            <h4 className="font-bold text-white">Marketing por E-mail</h4>
-                                            <p className="text-xs text-gray-500">Receba novidades e dicas (Em breve).</p>
+
+                                        <div className="flex items-center justify-between p-4 bg-dark-950 rounded-lg border border-gray-800">
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-2 bg-orange-500/10 rounded-lg text-orange-500">
+                                                    <Bell size={20} />
+                                                </div>
+                                                <div>
+                                                    <h4 className="font-bold text-white">Aviso de Comissões Pendentes</h4>
+                                                    <p className="text-xs text-gray-500">Alerta quando houver comissões prontas para pagamento.</p>
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={() => handleToggleNotif('commission_alert', notifSettings.find(s => s.type === 'commission_alert')?.enabled || false)}
+                                                className={`w-12 h-6 rounded-full relative transition-colors ${notifSettings.find(s => s.type === 'commission_alert')?.enabled ? 'bg-primary-500' : 'bg-gray-700'}`}
+                                            >
+                                                <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${notifSettings.find(s => s.type === 'commission_alert')?.enabled ? 'left-7' : 'left-1'}`} />
+                                            </button>
                                         </div>
-                                    </div>
-                                    <button disabled className="w-12 h-6 rounded-full bg-gray-800 relative">
-                                        <div className="absolute top-1 left-1 w-4 h-4 rounded-full bg-gray-600" />
-                                    </button>
-                                </div>
+                                    </>
+                                )}
                             </div>
                         </div>
                     )}
