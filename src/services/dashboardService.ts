@@ -23,28 +23,28 @@ export interface SaaSStats {
 
 export const dashboardService = {
     async getSaasStats(adminEmail?: string): Promise<{ stats: SaaSStats, users: any[] }> {
-        // 1. Fetch all tenants
-        const { data: tenants, error: tenantError } = await supabase
-            .from('tenants')
-            .select('*')
-            .order('created_at', { ascending: false });
+        const targetAdminEmail = adminEmail || 'g.pimentat@gmail.com';
 
-        if (tenantError) throw tenantError;
-
-        // 2. Fetch all profiles to filter by admin email if needed
-        const { data: adminProfiles } = await supabase
+        // 1. Fetch only account OWNER profiles (excluding the system owner)
+        const { data: ownerProfiles, error: profileError } = await supabase
             .from('profiles')
-            .select('tenant_id')
-            .eq('email', adminEmail || 'g.pimentat@gmail.com');
+            .select('*, tenants(*)')
+            .in('role', ['admin', 'super_admin'])
+            .neq('email', targetAdminEmail)
+            .order('name');
 
-        const adminTenantIds = adminProfiles?.map(p => p.tenant_id) || [];
+        if (profileError) throw profileError;
 
-        // 3. Filter tenants (excluding admin's)
-        const realTenants = tenants.filter(t => !adminTenantIds.includes(t.id));
+        // 2. Identify unique Tenants that belong to these owners
+        const realTenantsMap = new Map();
+        ownerProfiles?.forEach(p => {
+            if (p.tenants && !realTenantsMap.has(p.tenant_id)) {
+                realTenantsMap.set(p.tenant_id, p.tenants);
+            }
+        });
+        const realTenants = Array.from(realTenantsMap.values());
 
-        // 4. Calculate MRR based on subscription module usage
-        // A tenant is considered "Premium" ($377) if they have at least one active subscription in their client base.
-        // This is a proxy for "using the module".
+        // 3. Subscription status proxy (Premium vs Base)
         const { data: activeSubs } = await supabase
             .from('clients')
             .select('tenant_id')
@@ -52,54 +52,44 @@ export const dashboardService = {
 
         const premiumTenantIds = new Set(activeSubs?.map(s => s.tenant_id) || []);
 
+        // 4. Calculate MRR strictly for these owner-led tenants
         let mrr = 0;
         realTenants.forEach(t => {
-            if (premiumTenantIds.has(t.id)) {
-                mrr += 377;
-            } else {
-                mrr += 97;
-            }
+            if (premiumTenantIds.has(t.id)) mrr += 377;
+            else mrr += 97;
         });
 
-        // 5. Churn Rate calculation
-        // Simplified: (Tenants inactive) / (Total tenants)
+        // 5. Churn Rate for these tenants
         const inactiveTenants = realTenants.filter(t => t.subscription_status === 'inactive').length;
         const churnRate = realTenants.length > 0 ? (inactiveTenants / realTenants.length) * 100 : 0;
 
-        // 6. Growth Data (Last 6 Months)
+        // 6. Growth Data (Last 6 Months) strictly based on Owners
         const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
         const newUserGrowth = [];
         const revenueGrowth = [];
-
         const now = new Date();
+
         for (let i = 5; i >= 0; i--) {
             const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
             const monthName = months[d.getMonth()];
+            const monthRangeEnd = new Date(d.getFullYear(), d.getMonth() + 1, 0);
 
-            // Count tenants created up to this month
-            const tenantsUpToMonth = realTenants.filter(t => new Date(t.created_at || '') <= new Date(d.getFullYear(), d.getMonth() + 1, 0));
+            // Count unique owners created up to this specific month
+            const ownersUpToMonth = ownerProfiles?.filter(p => p.tenants?.created_at && new Date(p.tenants.created_at) <= monthRangeEnd) || [];
+            const uniqueTenantsUpToMonthIds = new Set(ownersUpToMonth.map(p => p.tenant_id));
 
             let monthlyMrr = 0;
-            tenantsUpToMonth.forEach(t => {
-                // Only count active ones for past revenue projection in this simple model
-                if (t.subscription_status === 'active') {
-                    if (premiumTenantIds.has(t.id)) monthlyMrr += 377;
+            uniqueTenantsUpToMonthIds.forEach(tid => {
+                const tenant = realTenantsMap.get(tid);
+                if (tenant && tenant.subscription_status === 'active') {
+                    if (premiumTenantIds.has(tid)) monthlyMrr += 377;
                     else monthlyMrr += 97;
                 }
             });
 
-            newUserGrowth.push({ name: monthName, value: tenantsUpToMonth.length });
+            newUserGrowth.push({ name: monthName, value: uniqueTenantsUpToMonthIds.size });
             revenueGrowth.push({ name: monthName, value: monthlyMrr });
         }
-
-        // 7. Fetch only ADMIN profiles with tenant info (excluding current admin)
-        // This hides staff members (barbers/receptionists) from the SaaS dash
-        const { data: allProfiles } = await supabase
-            .from('profiles')
-            .select('*, tenants(name)')
-            .in('role', ['admin', 'super_admin'])
-            .neq('email', adminEmail || 'g.pimentat@gmail.com')
-            .order('name');
 
         return {
             stats: {
@@ -110,7 +100,7 @@ export const dashboardService = {
                 revenueGrowth,
                 newUserGrowth
             },
-            users: allProfiles || [] // Return people instead of shops
+            users: ownerProfiles || []
         };
     },
 
