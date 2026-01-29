@@ -8,11 +8,24 @@ interface StatsCardProps {
   positive?: boolean;
   icon: LucideIcon;
   color?: string;
+  onClick?: () => void;
 }
 
-const StatsCard: React.FC<StatsCardProps> = ({ title, value, change, positive, icon: Icon, color = "text-primary-500" }) => {
+const StatsCard: React.FC<StatsCardProps> = ({
+  title,
+  value,
+  change,
+  positive,
+  icon: Icon,
+  color = "text-primary-500",
+  onClick
+}) => {
   return (
-    <div className="bg-dark-900 p-6 rounded-xl border border-gray-800 shadow-lg">
+    <div
+      onClick={onClick}
+      className={`bg-dark-900 p-6 rounded-xl border border-gray-800 shadow-lg transition-all duration-200 ${onClick ? 'cursor-pointer hover:border-gray-700 hover:bg-gray-800/50 active:scale-[0.98]' : ''
+        }`}
+    >
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-gray-400 text-sm font-medium">{title}</h3>
         <div className={`p-2 rounded-lg bg-gray-800 ${color}`}>

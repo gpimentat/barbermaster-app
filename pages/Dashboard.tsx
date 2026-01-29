@@ -36,6 +36,7 @@ const Dashboard: React.FC = () => {
   const [barberStats, setBarberStats] = useState<any>(null);
   const [activeTabBarber, setActiveTabBarber] = useState<'summary' | 'goals'>('summary');
   const [newGoal, setNewGoal] = useState<string>('');
+  const [activeModal, setActiveModal] = useState<'production' | 'commission' | 'appointments' | null>(null);
 
   useEffect(() => {
     if (currentUser?.tenantId) {
@@ -113,6 +114,7 @@ const Dashboard: React.FC = () => {
                 positive={true}
                 icon={Scissors}
                 color="text-white"
+                onClick={() => setActiveModal('production')}
               />
               <StatsCard
                 title="Minha Comissão (Est.)"
@@ -121,6 +123,7 @@ const Dashboard: React.FC = () => {
                 positive={true}
                 icon={Wallet}
                 color="text-green-500"
+                onClick={() => setActiveModal('commission')}
               />
               <StatsCard
                 title="Meus Atendimentos"
@@ -129,6 +132,7 @@ const Dashboard: React.FC = () => {
                 positive={true}
                 icon={CalendarCheck}
                 color="text-blue-500"
+                onClick={() => setActiveModal('appointments')}
               />
             </div>
 
@@ -244,6 +248,131 @@ const Dashboard: React.FC = () => {
                 <p className="text-center text-xs text-gray-500 italic mt-4">
                   💡 Dica: Defina metas realistas para se manter motivado durante a semana.
                 </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* --- MODAIS DE DETALHES --- */}
+        {activeModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-dark-900 w-full max-w-lg rounded-2xl border border-gray-800 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+              <div className="p-6 border-b border-gray-800 flex items-center justify-between bg-dark-900/50">
+                <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                  {activeModal === 'production' && <><Scissors className="text-primary-500" /> Detalhes da Produção Hoje</>}
+                  {activeModal === 'commission' && <><Wallet className="text-green-500" /> Detalhes da Minha Comissão</>}
+                  {activeModal === 'appointments' && <><CalendarCheck className="text-blue-500" /> Meus Atendimentos</>}
+                </h3>
+                <button
+                  onClick={() => setActiveModal(null)}
+                  className="p-2 hover:bg-gray-800 rounded-lg text-gray-400 transition-colors"
+                >
+                  <Plus className="rotate-45" size={24} />
+                </button>
+              </div>
+
+              <div className="p-6 max-h-[60vh] overflow-y-auto custom-scrollbar">
+                {activeModal === 'production' && (
+                  <div className="space-y-4">
+                    <div className="bg-primary-500/10 border border-primary-500/20 p-4 rounded-xl flex justify-between items-center">
+                      <span className="text-gray-400 font-medium">Total Acumulado Hoje</span>
+                      <span className="text-2xl font-bold text-primary-500">R$ {barberStats.totalProduction.toFixed(2)}</span>
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-xs font-bold text-gray-500 uppercase tracking-wider px-1">Itens Vendidos</p>
+                      {barberStats.todayAppointments.filter((a: any) => a.status !== 'Cancelado').map((appt: any, idx: number) => (
+                        <div key={idx} className="bg-gray-800/50 p-3 rounded-lg flex justify-between items-center border border-gray-700/50">
+                          <div>
+                            <p className="text-white font-medium">{appt.services?.name || 'Serviço'}</p>
+                            <p className="text-xs text-gray-500">{appt.clients?.name} • {appt.start_time}</p>
+                          </div>
+                          <p className="text-white font-bold">R$ {Number(appt.price).toFixed(2)}</p>
+                        </div>
+                      ))}
+                      {barberStats.todayAppointments.filter((a: any) => a.status !== 'Cancelado').length === 0 && (
+                        <p className="text-center py-4 text-gray-500 italic">Nenhuma venda registrada hoje.</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {activeModal === 'commission' && (
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-gray-800/50 p-4 rounded-xl border border-gray-700">
+                        <p className="text-xs text-gray-500 font-bold uppercase mb-1">Minha Taxa</p>
+                        <p className="text-xl font-bold text-white">{currentUser.commissionRate}%</p>
+                      </div>
+                      <div className="bg-gray-800/50 p-4 rounded-xl border border-gray-700">
+                        <p className="text-xs text-gray-500 font-bold uppercase mb-1">Ganhos (Est.)</p>
+                        <p className="text-xl font-bold text-green-500">R$ {(barberStats.totalProduction * (currentUser.commissionRate / 100)).toFixed(2)}</p>
+                      </div>
+                    </div>
+                    <div className="bg-blue-500/10 border border-blue-500/20 p-4 rounded-xl">
+                      <p className="text-sm text-blue-400 flex items-center gap-2">
+                        <Clock size={16} /> Estes valores são estimativas baseadas na sua taxa de comissão atual. O fechamento oficial ocorre via financeiro.
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-xs font-bold text-gray-500 uppercase tracking-wider px-1">Ganhos Por Atendimento</p>
+                      {barberStats.todayAppointments.filter((a: any) => a.status !== 'Cancelado').map((appt: any, idx: number) => (
+                        <div key={idx} className="bg-gray-800/30 p-3 rounded-lg flex justify-between items-center border border-gray-800">
+                          <div>
+                            <p className="text-gray-300 text-sm">{appt.services?.name}</p>
+                            <p className="text-[10px] text-gray-500">R$ {Number(appt.price).toFixed(2)} x {currentUser.commissionRate}%</p>
+                          </div>
+                          <p className="text-green-500/80 font-bold text-sm">R$ {(Number(appt.price) * (currentUser.commissionRate / 100)).toFixed(2)}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {activeModal === 'appointments' && (
+                  <div className="space-y-4">
+                    <div className="flex gap-2">
+                      <div className="flex-1 bg-blue-500/10 p-3 rounded-lg text-center border border-blue-500/20">
+                        <p className="text-[10px] text-blue-400 uppercase font-bold">Total Hoje</p>
+                        <p className="text-xl font-bold text-white">{barberStats.appointmentsCount}</p>
+                      </div>
+                      <div className="flex-1 bg-yellow-500/10 p-3 rounded-lg text-center border border-yellow-500/20">
+                        <p className="text-[10px] text-yellow-500 uppercase font-bold">Pendentes</p>
+                        <p className="text-xl font-bold text-white">{barberStats.upcomingAppointments.length}</p>
+                      </div>
+                    </div>
+                    <div className="space-y-2 mt-4">
+                      {barberStats.todayAppointments.map((appt: any, idx: number) => (
+                        <div key={idx} className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg border border-gray-700/50">
+                          <div className="flex items-center gap-3">
+                            <div className="bg-gray-900 border border-gray-800 px-2 py-1 rounded text-primary-500 font-bold text-xs">
+                              {appt.start_time}
+                            </div>
+                            <div>
+                              <p className="text-white text-sm font-medium">{appt.clients?.name}</p>
+                              <p className="text-xs text-gray-500">{appt.services?.name}</p>
+                            </div>
+                          </div>
+                          <span className={`text-[10px] font-bold px-2 py-1 rounded ${appt.status === 'Agendado' ? 'bg-blue-500/10 text-blue-500' :
+                              appt.status === 'Confirmado' ? 'bg-green-500/10 text-green-500' :
+                                appt.status === 'Concluído' ? 'bg-purple-500/10 text-purple-500' :
+                                  'bg-gray-700 text-gray-400'
+                            }`}>
+                            {appt.status}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="p-6 bg-gray-800/30 border-t border-gray-800">
+                <button
+                  onClick={() => setActiveModal(null)}
+                  className="w-full bg-gray-800 hover:bg-gray-700 text-white font-bold py-3 rounded-xl transition-all"
+                >
+                  Fechar
+                </button>
               </div>
             </div>
           </div>
