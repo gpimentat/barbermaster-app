@@ -1172,97 +1172,130 @@ const AppCustomizationPage: React.FC = () => {
                             <div className="flex-1 bg-gray-950 overflow-y-auto no-scrollbar relative font-sans text-gray-100 animate-in fade-in flex flex-col">
 
                                 {/* Conteúdo Dinâmico Baseado na Aba do App */}
-                                <div className="flex-1 overflow-y-auto custom-scrollbar pb-20">
+                                <div className="flex-1 overflow-y-auto no-scrollbar pb-20">
                                     {appTab === 'home' && (
                                         <>
-                                            {/* Header com Capa */}
-                                            <div className="relative">
-                                                <div className="h-48 w-full relative">
-                                                    <img src={settings.coverPreview} className="w-full h-full object-cover" />
-                                                    <div className="absolute inset-0 bg-gradient-to-t from-gray-950 via-gray-950/20 to-transparent"></div>
-                                                    <div className="absolute top-10 right-4 flex gap-2">
-                                                        <button className="p-2 bg-black/30 backdrop-blur-md rounded-full text-white"><Bell size={18} /></button>
+                                            {/* Header Dinâmico Baseado no homeStyle */}
+                                            {layoutConfig.homeStyle === 'modern' ? (
+                                                <div className="relative h-48 bg-gray-900 overflow-hidden">
+                                                    <img src={settings.coverPreview} className="w-full h-full object-cover opacity-40" />
+                                                    <div className="absolute inset-0 bg-gradient-to-t from-gray-950 via-transparent to-transparent"></div>
+                                                    <div className="absolute bottom-6 left-5 right-5 flex items-end gap-3">
+                                                        <div className="w-16 h-16 rounded-xl overflow-hidden border border-white/20 bg-gray-800 shadow-xl">
+                                                            <img src={settings.logoPreview} className="w-full h-full object-cover" />
+                                                        </div>
+                                                        <div className="mb-0.5">
+                                                            <h2 className="text-white font-black text-base leading-tight">{settings.name}</h2>
+                                                            <p className="text-primary-500 font-bold text-[10px] uppercase tracking-wider">{settings.slogan}</p>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                                <div className="px-5 -mt-16 relative z-10 flex items-end gap-4">
-                                                    <div className="w-24 h-24 rounded-2xl border-4 border-gray-950 bg-gray-800 shadow-xl overflow-hidden">
-                                                        <img src={settings.logoPreview} className="w-full h-full object-cover" />
+                                            ) : layoutConfig.homeStyle === 'minimal' ? (
+                                                <div className="pt-10 px-5 pb-4 bg-gray-950 border-b border-gray-900 flex justify-between items-center">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-10 h-10 rounded-full overflow-hidden border-2" style={{ borderColor: settings.primaryColor }}>
+                                                            <img src={settings.logoPreview} className="w-full h-full object-cover" />
+                                                        </div>
+                                                        <h2 className="text-white font-bold text-sm tracking-tight">{settings.name}</h2>
                                                     </div>
-                                                    <div className="mb-3">
-                                                        <h2 className="text-white font-bold text-xl leading-tight shadow-black drop-shadow-md">{settings.name}</h2>
-                                                        <p className="text-gray-300 text-xs mt-0.5 shadow-black drop-shadow-md">{settings.slogan}</p>
+                                                    <div className="p-1.5 bg-gray-800 rounded-lg text-gray-500">
+                                                        <Bell size={16} />
                                                     </div>
                                                 </div>
-                                            </div>
+                                            ) : (
+                                                /* Classic */
+                                                <div className="relative">
+                                                    <div className="h-40 w-full relative">
+                                                        <img src={settings.coverPreview} className="w-full h-full object-cover" />
+                                                        <div className="absolute inset-0 bg-gradient-to-t from-gray-950 via-gray-950/20 to-transparent"></div>
+                                                        <div className="absolute top-10 right-4 flex gap-2">
+                                                            <button className="p-2 bg-black/30 backdrop-blur-md rounded-full text-white"><Bell size={18} /></button>
+                                                        </div>
+                                                    </div>
+                                                    <div className="px-5 -mt-10 relative z-10 flex items-end gap-3">
+                                                        <div className="w-20 h-20 rounded-2xl border-4 border-gray-950 bg-gray-800 shadow-xl overflow-hidden">
+                                                            <img src={settings.logoPreview} className="w-full h-full object-cover" />
+                                                        </div>
+                                                        <div className="mb-2">
+                                                            <h2 className="text-white font-bold text-lg leading-tight">{settings.name}</h2>
+                                                            <p className="text-gray-300 text-[10px] mt-0.5">{settings.slogan}</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
 
-                                            <div className="px-5 space-y-6 mt-6">
+                                            <div className={`px-5 space-y-5 ${layoutConfig.homeStyle === 'classic' ? 'mt-4' : 'mt-6'}`}>
+
+                                                {/* Saudação Compacta */}
+                                                <div className="bg-gray-900 border border-gray-800 p-3 rounded-xl flex justify-between items-center">
+                                                    <div>
+                                                        <p className="text-gray-500 text-[10px] uppercase font-bold tracking-tighter">Bem-vindo,</p>
+                                                        <p className="text-white text-base font-black">João Silva 👋</p>
+                                                    </div>
+                                                    {layoutConfig.homeStyle === 'minimal' && (
+                                                        <div className="text-right">
+                                                            <p className="text-[10px] text-gray-500">Pontos</p>
+                                                            <p className="text-primary-500 font-bold text-xs">350</p>
+                                                        </div>
+                                                    )}
+                                                </div>
 
                                                 {/* Cartão de Fidelidade Premium */}
-                                                {features.loyaltyProgram && (
+                                                {features.loyaltyProgram && layoutConfig.homeStyle !== 'minimal' && (
                                                     <div
-                                                        className="rounded-xl p-5 relative overflow-hidden shadow-lg transform transition-transform hover:scale-[1.02]"
+                                                        className="rounded-2xl p-4 relative overflow-hidden shadow-lg"
                                                         style={{
                                                             background: `linear-gradient(135deg, #1f2937 0%, ${settings.primaryColor} 150%)`
                                                         }}
                                                     >
-                                                        <div className="absolute top-0 right-0 p-12 bg-white/5 rounded-full blur-2xl -mr-6 -mt-6 pointer-events-none"></div>
                                                         <div className="relative z-10">
-                                                            <div className="flex justify-between items-start mb-6">
+                                                            <div className="flex justify-between items-start mb-4">
                                                                 <div>
-                                                                    <p className="text-white/70 text-xs uppercase font-bold tracking-wider">Cartão Fidelidade</p>
-                                                                    <p className="text-white font-bold text-lg flex items-center gap-2">
-                                                                        <Star size={16} fill="white" className="text-white" /> Gold Member
-                                                                    </p>
+                                                                    <p className="text-white/70 text-[10px] uppercase font-black tracking-wider">Membro Gold</p>
+                                                                    <p className="text-white text-2xl font-black">350 <span className="text-xs text-white/60 font-medium">pts</span></p>
                                                                 </div>
-                                                                <div className="text-right">
-                                                                    <p className="text-white text-2xl font-bold">350</p>
-                                                                    <p className="text-white/70 text-xs">pontos</p>
-                                                                </div>
+                                                                <Star size={20} fill="white" className="text-white/20" />
                                                             </div>
-                                                            <div className="w-full bg-black/20 h-1.5 rounded-full overflow-hidden mb-2">
-                                                                <div className="bg-white h-full w-[70%]"></div>
+                                                            <div className="w-full bg-black/20 h-1.5 rounded-full overflow-hidden mb-1">
+                                                                <div className="bg-white h-full w-[70%]" style={{ boxShadow: '0 0 10px rgba(255,255,255,0.5)' }}></div>
                                                             </div>
-                                                            <p className="text-white/60 text-[10px]">Faltam 150 pontos para o próximo nível.</p>
                                                         </div>
                                                     </div>
                                                 )}
 
-                                                {/* Card Próximo Agendamento (Simulado) */}
-                                                <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 flex items-center justify-between">
+                                                {/* Card Próximo Agendamento */}
+                                                <div className="bg-gray-900 border-2 rounded-2xl p-4 flex items-center justify-between shadow-xl" style={{ borderColor: settings.primaryColor }}>
                                                     <div className="flex items-center gap-3">
-                                                        <div className="bg-gray-800 p-2.5 rounded-lg text-primary-500">
-                                                            <CalendarCheck size={20} />
+                                                        <div className="p-2 bg-gray-800 rounded-lg" style={{ color: settings.primaryColor }}>
+                                                            <CalendarCheck size={18} />
                                                         </div>
                                                         <div>
-                                                            <p className="text-white font-bold text-sm">Próximo Corte</p>
-                                                            <p className="text-gray-400 text-xs">Hoje, 15:00 com Carlos</p>
+                                                            <p className="text-white font-black text-xs">Próximo Corte</p>
+                                                            <p className="text-gray-400 text-[10px]">Hoje, 15:00 com Carlos</p>
                                                         </div>
                                                     </div>
-                                                    <button className="text-xs font-bold text-white bg-green-600 px-3 py-1.5 rounded-lg">Confirmado</button>
+                                                    <button className="text-[10px] font-black text-white bg-green-600 px-2 py-1 rounded-md uppercase tracking-tighter">Confirmado</button>
                                                 </div>
 
                                                 {/* Lista de Serviços */}
                                                 <div className="space-y-3">
-                                                    <div className="flex justify-between items-end">
-                                                        <h3 className="font-bold text-white text-lg">Serviços</h3>
-                                                        <span className="text-xs text-primary-500 font-bold">Ver todos</span>
-                                                    </div>
-                                                    {MOCK_SERVICES.slice(0, 3).map(s => (
-                                                        <div key={s.id} className="flex justify-between items-center p-3 bg-gray-900 rounded-xl border border-gray-800">
+                                                    <h3 className="font-black text-white text-base">Destaques</h3>
+                                                    {MOCK_SERVICES.slice(0, 2).map(s => (
+                                                        <div key={s.id} className="flex justify-between items-center p-3 bg-gray-950 rounded-xl border border-gray-800 group hover:border-gray-700">
                                                             <div className="flex items-center gap-3">
-                                                                <div className="w-10 h-10 rounded-lg bg-gray-800 flex items-center justify-center text-gray-500">
-                                                                    <Scissors size={18} />
+                                                                <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${settings.primaryColor}10` }}>
+                                                                    <Star style={{ color: settings.primaryColor }} size={16} fill={settings.primaryColor} />
                                                                 </div>
                                                                 <div>
-                                                                    <span className="text-sm font-bold text-white block">{s.name}</span>
-                                                                    <span className="text-xs text-gray-500">{s.durationMinutes} min • R$ {s.price}</span>
+                                                                    <span className="text-xs font-black text-white block">{s.name}</span>
+                                                                    <span className="text-[10px] text-gray-400">R$ {s.price} • {s.durationMinutes}m</span>
                                                                 </div>
                                                             </div>
                                                             <button
-                                                                className="px-3 py-1.5 rounded-lg text-xs font-bold text-dark-950 transition-colors"
+                                                                className="w-8 h-8 rounded-lg flex items-center justify-center text-dark-950 shadow-md"
                                                                 style={{ backgroundColor: settings.primaryColor }}
                                                             >
-                                                                Agendar
+                                                                <Plus size={16} />
                                                             </button>
                                                         </div>
                                                     ))}
@@ -1270,29 +1303,27 @@ const AppCustomizationPage: React.FC = () => {
 
                                                 {/* CLUBE DE VANTAGENS (PARCERIAS) */}
                                                 {features.partnersClub && coupons.length > 0 && (
-                                                    <div className="space-y-3 pb-4">
-                                                        <h3 className="font-bold text-white flex items-center gap-2 text-lg">
-                                                            <TicketPercent size={20} className="text-primary-500" /> Clube de Vantagens
-                                                        </h3>
+                                                    <div className="space-y-3 pb-2">
+                                                        <h3 className="font-black text-white text-base">Vantagens</h3>
                                                         <div className="flex overflow-x-auto gap-3 pb-2 no-scrollbar">
                                                             {coupons.map(coupon => (
-                                                                <div key={coupon.id} className={`min-w-[220px] p-4 rounded-xl border relative flex flex-col shadow-lg ${coupon.vipOnly ? 'bg-gradient-to-br from-gray-800 to-gray-900 border-yellow-500/40' : 'bg-gray-900 border-gray-800'}`}>
-                                                                    {coupon.vipOnly && (
-                                                                        <div className="absolute -top-2 -right-2 bg-yellow-500 text-dark-950 text-[9px] font-black px-2 py-0.5 rounded shadow-sm flex items-center gap-0.5 uppercase tracking-wide z-10">
-                                                                            <Star size={8} fill="currentColor" /> VIP
-                                                                        </div>
-                                                                    )}
-                                                                    <div className="flex-1 mb-3">
-                                                                        <p className="text-[10px] text-gray-400 uppercase font-bold mb-1">{coupon.partnerName}</p>
-                                                                        <p className={`font-bold text-lg leading-tight ${coupon.vipOnly ? 'text-yellow-500' : 'text-primary-500'}`}>{coupon.offer}</p>
-                                                                    </div>
-                                                                    <div className="mt-auto flex items-center justify-between bg-black/30 rounded-lg p-2 border border-dashed border-gray-700">
-                                                                        <span className="text-xs font-mono text-white font-bold tracking-widest">{coupon.code}</span>
-                                                                        <Copy size={14} className="text-gray-400" />
+                                                                <div key={coupon.id} className={`min-w-[160px] p-3 rounded-xl border relative flex flex-col ${coupon.vipOnly ? 'bg-gradient-to-br from-gray-800 to-gray-900 border-yellow-500/30' : 'bg-gray-900 border-gray-800'}`}>
+                                                                    <p className="text-[8px] text-gray-500 uppercase font-black mb-1 truncate">{coupon.partnerName}</p>
+                                                                    <p className={`font-black text-xs leading-tight mb-2 ${coupon.vipOnly ? 'text-yellow-500' : 'text-primary-500'}`}>{coupon.offer}</p>
+                                                                    <div className="bg-black/30 rounded p-1.5 text-center border border-dashed border-gray-700">
+                                                                        <span className="text-[8px] font-mono text-white font-bold">{coupon.code}</span>
                                                                     </div>
                                                                 </div>
                                                             ))}
                                                         </div>
+                                                    </div>
+                                                )}
+
+                                                {/* Localização Minimalista */}
+                                                {layoutConfig.homeStyle === 'minimal' && (
+                                                    <div className="p-4 bg-gray-900/50 rounded-xl border border-gray-800 text-center">
+                                                        <MapPin size={16} className="mx-auto mb-1 text-gray-500" />
+                                                        <p className="text-[10px] text-gray-400 font-bold truncate">{settings.address}</p>
                                                     </div>
                                                 )}
                                             </div>
@@ -1304,80 +1335,67 @@ const AppCustomizationPage: React.FC = () => {
                                             <h2 className="text-2xl font-bold text-white mb-6">Agendar Horário</h2>
                                             <div className="bg-gray-900 rounded-xl p-4 mb-6 border border-gray-800">
                                                 <div className="flex justify-between items-center mb-4">
-                                                    <h3 className="text-white font-bold">Novembro 2023</h3>
+                                                    <h3 className="text-white font-bold">Janeiro 2026</h3>
                                                     <div className="flex gap-2">
                                                         <button className="p-1 text-gray-400"><ArrowLeft size={16} /></button>
                                                         <button className="p-1 text-white"><ArrowRight size={16} /></button>
                                                     </div>
                                                 </div>
-                                                <div className="grid grid-cols-7 gap-2 text-center text-sm mb-2">
-                                                    <span className="text-gray-500 text-xs">D</span>
-                                                    <span className="text-gray-500 text-xs">S</span>
-                                                    <span className="text-gray-500 text-xs">T</span>
-                                                    <span className="text-gray-500 text-xs">Q</span>
-                                                    <span className="text-gray-500 text-xs">Q</span>
-                                                    <span className="text-gray-500 text-xs">S</span>
-                                                    <span className="text-gray-500 text-xs">S</span>
+                                                <div className="grid grid-cols-7 gap-2 text-center text-[10px] mb-2 font-bold text-gray-600">
+                                                    <span>D</span><span>S</span><span>T</span><span>Q</span><span>Q</span><span>S</span><span>S</span>
                                                 </div>
-                                                <div className="grid grid-cols-7 gap-2 text-center">
-                                                    <span className="text-gray-600 p-2">29</span>
-                                                    <span className="text-gray-600 p-2">30</span>
-                                                    <span className="text-white bg-primary-500/20 rounded-lg p-2 font-bold text-primary-500">1</span>
-                                                    <span className="text-white p-2">2</span>
-                                                    <span className="text-white p-2">3</span>
-                                                    <span className="text-white p-2">4</span>
-                                                    <span className="text-white p-2">5</span>
+                                                <div className="grid grid-cols-7 gap-1 text-center">
+                                                    {[...Array(31)].map((_, i) => (
+                                                        <span key={i} className={`p-1.5 text-xs rounded-lg ${i === 28 ? 'bg-primary-500 text-dark-950 font-black' : 'text-white'}`}>{i + 1}</span>
+                                                    ))}
                                                 </div>
                                             </div>
-                                            <h3 className="text-white font-bold mb-3">Horários Disponíveis</h3>
-                                            <div className="grid grid-cols-3 gap-3">
-                                                <button className="bg-gray-800 text-white py-2 rounded-lg text-sm hover:bg-primary-500 hover:text-dark-950 transition-colors">09:00</button>
-                                                <button className="bg-gray-800 text-white py-2 rounded-lg text-sm hover:bg-primary-500 hover:text-dark-950 transition-colors">10:00</button>
-                                                <button className="bg-gray-800 text-white py-2 rounded-lg text-sm hover:bg-primary-500 hover:text-dark-950 transition-colors">11:30</button>
-                                                <button className="bg-gray-800 text-white py-2 rounded-lg text-sm hover:bg-primary-500 hover:text-dark-950 transition-colors">14:00</button>
-                                                <button className="bg-gray-800 text-white py-2 rounded-lg text-sm hover:bg-primary-500 hover:text-dark-950 transition-colors">16:30</button>
+                                            <h3 className="text-white font-bold mb-3 text-sm">Horários</h3>
+                                            <div className="grid grid-cols-3 gap-2">
+                                                {['09:00', '10:00', '11:30', '14:00', '16:30', '18:00'].map(t => (
+                                                    <button key={t} className="bg-gray-800 text-white py-2 rounded-lg text-[10px] font-bold hover:bg-primary-500 hover:text-dark-950">{t}</button>
+                                                ))}
                                             </div>
                                         </div>
                                     )}
 
                                     {appTab === 'rewards' && (
                                         <div className="p-5 pt-12">
-                                            <h2 className="text-2xl font-bold text-white mb-6">Clube de Recompensas</h2>
+                                            <h2 className="text-xl font-black text-white mb-6 tracking-tight">Clube de Recompensas</h2>
 
                                             {/* Card de Pontos */}
-                                            <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl p-5 mb-6 border border-gray-700 shadow-lg">
+                                            <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-4 mb-6 border border-gray-700 shadow-xl" style={{ borderLeft: `4px solid ${settings.primaryColor}` }}>
                                                 <div className="flex justify-between items-start mb-4">
                                                     <div>
-                                                        <p className="text-gray-400 text-xs mb-1">Seus Pontos</p>
-                                                        <p className="text-white text-3xl font-bold">350</p>
+                                                        <p className="text-gray-500 text-[10px] uppercase font-black tracking-widest mb-1">Saldo Atual</p>
+                                                        <p className="text-white text-3xl font-black">350</p>
                                                     </div>
-                                                    <div className="bg-primary-500/20 text-primary-500 px-3 py-1 rounded-full text-xs font-bold">Gold Member</div>
+                                                    <div className="bg-white/5 border border-white/10 px-3 py-1 rounded-full text-[10px] font-black text-primary-500">Gold</div>
                                                 </div>
-                                                <div className="w-full bg-gray-800 h-2 rounded-full overflow-hidden">
-                                                    <div className="bg-primary-500 h-full w-[70%]"></div>
+                                                <div className="w-full bg-black/40 h-2 rounded-full overflow-hidden">
+                                                    <div className="h-full" style={{ width: '70%', backgroundColor: settings.primaryColor }}></div>
                                                 </div>
-                                                <p className="text-gray-500 text-xs mt-2">Faltam 150 pontos para o próximo nível</p>
                                             </div>
 
                                             {/* Lista de Recompensas */}
                                             <div className="space-y-3">
-                                                <h3 className="text-white font-bold mb-3">Resgatar Prêmios</h3>
-                                                {rewards.map(reward => (
-                                                    <div key={reward.id} className="bg-gray-900 border border-gray-800 rounded-xl p-4 flex justify-between items-center">
+                                                <h3 className="text-white font-black mb-3 text-sm">Prêmios Disponíveis</h3>
+                                                {rewards.slice(0, 3).map(reward => (
+                                                    <div key={reward.id} className="bg-gray-900 border border-gray-800 rounded-xl p-3 flex justify-between items-center transition-all hover:bg-gray-800">
                                                         <div className="flex items-center gap-3">
-                                                            <div className="w-12 h-12 rounded-lg bg-primary-500/20 text-primary-500 flex items-center justify-center">
-                                                                <Gift size={20} />
+                                                            <div className="w-10 h-10 rounded-lg flex items-center justify-center shadow-lg" style={{ backgroundColor: `${settings.primaryColor}10` }}>
+                                                                <Gift style={{ color: settings.primaryColor }} size={16} />
                                                             </div>
                                                             <div>
-                                                                <p className="text-white font-bold text-sm">{reward.title}</p>
-                                                                <p className="text-gray-500 text-xs">{reward.pointsCost} pontos</p>
+                                                                <p className="text-white font-black text-xs">{reward.title}</p>
+                                                                <p className="text-gray-500 text-[9px] font-bold uppercase">{reward.pointsCost} pontos</p>
                                                             </div>
                                                         </div>
                                                         <button
-                                                            className="px-4 py-2 rounded-lg text-xs font-bold"
+                                                            className="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-tighter"
                                                             style={{
                                                                 backgroundColor: reward.pointsCost <= 350 ? settings.primaryColor : 'transparent',
-                                                                color: reward.pointsCost <= 350 ? '#000' : '#666',
+                                                                color: reward.pointsCost <= 350 ? '#000' : '#444',
                                                                 border: reward.pointsCost > 350 ? '1px solid #333' : 'none'
                                                             }}
                                                             disabled={reward.pointsCost > 350}
@@ -1392,27 +1410,28 @@ const AppCustomizationPage: React.FC = () => {
 
                                     {appTab === 'profile' && (
                                         <div className="p-5 pt-12 text-center">
-                                            <div className="w-24 h-24 rounded-full bg-gray-800 mx-auto mb-4 border-4 border-gray-900 shadow-xl overflow-hidden">
-                                                <img src={simulationUser.avatar} className="w-full h-full object-cover" />
+                                            <div className="w-20 h-20 rounded-3xl bg-gray-800 mx-auto mb-4 border-2 p-1 overflow-hidden shadow-2xl" style={{ borderColor: settings.primaryColor }}>
+                                                <img src={simulationUser.avatar} className="w-full h-full object-cover rounded-2xl" />
                                             </div>
-                                            <h2 className="text-xl font-bold text-white">{simulationUser.name}</h2>
-                                            <p className="text-gray-500 text-sm mb-6">{simulationUser.email}</p>
+                                            <h2 className="text-lg font-black text-white">{simulationUser.name}</h2>
+                                            <p className="text-gray-500 text-xs mb-8">{simulationUser.email}</p>
 
-                                            <div className="space-y-3 text-left">
-                                                <button className="w-full p-4 bg-gray-900 rounded-xl flex justify-between items-center text-white border border-gray-800">
-                                                    <span className="flex items-center gap-3"><Clock size={18} className="text-primary-500" /> Histórico</span>
-                                                    <ChevronRight size={16} className="text-gray-600" />
-                                                </button>
-                                                <button className="w-full p-4 bg-gray-900 rounded-xl flex justify-between items-center text-white border border-gray-800">
-                                                    <span className="flex items-center gap-3"><CreditCard size={18} className="text-primary-500" /> Pagamentos</span>
-                                                    <ChevronRight size={16} className="text-gray-600" />
-                                                </button>
-                                                <button className="w-full p-4 bg-gray-900 rounded-xl flex justify-between items-center text-white border border-gray-800">
-                                                    <span className="flex items-center gap-3"><Gift size={18} className="text-primary-500" /> Meus Prêmios</span>
-                                                    <ChevronRight size={16} className="text-gray-600" />
-                                                </button>
-                                                <button onClick={() => setPreviewScreen('login')} className="w-full p-4 bg-red-500/10 rounded-xl flex justify-between items-center text-red-500 border border-red-500/20 mt-8">
-                                                    <span className="flex items-center gap-3"><LogOut size={18} /> Sair</span>
+                                            <div className="grid grid-cols-1 gap-2 text-left">
+                                                {[
+                                                    { icon: Clock, label: 'Histórico de Cortes' },
+                                                    { icon: CreditCard, label: 'Minhas Compras' },
+                                                    { icon: Gift, label: 'Prêmios Resgatados' },
+                                                    { icon: Bell, label: 'Notificações' }
+                                                ].map((item, idx) => (
+                                                    <button key={idx} className="w-full px-4 py-3 bg-gray-900/50 rounded-xl flex justify-between items-center text-white border border-gray-800 hover:bg-gray-800 transition-colors">
+                                                        <span className="flex items-center gap-3 text-xs font-bold text-gray-300">
+                                                            <item.icon size={16} style={{ color: settings.primaryColor }} /> {item.label}
+                                                        </span>
+                                                        <ChevronRight size={14} className="text-gray-700" />
+                                                    </button>
+                                                ))}
+                                                <button onClick={() => setPreviewScreen('login')} className="w-full p-3 bg-red-500/10 rounded-xl flex justify-center items-center text-red-500 border border-red-500/20 mt-4 text-xs font-black uppercase tracking-widest transition-colors hover:bg-red-500/20">
+                                                    Sair da Conta
                                                 </button>
                                             </div>
                                         </div>

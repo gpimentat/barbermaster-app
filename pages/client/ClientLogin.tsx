@@ -31,33 +31,48 @@ const ClientLogin: React.FC<ClientLoginProps> = ({ tenant, onLogin }) => {
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
-        console.log('Login attempt:', loginData);
         setLoading(true);
 
         try {
             // Buscar cliente no Supabase
-            const client = await clientService.login(tenant.id, loginData.phone);
+            const result = await clientService.login(tenant.id, loginData.phone, loginData.password);
 
-            if (!client) {
+            if (!result) {
                 alert('Cliente não encontrado! Cadastre-se primeiro.');
+                setLoading(false);
+                return;
+            }
+
+            // Caso o cliente exista mas precise definir uma senha (migração)
+            if (result.needsPassword) {
+                alert('Sua conta foi migrada! Por favor, use a aba "Cadastrar" para definir sua senha de acesso.');
+                setMode('register');
+                setRegisterData({
+                    ...registerData,
+                    phone: result.phone,
+                    name: result.name
+                });
                 setLoading(false);
                 return;
             }
 
             // Salvar sessão
             const sessionData = {
-                clientId: client.id,
-                phone: client.phone,
-                name: client.name,
+                clientId: result.id,
+                phone: result.phone,
+                name: result.name,
                 tenantId: tenant.id
             };
 
             localStorage.setItem(`client_session_${tenant.slug}`, JSON.stringify(sessionData));
-            console.log('Login successful!', sessionData);
             onLogin(sessionData);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Login error:', error);
-            alert('Erro ao fazer login. Tente novamente.');
+            if (error.message === 'invalid_password') {
+                alert('Senha incorreta!');
+            } else {
+                alert('Erro ao fazer login. Tente novamente.');
+            }
         } finally {
             setLoading(false);
         }

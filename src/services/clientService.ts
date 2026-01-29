@@ -34,6 +34,35 @@ export const clientService = {
         birthDate?: string;
         password: string;
     }): Promise<Client> {
+        // Verificar se já existe
+        const { data: existing } = await supabase
+            .from('clients')
+            .select('id, phone, password')
+            .eq('tenant_id', tenantId)
+            .eq('phone', data.phone)
+            .maybeSingle();
+
+        if (existing) {
+            // Se já existe mas não tem senha, estamos "ativando" a conta legado
+            if (!existing.password) {
+                const { data: updated, error } = await supabase
+                    .from('clients')
+                    .update({
+                        password: data.password,
+                        name: data.name,
+                        email: data.email,
+                        birth_date: data.birthDate
+                    })
+                    .eq('id', existing.id)
+                    .select()
+                    .single();
+
+                if (error) throw error;
+                return updated;
+            }
+            throw { code: '23505' }; // Telefone já cadastrado
+        }
+
         const { data: client, error } = await supabase
             .from('clients')
             .insert({
@@ -42,6 +71,7 @@ export const clientService = {
                 phone: data.phone,
                 email: data.email,
                 birth_date: data.birthDate,
+                password: data.password, // Em produção, usar hash via RPC/Edge Function
                 loyalty_points: 0
             })
             .select()
@@ -51,19 +81,30 @@ export const clientService = {
         return client;
     },
 
-    // Login (buscar cliente por telefone)
-    async login(tenantId: string, phone: string): Promise<Client | null> {
+    // Login (buscar cliente por telefone e senha)
+    async login(tenantId: string, phone: string, password?: string): Promise<any> {
         const { data, error } = await supabase
             .from('clients')
             .select('*')
             .eq('tenant_id', tenantId)
             .eq('phone', phone)
-            .single();
+            .maybeSingle();
 
-        if (error) return null;
+        if (error) throw error;
+        if (!data) return null;
+
+        // Caso especial: conta sem senha (primeiro acesso pós-migração)
+        if (!data.password) {
+            return { ...data, needsPassword: true };
+        }
+
+        // Validar senha se fornecida
+        if (password && data.password !== password) {
+            throw new Error('invalid_password');
+        }
+
         return data;
     },
-
     // Buscar cliente por ID
     async getById(clientId: string): Promise<Client | null> {
         const { data, error } = await supabase
