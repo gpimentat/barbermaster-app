@@ -249,7 +249,7 @@ const ComandasPage: React.FC = () => {
     }
   };
 
-  const handleApplyDiscount = () => {
+  const handleApplyDiscount = async () => {
     if (!selectedComanda) return;
 
     // Validation for receptionist
@@ -269,6 +269,32 @@ const ComandasPage: React.FC = () => {
       discountAppliedBy: currentUser?.id,
       total: finalTotal
     });
+
+    // Send notification to admins if receptionist applied discount
+    if (role === 'receptionist' && discountAmount > 0) {
+      try {
+        // Fetch all admins from this tenant
+        const { data: admins } = await supabase
+          .from('staff')
+          .select('id')
+          .eq('tenant_id', currentUser?.tenantId)
+          .in('role', ['admin', 'super_admin']);
+
+        if (admins && admins.length > 0) {
+          const notifications = admins.map(admin => ({
+            user_id: admin.id,
+            title: 'Desconto Aplicado',
+            message: `${currentUser?.name} aplicou R$ ${discountAmount.toFixed(2)} de desconto na comanda de ${selectedComanda.clientName}. Motivo: ${discountReason.trim()}`,
+            type: 'warning',
+            tenant_id: currentUser?.tenantId
+          }));
+
+          await supabase.from('notifications').insert(notifications);
+        }
+      } catch (error) {
+        console.error('Erro ao criar notificações:', error);
+      }
+    }
 
     setShowDiscountModal(false);
     setDiscountAmount(0);
