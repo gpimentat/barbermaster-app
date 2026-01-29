@@ -1052,7 +1052,7 @@ const AppCustomizationPage: React.FC = () => {
                                             <span className="font-bold text-white">Domínio Grátis</span>
                                         </div>
                                         <div className="mt-3 flex items-center bg-gray-900 rounded-lg px-3 py-2 border border-gray-700 text-gray-400">
-                                            <span>app.barbermaster.com.br/</span>
+                                            <span>barbermaster.com.br/</span>
                                             <input
                                                 type="text"
                                                 value={domainConfig.slug}
@@ -1100,7 +1100,7 @@ const AppCustomizationPage: React.FC = () => {
                                                     className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary-500"
                                                 />
                                                 <div className="flex items-center justify-between">
-                                                    <p className="text-xs text-gray-500">Configure o CNAME apontando para <strong>app.barbermaster.com.br</strong></p>
+                                                    <p className="text-xs text-gray-500">Configure o CNAME apontando para <strong>barbermaster.com.br</strong></p>
                                                     <button
                                                         onClick={verifyDomain}
                                                         className={`text-xs px-3 py-1.5 rounded font-bold flex items-center gap-1 ${domainConfig.isVerified ? 'bg-green-500/20 text-green-500' : 'bg-gray-700 text-white hover:bg-gray-600'}`}
