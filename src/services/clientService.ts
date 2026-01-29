@@ -81,7 +81,54 @@ export const clientService = {
         return client;
     },
 
-    // Login (buscar cliente por telefone e senha)
+    // Solicitar Código de Segurança (OTP)
+    async requestOTP(phone: string): Promise<any> {
+        const { data, error } = await supabase.functions.invoke('send-client-otp', {
+            body: { phone }
+        });
+
+        if (error) throw error;
+        return data;
+    },
+
+    // Verificar Código e Fazer Login
+    async verifyOTP(tenantId: string, phone: string, code: string): Promise<any> {
+        // 1. Verificar se o código é válido no banco
+        const { data: verification, error: vError } = await supabase
+            .from('client_verification_codes')
+            .select('*')
+            .eq('phone', phone)
+            .eq('code', code)
+            .eq('used', false)
+            .gt('expires_at', new Date().toISOString())
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+        if (vError) throw vError;
+        if (!verification) throw new Error('invalid_code');
+
+        // 2. Marcar código como usado
+        await supabase
+            .from('client_verification_codes')
+            .update({ used: true })
+            .eq('id', verification.id);
+
+        // 3. Buscar ou Criar o Cliente
+        const { data: client, error: cError } = await supabase
+            .from('clients')
+            .select('*')
+            .eq('tenant_id', tenantId)
+            .eq('phone', phone)
+            .maybeSingle();
+
+        if (cError) throw cError;
+
+        // Retornar o cliente (pode ser nulo se for novo, o frontend tratará)
+        return client || { phone, isNew: true };
+    },
+
+    // Login (Legado ou via senha se configurado)
     async login(tenantId: string, phone: string, password?: string): Promise<any> {
         const { data, error } = await supabase
             .from('clients')

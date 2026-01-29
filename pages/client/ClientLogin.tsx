@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mail, Lock, User, Phone, Calendar, Eye, EyeOff, LogIn, UserPlus } from 'lucide-react';
+import { Mail, Lock, User, Phone, Calendar, Eye, EyeOff, LogIn, UserPlus, Smartphone } from 'lucide-react';
 import clientService from '../../src/services/clientService';
 
 interface ClientLoginProps {
@@ -8,13 +8,19 @@ interface ClientLoginProps {
 }
 
 const ClientLogin: React.FC<ClientLoginProps> = ({ tenant, onLogin }) => {
-    const [mode, setMode] = useState<'login' | 'register'>('login');
+    const [mode, setMode] = useState<'login' | 'register' | 'otp'>('otp');
+    const [otpStep, setOtpStep] = useState<'phone' | 'code'>('phone');
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
 
     const [loginData, setLoginData] = useState({
         phone: '',
         password: ''
+    });
+
+    const [otpData, setOtpData] = useState({
+        phone: '',
+        code: ''
     });
 
     const [registerData, setRegisterData] = useState({
@@ -29,34 +35,77 @@ const ClientLogin: React.FC<ClientLoginProps> = ({ tenant, onLogin }) => {
     const appConfig = tenant?.settings?.app_config?.general;
     const primaryColor = appConfig?.primaryColor || '#eab308';
 
+    const handleSendOTP = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        try {
+            await clientService.requestOTP(otpData.phone);
+            setOtpStep('code');
+        } catch (error) {
+            console.error('OTP request error:', error);
+            alert('Erro ao enviar código. Verifique o número.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleVerifyOTP = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        try {
+            const result = await clientService.verifyOTP(tenant.id, otpData.phone, otpData.code);
+
+            if (result.isNew) {
+                // Cliente novo que validou o telefone, levar para o registro pré-preenchido
+                alert('Telefone validado! Complete seu cadastro para continuar.');
+                setMode('register');
+                setRegisterData(prev => ({ ...prev, phone: result.phone }));
+                return;
+            }
+
+            // Cliente existente
+            const sessionData = {
+                clientId: result.id,
+                phone: result.phone,
+                name: result.name,
+                tenantId: tenant.id
+            };
+
+            localStorage.setItem(`client_session_${tenant.slug}`, JSON.stringify(sessionData));
+            onLogin(sessionData);
+        } catch (error: any) {
+            console.error('OTP verification error:', error);
+            if (error.message === 'invalid_code') {
+                alert('Código inválido ou expirado.');
+            } else {
+                alert('Erro ao verificar código.');
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
 
         try {
-            // Buscar cliente no Supabase
             const result = await clientService.login(tenant.id, loginData.phone, loginData.password);
 
             if (!result) {
-                alert('Cliente não encontrado! Cadastre-se primeiro.');
+                alert('Cliente não encontrado! Cadastre-se ou use o Acesso Rápido.');
                 setLoading(false);
                 return;
             }
 
-            // Caso o cliente exista mas precise definir uma senha (migração)
             if (result.needsPassword) {
-                alert('Sua conta foi migrada! Por favor, use a aba "Cadastrar" para definir sua senha de acesso.');
-                setMode('register');
-                setRegisterData({
-                    ...registerData,
-                    phone: result.phone,
-                    name: result.name
-                });
+                alert('Sua conta foi migrada! Use o "Acesso por Código" para entrar rapidamente ou defina uma senha no cadastro.');
+                setMode('otp');
+                setOtpData({ ...otpData, phone: result.phone });
                 setLoading(false);
                 return;
             }
 
-            // Salvar sessão
             const sessionData = {
                 clientId: result.id,
                 phone: result.phone,
@@ -71,7 +120,7 @@ const ClientLogin: React.FC<ClientLoginProps> = ({ tenant, onLogin }) => {
             if (error.message === 'invalid_password') {
                 alert('Senha incorreta!');
             } else {
-                alert('Erro ao fazer login. Tente novamente.');
+                alert('Erro ao fazer login.');
             }
         } finally {
             setLoading(false);
@@ -80,7 +129,6 @@ const ClientLogin: React.FC<ClientLoginProps> = ({ tenant, onLogin }) => {
 
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
-        console.log('Register attempt:', registerData);
         setLoading(true);
 
         try {
@@ -90,13 +138,6 @@ const ClientLogin: React.FC<ClientLoginProps> = ({ tenant, onLogin }) => {
                 return;
             }
 
-            if (!registerData.name || !registerData.phone || !registerData.password) {
-                alert('Preencha todos os campos obrigatórios!');
-                setLoading(false);
-                return;
-            }
-
-            // Registrar no Supabase
             const client = await clientService.register(tenant.id, {
                 name: registerData.name,
                 phone: registerData.phone,
@@ -105,7 +146,6 @@ const ClientLogin: React.FC<ClientLoginProps> = ({ tenant, onLogin }) => {
                 password: registerData.password
             });
 
-            // Salvar sessão
             const sessionData = {
                 clientId: client.id,
                 phone: client.phone,
@@ -114,14 +154,13 @@ const ClientLogin: React.FC<ClientLoginProps> = ({ tenant, onLogin }) => {
             };
 
             localStorage.setItem(`client_session_${tenant.slug}`, JSON.stringify(sessionData));
-            console.log('Registration successful!', sessionData);
             onLogin(sessionData);
         } catch (error: any) {
             console.error('Registration error:', error);
             if (error.code === '23505') {
-                alert('Este telefone já está cadastrado! Faça login.');
+                alert('Este telefone já está cadastrado!');
             } else {
-                alert('Erro ao criar conta. Tente novamente.');
+                alert('Erro ao criar conta.');
             }
         } finally {
             setLoading(false);
@@ -146,33 +185,33 @@ const ClientLogin: React.FC<ClientLoginProps> = ({ tenant, onLogin }) => {
                         />
                     </div>
                 )}
-                {/* DEBUG: Mostrar URL da imagem se estiver quebrada */}
-                <p className="text-xs text-red-500 break-all hidden">{appConfig?.logoPreview}</p>
                 <h1 className="text-2xl font-bold text-white">{appConfig?.name || 'BarberMaster'}</h1>
                 <p className="text-gray-400 text-sm mt-1">{appConfig?.slogan || 'Agende seu corte'}</p>
             </div>
 
-            {/* Card de Login/Registro */}
+            {/* Card de Login/Registro/OTP */}
             <div className="w-full max-w-md bg-gray-900 rounded-2xl shadow-2xl border border-gray-800 overflow-hidden">
                 {/* Tabs */}
                 <div className="flex border-b border-gray-800">
                     <button
+                        onClick={() => { setMode('otp'); setOtpStep('phone'); }}
+                        className={`flex-1 py-4 font-medium transition-colors ${mode === 'otp' ? 'border-b-2 text-white' : 'text-gray-400'}`}
+                        style={{ borderColor: mode === 'otp' ? primaryColor : 'transparent' }}
+                    >
+                        <Smartphone className="inline-block mr-2" size={18} />
+                        Código
+                    </button>
+                    <button
                         onClick={() => setMode('login')}
-                        className={`flex-1 py-4 font-medium transition-colors ${mode === 'login'
-                            ? 'border-b-2 text-white'
-                            : 'text-gray-400'
-                            }`}
+                        className={`flex-1 py-4 font-medium transition-colors ${mode === 'login' ? 'border-b-2 text-white' : 'text-gray-400'}`}
                         style={{ borderColor: mode === 'login' ? primaryColor : 'transparent' }}
                     >
                         <LogIn className="inline-block mr-2" size={18} />
-                        Entrar
+                        Senha
                     </button>
                     <button
                         onClick={() => setMode('register')}
-                        className={`flex-1 py-4 font-medium transition-colors ${mode === 'register'
-                            ? 'border-b-2 text-white'
-                            : 'text-gray-400'
-                            }`}
+                        className={`flex-1 py-4 font-medium transition-colors ${mode === 'register' ? 'border-b-2 text-white' : 'text-gray-400'}`}
                         style={{ borderColor: mode === 'register' ? primaryColor : 'transparent' }}
                     >
                         <UserPlus className="inline-block mr-2" size={18} />
@@ -181,7 +220,75 @@ const ClientLogin: React.FC<ClientLoginProps> = ({ tenant, onLogin }) => {
                 </div>
 
                 <div className="p-6">
-                    {mode === 'login' ? (
+                    {mode === 'otp' ? (
+                        <div className="space-y-4">
+                            {otpStep === 'phone' ? (
+                                <form onSubmit={handleSendOTP} className="space-y-4">
+                                    <p className="text-sm text-gray-400 text-center mb-4">
+                                        Digite seu celular para receber um código de acesso por mensagem.
+                                    </p>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-300 mb-2">Telefone</label>
+                                        <div className="relative">
+                                            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                                            <input
+                                                type="tel"
+                                                value={otpData.phone}
+                                                onChange={(e) => setOtpData({ ...otpData, phone: e.target.value })}
+                                                placeholder="(11) 99999-9999"
+                                                className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-10 pr-4 py-3 text-white focus:outline-none focus:border-primary-500"
+                                                required
+                                            />
+                                        </div>
+                                    </div>
+                                    <button
+                                        type="submit"
+                                        disabled={loading}
+                                        className="w-full py-3 rounded-lg font-bold text-dark-950 transition-all hover:scale-105 disabled:opacity-50"
+                                        style={{ backgroundColor: primaryColor }}
+                                    >
+                                        {loading ? 'Enviando...' : 'Receber Código'}
+                                    </button>
+                                </form>
+                            ) : (
+                                <form onSubmit={handleVerifyOTP} className="space-y-4">
+                                    <p className="text-sm text-gray-400 text-center mb-4">
+                                        Enviamos um código de 6 dígitos para <strong>{otpData.phone}</strong>.
+                                    </p>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-300 mb-2">Código de Segurança</label>
+                                        <div className="relative">
+                                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                                            <input
+                                                type="text"
+                                                value={otpData.code}
+                                                onChange={(e) => setOtpData({ ...otpData, code: e.target.value })}
+                                                placeholder="000 000"
+                                                maxLength={6}
+                                                className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-10 pr-4 py-3 text-white text-center tracking-widest text-xl font-bold focus:outline-none focus:border-primary-500"
+                                                required
+                                            />
+                                        </div>
+                                    </div>
+                                    <button
+                                        type="submit"
+                                        disabled={loading}
+                                        className="w-full py-3 rounded-lg font-bold text-dark-950 transition-all hover:scale-105 disabled:opacity-50"
+                                        style={{ backgroundColor: primaryColor }}
+                                    >
+                                        {loading ? 'Verificando...' : 'Confirmar e Entrar'}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setOtpStep('phone')}
+                                        className="w-full text-sm text-gray-500 hover:text-white transition-colors"
+                                    >
+                                        Alterar telefone
+                                    </button>
+                                </form>
+                            )}
+                        </div>
+                    ) : mode === 'login' ? (
                         <form onSubmit={handleLogin} className="space-y-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-300 mb-2">Telefone</label>
@@ -223,7 +330,7 @@ const ClientLogin: React.FC<ClientLoginProps> = ({ tenant, onLogin }) => {
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="w-full py-3 rounded-lg font-bold text-dark-950 transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="w-full py-3 rounded-lg font-bold text-dark-950 transition-all hover:scale-105 disabled:opacity-50"
                                 style={{ backgroundColor: primaryColor }}
                             >
                                 {loading ? 'Entrando...' : 'Entrar'}
@@ -310,25 +417,10 @@ const ClientLogin: React.FC<ClientLoginProps> = ({ tenant, onLogin }) => {
                                 </div>
                             </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-2">Confirmar Senha</label>
-                                <div className="relative">
-                                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                                    <input
-                                        type="password"
-                                        value={registerData.confirmPassword}
-                                        onChange={(e) => setRegisterData({ ...registerData, confirmPassword: e.target.value })}
-                                        placeholder="••••••••"
-                                        className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-10 pr-4 py-3 text-white focus:outline-none focus:border-primary-500"
-                                        required
-                                    />
-                                </div>
-                            </div>
-
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="w-full py-3 rounded-lg font-bold text-dark-950 transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="w-full py-3 rounded-lg font-bold text-dark-950 transition-all hover:scale-105 disabled:opacity-50"
                                 style={{ backgroundColor: primaryColor }}
                             >
                                 {loading ? 'Criando conta...' : 'Criar Conta'}
