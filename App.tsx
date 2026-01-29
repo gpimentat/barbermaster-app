@@ -142,6 +142,12 @@ const Sidebar = ({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
     if (role === 'admin') return true;
     if (role === 'receptionist' && ['Financeiro', 'Profissionais', 'App do Cliente'].includes(link.name)) return false;
     // Permissão 'manage_integrations' será checada aqui
+
+    // FIX: Agendamento deve aparecer se tiver view_own_schedule OU view_full_schedule
+    if (link.path === '/schedule') {
+      return hasPermission('view_own_schedule') || hasPermission('view_full_schedule');
+    }
+
     return hasPermission(link.requiredPermission);
   });
 
