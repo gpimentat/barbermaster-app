@@ -22,7 +22,7 @@ export interface SaaSStats {
 }
 
 export const dashboardService = {
-    async getSaasStats(adminEmail?: string): Promise<{ stats: SaaSStats, tenants: any[] }> {
+    async getSaasStats(adminEmail?: string): Promise<{ stats: SaaSStats, users: any[] }> {
         // 1. Fetch all tenants
         const { data: tenants, error: tenantError } = await supabase
             .from('tenants')
@@ -92,6 +92,13 @@ export const dashboardService = {
             revenueGrowth.push({ name: monthName, value: monthlyMrr });
         }
 
+        // 7. Fetch all profiles with tenant info (excluding current admin)
+        const { data: allProfiles } = await supabase
+            .from('profiles')
+            .select('*, tenants(name)')
+            .neq('email', adminEmail || 'g.pimentat@gmail.com')
+            .order('name');
+
         return {
             stats: {
                 totalTenants: realTenants.length,
@@ -101,7 +108,7 @@ export const dashboardService = {
                 revenueGrowth,
                 newUserGrowth
             },
-            tenants: realTenants
+            users: allProfiles || [] // Return people instead of shops
         };
     },
 

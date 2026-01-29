@@ -10,7 +10,7 @@ const SaasAdminPage: React.FC = () => {
     const { currentUser } = useAuth();
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState<SaaSStats | null>(null);
-    const [tenants, setTenants] = useState<any[]>([]);
+    const [users, setUsers] = useState<any[]>([]);
 
     useEffect(() => {
         fetchStats();
@@ -19,9 +19,9 @@ const SaasAdminPage: React.FC = () => {
     const fetchStats = async () => {
         try {
             setLoading(true);
-            const { stats: saasStats, tenants: tenantList } = await dashboardService.getSaasStats(currentUser?.email);
+            const { stats: saasStats, users: userList } = await dashboardService.getSaasStats(currentUser?.email);
             setStats(saasStats);
-            setTenants(tenantList);
+            setUsers(userList);
         } catch (error) {
             console.error('Erro ao buscar estatísticas SaaS:', error);
         } finally {
@@ -160,30 +160,36 @@ const SaasAdminPage: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-800">
-                            {tenants.map((tenant) => (
-                                <tr key={tenant.id} className="hover:bg-gray-800/30 transition-colors">
+                            {users.map((user) => (
+                                <tr key={user.id} className="hover:bg-gray-800/30 transition-colors">
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-3">
                                             <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-xs font-bold text-white">
-                                                {tenant.name?.[0] || 'T'}
+                                                {user.name?.[0] || 'U'}
                                             </div>
                                             <div>
-                                                <p className="font-medium text-white text-sm">{tenant.name || 'Sem Nome'}</p>
-                                                <p className="text-xs text-gray-500">ID: {tenant.id.split('-')[0]}...</p>
+                                                <p className="font-medium text-white text-sm">{user.name || 'Sem Nome'}</p>
+                                                <p className="text-xs text-gray-500">{user.email}</p>
                                             </div>
                                         </div>
                                     </td>
                                     <td className="px-6 py-4">
-                                        <span className={`px-2 py-1 rounded text-xs font-bold bg-gray-700 text-gray-300`}>
-                                            Tenant
-                                        </span>
+                                        <div>
+                                            <span className={`px-2 py-1 rounded text-xs font-bold ${user.role === 'admin' ? 'bg-primary-500/10 text-primary-500' :
+                                                    user.role === 'super_admin' ? 'bg-purple-500/10 text-purple-500' :
+                                                        'bg-gray-700 text-gray-300'
+                                                }`}>
+                                                {user.role}
+                                            </span>
+                                            <p className="text-[10px] text-gray-500 mt-1 uppercase tracking-wider">{user.tenants?.name || 'Sem Loja'}</p>
+                                        </div>
                                     </td>
                                     <td className="px-6 py-4">
-                                        <span className={`inline-block w-2 h-2 rounded-full ${tenant.active !== false ? 'bg-green-500' : 'bg-red-500'} mr-2`}></span>
-                                        <span className="text-sm text-gray-300">{tenant.active !== false ? 'Ativo' : 'Inativo'}</span>
+                                        <span className={`inline-block w-2 h-2 rounded-full ${user.active !== false ? 'bg-green-500' : 'bg-red-500'} mr-2`}></span>
+                                        <span className="text-sm text-gray-300">{user.active !== false ? 'Ativo' : 'Inativo'}</span>
                                     </td>
                                     <td className="px-6 py-4 text-right">
-                                        <button className="text-gray-400 hover:text-white transition-colors text-sm">Gerenciar</button>
+                                        <button className="text-gray-400 hover:text-white transition-colors text-sm">Editar</button>
                                     </td>
                                 </tr>
                             ))}
