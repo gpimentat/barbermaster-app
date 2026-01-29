@@ -202,7 +202,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       role = 'admin';
     } else if (dbRole === 'super_admin') {
       role = 'super_admin';
-    } else if (dbRole === 'receptionist') {
+    } else if (dbRole.toLowerCase() === 'receptionist' || dbRole === 'Recepcionista') {
       role = 'receptionist';
     } else {
       role = 'barber';
