@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { Users, DollarSign, Activity, TrendingUp, TrendingDown, UserPlus } from 'lucide-react';
+import { Users, DollarSign, Activity, TrendingUp, TrendingDown, UserPlus, X } from 'lucide-react';
 import { supabase } from '../src/supabaseClient';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { dashboardService, SaaSStats } from '../src/services/dashboardService';
@@ -11,6 +11,16 @@ const SaasAdminPage: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState<SaaSStats | null>(null);
     const [users, setUsers] = useState<any[]>([]);
+
+    // Modal states
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [newUser, setNewUser] = useState({
+        shopName: '',
+        name: '',
+        email: '',
+        password: ''
+    });
 
     useEffect(() => {
         fetchStats();
@@ -26,6 +36,75 @@ const SaasAdminPage: React.FC = () => {
             console.error('Erro ao buscar estatísticas SaaS:', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleCreateUser = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (saving) return;
+
+        if (!newUser.shopName || !newUser.name || !newUser.email || !newUser.password) {
+            alert('Por favor, preencha todos os campos.');
+            return;
+        }
+
+        try {
+            setSaving(true);
+
+            // 1. Create Tenant
+            const slug = newUser.shopName.toLowerCase()
+                .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                .replace(/[^a-z0-9]/g, '-')
+                .replace(/-+/g, '-')
+                .trim();
+
+            const { data: tenant, error: tenantError } = await supabase
+                .from('tenants')
+                .insert({
+                    name: newUser.shopName,
+                    slug: slug,
+                    subscription_status: 'active',
+                    settings: {}
+                })
+                .select()
+                .single();
+
+            if (tenantError) throw tenantError;
+
+            // 2. Create Owner Profile via Edge Function
+            const { data: { session } } = await supabase.auth.getSession();
+            const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+
+            const response = await fetch(`${supabaseUrl}/functions/v1/manage-staff`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${session?.access_token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    name: newUser.name,
+                    email: newUser.email,
+                    password: newUser.password,
+                    role: 'admin',
+                    active: true,
+                    tenant_id: tenant.id,
+                    login_enabled: true,
+                    permissions: ['view_full_schedule', 'manage_schedule', 'manage_clients', 'view_financial', 'manage_integrations']
+                })
+            });
+
+            const result = await response.json();
+            if (!result.success) throw new Error(result.error || 'Erro ao criar perfil do gestor');
+
+            alert('✅ Barbearia e Gestor criados com sucesso!');
+            setIsModalOpen(false);
+            setNewUser({ shopName: '', name: '', email: '', password: '' });
+            fetchStats();
+        } catch (error: any) {
+            console.error('Erro na criação:', error);
+            alert(`❌ Falha ao criar: ${error.message}`);
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -145,7 +224,10 @@ const SaasAdminPage: React.FC = () => {
             <div className="bg-dark-900 border border-gray-800 rounded-2xl overflow-hidden">
                 <div className="p-6 border-b border-gray-800 flex justify-between items-center">
                     <h3 className="text-lg font-bold text-white">Usuários Cadastrados</h3>
-                    <button className="flex items-center gap-2 bg-primary-500 hover:bg-primary-600 text-dark-950 px-4 py-2 rounded-lg text-sm font-bold transition-colors">
+                    <button
+                        onClick={() => setIsModalOpen(true)}
+                        className="flex items-center gap-2 bg-primary-500 hover:bg-primary-600 text-dark-950 px-4 py-2 rounded-lg text-sm font-bold transition-colors"
+                    >
                         <UserPlus size={16} /> Novo Usuário
                     </button>
                 </div>
@@ -176,8 +258,8 @@ const SaasAdminPage: React.FC = () => {
                                     <td className="px-6 py-4">
                                         <div>
                                             <span className={`px-2 py-1 rounded text-xs font-bold ${user.role === 'admin' ? 'bg-primary-500/10 text-primary-500' :
-                                                    user.role === 'super_admin' ? 'bg-purple-500/10 text-purple-500' :
-                                                        'bg-gray-700 text-gray-300'
+                                                user.role === 'super_admin' ? 'bg-purple-500/10 text-purple-500' :
+                                                    'bg-gray-700 text-gray-300'
                                                 }`}>
                                                 {user.role}
                                             </span>
@@ -197,6 +279,86 @@ const SaasAdminPage: React.FC = () => {
                     </table>
                 </div>
             </div>
+
+            {/* Registration Modal */}
+            {isModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-dark-900 border border-gray-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="p-6 border-b border-gray-800 flex justify-between items-center bg-gray-900">
+                            <h2 className="text-xl font-bold text-white">Novo Cliente SaaS</h2>
+                            <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-white transition-colors">
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleCreateUser} className="p-6 space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-400 mb-1">Nome da Barbearia</label>
+                                <input
+                                    type="text"
+                                    value={newUser.shopName}
+                                    onChange={e => setNewUser({ ...newUser, shopName: e.target.value })}
+                                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary-500"
+                                    placeholder="Ex: Barber King"
+                                />
+                            </div>
+
+                            <div className="pt-4 border-t border-gray-800">
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-3">Dados do Gestor (Admin)</label>
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-400 mb-1 font-normal">Nome do Gestor</label>
+                                        <input
+                                            type="text"
+                                            value={newUser.name}
+                                            onChange={e => setNewUser({ ...newUser, name: e.target.value })}
+                                            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary-500"
+                                            placeholder="Nome completo"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-400 mb-1 font-normal">E-mail de Acesso</label>
+                                        <input
+                                            type="email"
+                                            value={newUser.email}
+                                            onChange={e => setNewUser({ ...newUser, email: e.target.value })}
+                                            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary-500"
+                                            placeholder="email@exemplo.com"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-400 mb-1 font-normal">Senha Inicial</label>
+                                        <input
+                                            type="password"
+                                            value={newUser.password}
+                                            onChange={e => setNewUser({ ...newUser, password: e.target.value })}
+                                            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary-500"
+                                            placeholder="Mínimo 6 caracteres"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="pt-6 flex gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsModalOpen(false)}
+                                    className="flex-1 py-2 bg-gray-800 hover:bg-gray-700 text-white font-bold rounded-lg transition-colors border border-gray-700"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={saving}
+                                    className="flex-1 py-2 bg-primary-500 hover:bg-primary-600 text-dark-950 font-bold rounded-lg transition-colors shadow-lg shadow-primary-500/20 disabled:opacity-50"
+                                >
+                                    {saving ? 'Criando...' : 'Criar Conta'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
