@@ -29,7 +29,8 @@ const ServicesPage: React.FC = () => {
           durationMinutes: s.duration_minutes || 30,
           description: s.description || '',
           chips: Number(s.chips) || 0,
-          hidden: s.hidden || false
+          hidden: s.hidden || false,
+          priceVaries: s.price_varies || false
         }));
         setServices(mappedServices);
       }
@@ -52,7 +53,8 @@ const ServicesPage: React.FC = () => {
       durationMinutes: 30,
       description: '',
       chips: 1,
-      hidden: false
+      hidden: false,
+      priceVaries: false
     });
     setIsDeleteConfirming(false);
   };
@@ -90,6 +92,7 @@ const ServicesPage: React.FC = () => {
       description: selectedService.description,
       chips: selectedService.chips,
       hidden: selectedService.hidden,
+      price_varies: selectedService.priceVaries,
       tenant_id: currentUser?.tenantId
     };
 
@@ -183,7 +186,10 @@ const ServicesPage: React.FC = () => {
               <div className="flex items-center justify-between pt-4 border-t border-gray-800">
                 <div className="flex flex-col">
                   <span className="text-xs text-gray-500 uppercase">Preço</span>
-                  <span className="text-lg font-bold text-white">R$ {service.price.toFixed(2)}</span>
+                  <div className="flex items-baseline gap-1">
+                    {service.priceVaries && <span className="text-xs text-gray-400">A partir de</span>}
+                    <span className="text-lg font-bold text-white">R$ {service.price.toFixed(2)}</span>
+                  </div>
                 </div>
                 <div className="flex flex-col items-end">
                   <span className="text-xs text-gray-500 uppercase">Duração</span>

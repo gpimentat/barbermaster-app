@@ -179,6 +179,7 @@ const ClientBooking: React.FC<ClientBookingProps> = ({ tenant, clientData }) => 
                                         </div>
                                     </div>
                                     <div className="text-right">
+                                        {service.price_varies && <p className="text-xs text-gray-400">A partir de</p>}
                                         <p className="text-lg font-bold text-white">R$ {parseFloat(service.price || 0).toFixed(2)}</p>
                                         <ChevronRight className="text-gray-400 ml-auto" size={20} />
                                     </div>

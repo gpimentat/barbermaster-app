@@ -38,6 +38,7 @@ export interface Service {
   description: string;
   chips: number; // Novo: Quantidade de fichas para rateio de assinatura
   hidden?: boolean; // Novo: Serviço oculto para clientes (interno)
+  priceVaries?: boolean; // Novo: Indica "A partir de"
 }
 
 export interface Product {
