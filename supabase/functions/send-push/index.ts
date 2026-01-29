@@ -2,9 +2,13 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import webpush from 'npm:web-push';
 import { corsHeaders } from '../_shared/cors.ts';
 
-const VAPID_PUBLIC_KEY = Deno.env.get('VAPID_PUBLIC_KEY') || 'BBhXkh-e_wmX9BGEJ3lX7wJyKzd5xvrlCSz-yB5IQo6B_byJn8o_b2oVikEa8gW_S11ZtNxgrx13k7gotJfZ3p4';
-const VAPID_PRIVATE_KEY = Deno.env.get('VAPID_PRIVATE_KEY') || 'jKyJBMUgc-TqU6ks5c9ZqH-PFl_DxKFdfedghzbaoeI';
+const VAPID_PUBLIC_KEY = Deno.env.get('VAPID_PUBLIC_KEY');
+const VAPID_PRIVATE_KEY = Deno.env.get('VAPID_PRIVATE_KEY');
 const VAPID_EMAIL = 'mailto:admin@barbermaster.com';
+
+if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
+    console.warn('VAPID Keys not set in environment variables');
+}
 
 webpush.setVapidDetails(
     VAPID_EMAIL,

@@ -99,7 +99,7 @@ const SettingsPage: React.FC = () => {
             // But to make it work, we need a real subscription.
             const subscription = await registration.pushManager.subscribe({
                 userVisibleOnly: true,
-                applicationServerKey: 'BBhXkh-e_wmX9BGEJ3lX7wJyKzd5xvrlCSz-yB5IQo6B_byJn8o_b2oVikEa8gW_S11ZtNxgrx13k7gotJfZ3p4'
+                applicationServerKey: 'BIEn9cEiwTmf3nDEaKHE5iUWMIz7fRCOjdSFvmQWSaPcvZZnDZAH-n3VxJtcU3WTZg1RMCmzgjmPClMuSBLLfz8'
             });
 
             const { error } = await supabase
