@@ -12,7 +12,8 @@ import {
   Clock,
   User,
   Plus,
-  Loader2
+  Loader2,
+  Package
 } from 'lucide-react';
 import {
   AreaChart,
@@ -178,91 +179,88 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* KPI Grid Operacional */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <StatsCard
-            title="Agendamentos Hoje"
-            value={stats.totalAppointments}
-            change="Visualizar Agenda"
-            positive={true}
-            icon={CalendarCheck}
-            color="text-primary-500"
-          />
-          <StatsCard
-            title="Total de Clientes"
-            value={stats.newClients}
-            change="Base cadastrada"
-            positive={true}
-            icon={Users}
-            color="text-purple-500"
-          />
-          <StatsCard
-            title="Ticket Médio"
-            value={`R$ ${stats.ticketMedio.toFixed(2)}`}
-            change="Baseado em comandas"
-            positive={true}
-            icon={TrendingUp}
-            color="text-green-500"
-          />
+        {/* Atalhos Operacionais */}
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
+          <Link to="/schedule" className="bg-dark-900 p-6 rounded-xl border border-gray-800 hover:border-primary-500 transition-all group">
+            <div className="w-12 h-12 bg-primary-500/10 rounded-lg flex items-center justify-center text-primary-500 mb-4 group-hover:scale-110 transition-transform">
+              <CalendarCheck size={24} />
+            </div>
+            <h3 className="text-lg font-bold text-white mb-2">Agenda</h3>
+            <p className="text-gray-400 text-xs">Agendamentos.</p>
+          </Link>
+
+          <Link to="/comandas" className="bg-dark-900 p-6 rounded-xl border border-gray-800 hover:border-green-500 transition-all group">
+            <div className="w-12 h-12 bg-green-500/10 rounded-lg flex items-center justify-center text-green-500 mb-4 group-hover:scale-110 transition-transform">
+              <Scissors size={24} />
+            </div>
+            <h3 className="text-lg font-bold text-white mb-2">Comandas</h3>
+            <p className="text-gray-400 text-xs">Abrir/Fechar.</p>
+          </Link>
+
+          <Link to="/clients" className="bg-dark-900 p-6 rounded-xl border border-gray-800 hover:border-purple-500 transition-all group">
+            <div className="w-12 h-12 bg-purple-500/10 rounded-lg flex items-center justify-center text-purple-500 mb-4 group-hover:scale-110 transition-transform">
+              <Users size={24} />
+            </div>
+            <h3 className="text-lg font-bold text-white mb-2">Clientes</h3>
+            <p className="text-gray-400 text-xs">Cadastros.</p>
+          </Link>
+
+          <Link to="/subscriptions" className="bg-dark-900 p-6 rounded-xl border border-gray-800 hover:border-yellow-500 transition-all group">
+            <div className="w-12 h-12 bg-yellow-500/10 rounded-lg flex items-center justify-center text-yellow-500 mb-4 group-hover:scale-110 transition-transform">
+              <Crown size={24} />
+            </div>
+            <h3 className="text-lg font-bold text-white mb-2">Assinaturas</h3>
+            <p className="text-gray-400 text-xs">Vender Planos.</p>
+          </Link>
+
+          <Link to="/products" className="bg-dark-900 p-6 rounded-xl border border-gray-800 hover:border-pink-500 transition-all group">
+            <div className="w-12 h-12 bg-pink-500/10 rounded-lg flex items-center justify-center text-pink-500 mb-4 group-hover:scale-110 transition-transform">
+              <Package size={24} />
+            </div>
+            <h3 className="text-lg font-bold text-white mb-2">Pacotes</h3>
+            <p className="text-gray-400 text-xs">Vender Pacotes.</p>
+          </Link>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 bg-dark-900 rounded-xl border border-gray-800 overflow-hidden">
-            <div className="p-6 border-b border-gray-800 flex justify-between items-center">
-              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                <Clock size={20} className="text-primary-500" /> Fluxo do Dia
-              </h3>
-              <Link to="/schedule" className="text-sm text-primary-500 hover:underline">Ver Agenda Completa</Link>
-            </div>
-            <div className="divide-y divide-gray-800">
-              {stats.todayAppointments.length > 0 ? (
-                stats.todayAppointments.map((appt: any, idx: number) => (
-                  <div key={idx} className="p-4 flex items-center justify-between hover:bg-gray-800/50 transition-colors">
-                    <div className="flex items-center gap-4">
-                      <div className="flex flex-col items-center justify-center bg-gray-800 w-14 h-14 rounded-lg border border-gray-700 text-primary-500">
-                        <span className="font-bold text-lg">{appt.start_time}</span>
-                      </div>
-                      <div>
-                        <p className="text-white font-bold">{appt.clients?.name || 'Cliente'}</p>
-                        <p className="text-sm text-gray-400">{appt.services?.name}</p>
-                        <div className="flex items-center gap-1 mt-1 text-xs text-gray-500">
-                          <User size={12} /> Profissional: <span className="text-gray-300">{appt.profiles?.name}</span>
-                        </div>
-                      </div>
+        {/* Próximos Agendamentos */}
+        <div className="bg-dark-900 rounded-xl border border-gray-800 overflow-hidden">
+          <div className="p-6 border-b border-gray-800 flex justify-between items-center">
+            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+              <Clock size={20} className="text-primary-500" /> Próximos Agendamentos (Hoje)
+            </h3>
+            <Link to="/schedule" className="text-sm text-primary-500 hover:underline">Ver Agenda Completa</Link>
+          </div>
+          <div className="divide-y divide-gray-800">
+            {stats.todayAppointments.length > 0 ? (
+              stats.todayAppointments.map((appt: any, idx: number) => (
+                <div key={idx} className="p-4 flex items-center justify-between hover:bg-gray-800/50 transition-colors">
+                  <div className="flex items-center gap-4">
+                    <div className="flex flex-col items-center justify-center bg-gray-800 w-14 h-14 rounded-lg border border-gray-700 text-primary-500">
+                      <span className="font-bold text-lg">{appt.start_time}</span>
                     </div>
-                    <div className="text-right">
-                      <span className={`inline-block px-2 py-1 rounded text-xs font-bold border ${appt.status === 'Confirmado' ? 'bg-green-500/10 text-green-500 border-green-500/20' :
-                        appt.status === 'Agendado' ? 'bg-blue-500/10 text-blue-500 border-blue-500/20' :
-                          'bg-gray-800 text-gray-400 border-gray-700'
-                        }`}>
-                        {appt.status}
-                      </span>
+                    <div>
+                      <p className="text-white font-bold">{appt.clients?.name || 'Cliente'}</p>
+                      <p className="text-sm text-gray-400">{appt.services?.name}</p>
+                      <div className="flex items-center gap-1 mt-1 text-xs text-gray-500">
+                        <User size={12} /> Profissional: <span className="text-gray-300">{appt.profiles?.name}</span>
+                      </div>
                     </div>
                   </div>
-                ))
-              ) : (
-                <div className="p-8 text-center text-gray-500">
-                  Sem agendamentos para hoje.
+                  <div className="text-right">
+                    <span className={`inline-block px-2 py-1 rounded text-xs font-bold border ${appt.status === 'Confirmado' ? 'bg-green-500/10 text-green-500 border-green-500/20' :
+                      appt.status === 'Agendado' ? 'bg-blue-500/10 text-blue-500 border-blue-500/20' :
+                        'bg-gray-800 text-gray-400 border-gray-700'
+                      }`}>
+                      {appt.status}
+                    </span>
+                  </div>
                 </div>
-              )}
-            </div>
-          </div>
-
-          <div className="space-y-6">
-            <div className="bg-dark-900 p-6 rounded-xl border border-gray-800">
-              <h3 className="text-lg font-semibold text-white mb-4">Ações Rápidas</h3>
-              <div className="space-y-3">
-                <Link to="/schedule" className="w-full py-3 bg-primary-500 hover:bg-primary-600 text-dark-950 font-bold rounded-lg transition-colors flex items-center justify-center gap-2">
-                  <Plus size={20} /> Novo Agendamento
-                </Link>
-                <Link to="/clients" className="w-full py-3 bg-gray-800 hover:bg-gray-700 text-white font-bold rounded-lg transition-colors flex items-center justify-center gap-2">
-                  <User size={20} /> Cadastrar Cliente
-                </Link>
-                <Link to="/comandas" className="w-full py-3 bg-gray-800 hover:bg-gray-700 text-white font-bold rounded-lg transition-colors flex items-center justify-center gap-2">
-                  <Scissors size={20} /> Abrir Comanda
-                </Link>
+              ))
+            ) : (
+              <div className="p-8 text-center text-gray-500">
+                Sem agendamentos pendentes para hoje.
               </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
