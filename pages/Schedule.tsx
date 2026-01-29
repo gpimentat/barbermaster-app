@@ -44,7 +44,9 @@ const Schedule: React.FC = () => {
     // Fetch appointments for the selected date
     // Note: In a real app we would join tables, here we might fetch and map manually for simplicity like ClientsPage
     // But let's try a join for cleaner code
-    const dateStr = selectedDate.toISOString().split('T')[0];
+    // Fix Timezone Issue: Use local date instead of UTC
+    const offset = selectedDate.getTimezoneOffset() * 60000;
+    const dateStr = new Date(selectedDate.getTime() - offset).toISOString().split('T')[0];
 
     const { data, error } = await supabase
       .from('appointments')

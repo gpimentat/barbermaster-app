@@ -16,7 +16,11 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ isOpen, onClose, on
     const [services, setServices] = useState<Service[]>([]);
 
     // Selection States
-    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+    // Fix Timezone: Initial date should be local YYYY-MM-DD
+    const today = new Date();
+    const offset = today.getTimezoneOffset() * 60000;
+    const localToday = new Date(today.getTime() - offset).toISOString().split('T')[0];
+    const [selectedDate, setSelectedDate] = useState(localToday);
     const [selectedTime, setSelectedTime] = useState('09:00');
     const [selectedBarberId, setSelectedBarberId] = useState(currentUser?.id || '');
     const [selectedServiceId, setSelectedServiceId] = useState('');
