@@ -42,7 +42,8 @@ const ClientBooking: React.FC<ClientBookingProps> = ({ tenant, clientData }) => 
         const { data } = await supabase
             .from('services')
             .select('*')
-            .eq('tenant_id', tenant.id);
+            .eq('tenant_id', tenant.id)
+            .eq('hidden', false); // Only show visible services
 
         if (data) setServices(data);
     };

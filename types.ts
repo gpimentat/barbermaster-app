@@ -37,6 +37,7 @@ export interface Service {
   durationMinutes: number;
   description: string;
   chips: number; // Novo: Quantidade de fichas para rateio de assinatura
+  hidden?: boolean; // Novo: Serviço oculto para clientes (interno)
 }
 
 export interface Product {

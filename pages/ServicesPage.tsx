@@ -28,7 +28,8 @@ const ServicesPage: React.FC = () => {
           price: Number(s.price) || 0,
           durationMinutes: s.duration_minutes || 30,
           description: s.description || '',
-          chips: Number(s.chips) || 0
+          chips: Number(s.chips) || 0,
+          hidden: s.hidden || false
         }));
         setServices(mappedServices);
       }
@@ -50,7 +51,8 @@ const ServicesPage: React.FC = () => {
       price: 0,
       durationMinutes: 30,
       description: '',
-      chips: 1
+      chips: 1,
+      hidden: false
     });
     setIsDeleteConfirming(false);
   };
@@ -87,6 +89,7 @@ const ServicesPage: React.FC = () => {
       duration_minutes: selectedService.durationMinutes,
       description: selectedService.description,
       chips: selectedService.chips,
+      hidden: selectedService.hidden,
       tenant_id: currentUser?.tenantId
     };
 
@@ -161,7 +164,14 @@ const ServicesPage: React.FC = () => {
                 </div>
               </div>
 
-              <h3 className="text-xl font-bold text-white mb-2">{service.name}</h3>
+              <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
+                {service.name}
+                {service.hidden && (
+                  <span className="text-[10px] bg-red-500/20 text-red-500 px-2 py-0.5 rounded-full border border-red-500/20 uppercase tracking-wider">
+                    Oculto
+                  </span>
+                )}
+              </h3>
               <p className="text-gray-400 text-sm mb-4 h-10 line-clamp-2">{service.description}</p>
 
               <div className="flex items-center gap-2 mb-4">
@@ -253,6 +263,29 @@ const ServicesPage: React.FC = () => {
                     />
                   </div>
                 </div>
+              </div>
+
+              {/* Visibilidade (Toggle) */}
+              <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-800 flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-bold text-white mb-1">Visibilidade do Serviço</h3>
+                  <p className="text-xs text-gray-500">
+                    {selectedService.hidden
+                      ? "Este serviço está OCULTO para clientes (apenas interno)."
+                      : "Este serviço está VISÍVEL para agendamento online."}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => updateField('hidden', !selectedService.hidden)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-gray-900 ${selectedService.hidden ? 'bg-red-500' : 'bg-green-500'
+                    }`}
+                >
+                  <span
+                    className={`${selectedService.hidden ? 'translate-x-6' : 'translate-x-1'
+                      } inline-block h-4 w-4 transform rounded-full bg-white transition-transform`}
+                  />
+                </button>
               </div>
 
               {/* Fichas (Rateio de Assinatura) */}
