@@ -21,6 +21,7 @@ import { Barber, Transaction, PaymentMethod, Service, Client, Comanda } from '..
 import { useAuth } from '../AuthContext';
 import { supabase } from '../src/supabaseClient';
 import { MOCK_SUBSCRIPTION_PLANS } from '../constants'; // Using mock plans as table is missing
+import BarberFinancialDashboard from '../components/BarberFinancialDashboard';
 
 interface BarberStandardStats extends Barber {
     totalGenerated: number;
@@ -192,72 +193,22 @@ const CommissionsPage: React.FC = () => {
             </div>
         );
 
+        const myStats = standardStats.find(s => s.id === currentUser.id);
+        const myChips = chipStatsData.stats.find(s => s.id === currentUser.id);
+
         return (
-            <div className="space-y-6 animate-in fade-in">
-                <div className="flex items-center gap-4 mb-6">
-                    <img src={currentUser.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.name || '')}&background=random`} className="w-16 h-16 rounded-full border-2 border-primary-500" />
-                    <div>
-                        <h1 className="text-3xl font-bold text-white">Minhas Comissões</h1>
-                        <p className="text-gray-400">Acompanhe seus ganhos em tempo real.</p>
-                    </div>
-                </div>
-
-                {/* Cards de Resumo Pessoal */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="bg-dark-900 p-6 rounded-xl border border-gray-800">
-                        <div className="flex justify-between items-start mb-2">
-                            <p className="text-gray-400 font-medium">Comissão (Serviços Avulsos)</p>
-                            <Scissors className="text-blue-500" size={20} />
-                        </div>
-                        <p className="text-3xl font-bold text-white">R$ {(standardStats.find(s => s.id === currentUser.id)?.commissionValue || 0).toFixed(2)}</p>
-                        <p className="text-xs text-gray-500 mt-2">Baseado em {(standardStats.find(s => s.id === currentUser.id)?.commissionRate || 0)}% de {(standardStats.find(s => s.id === currentUser.id)?.serviceCount || 0)} serviços</p>
-                    </div>
-                    <div className="bg-dark-900 p-6 rounded-xl border border-gray-800">
-                        <div className="flex justify-between items-start mb-2">
-                            <p className="text-gray-400 font-medium">Rateio (Assinantes)</p>
-                            <Ticket className="text-green-500" size={20} />
-                        </div>
-                        <p className="text-3xl font-bold text-white">R$ {(chipStatsData.stats.find(s => s.id === currentUser.id)?.payoutValue || 0).toFixed(2)}</p>
-                        <p className="text-xs text-gray-500 mt-2">Você tem {(chipStatsData.stats.find(s => s.id === currentUser.id)?.totalChips || 0)} fichas acumuladas</p>
-                    </div>
-                </div>
-
-                {/* Lista de Detalhes */}
-                <div className="bg-dark-900 rounded-xl border border-gray-800 overflow-hidden">
-                    <div className="p-6 border-b border-gray-800">
-                        <h2 className="text-lg font-bold text-white">Últimos Serviços Comissionados</h2>
-                    </div>
-                    <div className="p-6">
-                        {standardStats.find(s => s.id === currentUser.id)?.servicesList.length ? (
-                            <div className="space-y-3">
-                                {standardStats.find(s => s.id === currentUser.id)?.servicesList.map((service, index) => (
-                                    <div key={index} className="flex justify-between items-center p-3 rounded-lg bg-gray-800 border border-gray-700">
-                                        <div className="flex items-center gap-3">
-                                            <div className="p-2 bg-gray-900 rounded-lg text-gray-400">
-                                                <Calendar size={16} />
-                                            </div>
-                                            <div>
-                                                <p className="text-white font-medium text-sm">{service.serviceName}</p>
-                                                <div className="flex items-center gap-2 text-xs text-gray-500">
-                                                    <span>{service.clientName}</span>
-                                                    <span>•</span>
-                                                    <span>{new Date(service.date).toLocaleDateString()}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className="text-xs text-gray-500">Total: R$ {service.price.toFixed(2)}</p>
-                                            <p className="text-sm font-bold text-green-500">+ R$ {service.commission.toFixed(2)}</p>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <p className="text-gray-500 text-center py-4">Nenhum serviço registrado.</p>
-                        )}
-                    </div>
-                </div>
-            </div>
+            <BarberFinancialDashboard
+                barberName={currentUser.name}
+                avatar={currentUser.avatar || ''}
+                commissionRate={myStats?.commissionRate || 0}
+                serviceCount={myStats?.serviceCount || 0}
+                totalCommission={myStats?.commissionValue || 0}
+                totalPayout={(myStats?.commissionValue || 0) + (myChips?.payoutValue || 0)}
+                chipBalance={myChips?.totalChips || 0}
+                chipValue={myChips?.payoutValue || 0}
+                services={myStats?.servicesList || []}
+                isAdminView={false}
+            />
         );
     }
 
@@ -266,6 +217,8 @@ const CommissionsPage: React.FC = () => {
     // ========================================================
     return (
         <div className="space-y-6">
+            {/* ... (Admin Header and Tabs remain same) ... */}
+
             <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
                 <div>
                     <h1 className="text-3xl font-bold text-white">Gestão de Comissões</h1>
@@ -426,25 +379,34 @@ const CommissionsPage: React.FC = () => {
             {/* Modal Detalhes (Admin Only) */}
             {selectedBarber && role === 'admin' && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
-                    <div className="bg-dark-900 rounded-xl border border-gray-800 shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+                    <div className="bg-dark-900 rounded-xl border border-gray-800 shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh]">
                         <div className="flex items-center justify-between p-6 border-b border-gray-800 bg-gray-900/50">
-                            <h2 className="text-xl font-bold text-white">Extrato Detalhado</h2>
+                            <div className="flex items-center gap-3">
+                                <img src={selectedBarber.avatar} className="w-12 h-12 rounded-full border border-gray-700" />
+                                <div>
+                                    <h2 className="text-xl font-bold text-white">{selectedBarber.name}</h2>
+                                    <p className="text-sm text-gray-400">Visão Detalhada</p>
+                                </div>
+                            </div>
                             <button onClick={() => setSelectedBarber(null)} className="text-gray-400 hover:text-white"><X size={24} /></button>
                         </div>
-                        <div className="p-6 overflow-y-auto flex-1 bg-gray-900/20 space-y-3">
-                            {selectedBarber.servicesList.map((service, index) => (
-                                <div key={index} className="flex justify-between items-center p-3 rounded-lg bg-gray-800 border border-gray-700/50">
-                                    <div>
-                                        <p className="text-white font-medium text-sm">{service.serviceName}</p>
-                                        <p className="text-xs text-gray-500">{service.clientName} • {new Date(service.date).toLocaleDateString()}</p>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className="text-sm font-bold text-green-500">+ R$ {service.commission.toFixed(2)}</p>
-                                    </div>
-                                </div>
-                            ))}
+
+                        <div className="p-6 overflow-y-auto flex-1 bg-dark-950">
+                            <BarberFinancialDashboard
+                                barberName={selectedBarber.name}
+                                avatar={selectedBarber.avatar}
+                                commissionRate={selectedBarber.commissionRate}
+                                serviceCount={selectedBarber.serviceCount}
+                                totalCommission={selectedBarber.commissionValue}
+                                totalPayout={selectedBarber.commissionValue + (chipStatsData.stats.find(s => s.id === selectedBarber.id)?.payoutValue || 0)}
+                                chipBalance={chipStatsData.stats.find(s => s.id === selectedBarber.id)?.totalChips || 0}
+                                chipValue={chipStatsData.stats.find(s => s.id === selectedBarber.id)?.payoutValue || 0}
+                                services={selectedBarber.servicesList}
+                                isAdminView={true}
+                            />
                         </div>
-                        <div className="p-6 border-t border-gray-800 flex gap-3">
+
+                        <div className="p-6 border-t border-gray-800 flex gap-3 h-24 items-center">
                             <button onClick={() => setSelectedBarber(null)} className="flex-1 py-3 bg-gray-800 hover:bg-gray-700 text-white rounded-lg font-bold">Fechar</button>
                             <button onClick={async () => {
                                 const totalPayout = selectedBarber.commissionValue + (chipStatsData.stats.find(s => s.id === selectedBarber.id)?.payoutValue || 0);
