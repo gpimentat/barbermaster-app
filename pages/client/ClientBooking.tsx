@@ -72,25 +72,23 @@ const ClientBooking: React.FC<ClientBookingProps> = ({ tenant, clientData }) => 
     };
 
     const loadAvailableTimes = async () => {
-        // Horários disponíveis (8h às 18h)
-        const times = [];
-        for (let hour = 8; hour < 18; hour++) {
-            times.push(`${hour.toString().padStart(2, '0')}:00`);
-            times.push(`${hour.toString().padStart(2, '0')}:30`);
+        if (!selectedDate || !selectedBarber || !selectedService) return;
+
+        setLoading(true);
+        try {
+            const slots = await clientService.getAvailableSlots(
+                tenant.id,
+                selectedBarber.id,
+                selectedDate,
+                selectedService.duration_minutes || 30
+            );
+            setAvailableTimes(slots);
+        } catch (error) {
+            console.error('Error loading slots:', error);
+            setAvailableTimes([]);
+        } finally {
+            setLoading(false);
         }
-
-        // Buscar agendamentos existentes
-        const { data: appointments } = await supabase
-            .from('appointments')
-            .select('time')
-            .eq('barber_id', selectedBarber.id)
-            .eq('date', selectedDate)
-            .in('status', ['pending', 'confirmed']);
-
-        const bookedTimes = appointments?.map(apt => apt.time) || [];
-        const available = times.filter(time => !bookedTimes.includes(time));
-
-        setAvailableTimes(available);
     };
 
     const handleConfirmBooking = async () => {
@@ -244,22 +242,32 @@ const ClientBooking: React.FC<ClientBookingProps> = ({ tenant, clientData }) => 
                         </button>
                         <h2 className="text-lg font-bold text-white mb-4">Escolha a data</h2>
                         <div className="grid grid-cols-2 gap-3">
-                            {availableDates.map(date => (
-                                <button
-                                    key={date}
-                                    onClick={() => {
-                                        setSelectedDate(date);
-                                        setStep(4);
-                                    }}
-                                    className="bg-gray-900 border-2 rounded-xl p-4 text-center transition-all hover:scale-[1.02]"
-                                    style={{
-                                        borderColor: selectedDate === date ? primaryColor : '#374151'
-                                    }}
-                                >
-                                    <Calendar className="mx-auto mb-2" style={{ color: primaryColor }} size={24} />
-                                    <p className="text-white font-bold text-sm">{formatDate(date)}</p>
-                                </button>
-                            ))}
+                            {availableDates.map(date => {
+                                const dateObj = new Date(date + 'T12:00:00');
+                                const days = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+                                const dayName = days[dateObj.getDay()];
+                                const dayConfig = tenant?.settings?.app_config?.hours?.find((h: any) => h.day === dayName);
+                                const isOpen = dayConfig?.isOpen;
+
+                                return (
+                                    <button
+                                        key={date}
+                                        disabled={!isOpen}
+                                        onClick={() => {
+                                            setSelectedDate(date);
+                                            setStep(4);
+                                        }}
+                                        className={`bg-gray-900 border-2 rounded-xl p-4 text-center transition-all ${isOpen ? 'hover:scale-[1.02] cursor-pointer' : 'opacity-50 cursor-not-allowed grayscale'}`}
+                                        style={{
+                                            borderColor: selectedDate === date ? primaryColor : '#374151'
+                                        }}
+                                    >
+                                        <Calendar className="mx-auto mb-2" style={{ color: isOpen ? primaryColor : '#6b7280' }} size={24} />
+                                        <p className="text-white font-bold text-sm">{formatDate(date)}</p>
+                                        {!isOpen && <p className="text-[10px] text-red-500 font-bold uppercase mt-1">Fechado</p>}
+                                    </button>
+                                );
+                            })}
                         </div>
                     </div>
                 )}

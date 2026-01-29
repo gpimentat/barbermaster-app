@@ -19,8 +19,9 @@ export interface Appointment {
     barber_id: string;
     service_id: string;
     date: string;
-    time: string;
-    status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
+    start_time: string;
+    end_time: string;
+    status: 'Agendado' | 'Concluído' | 'Cancelado' | 'Pendente';
     notes?: string;
     created_at: string;
 }
@@ -193,6 +194,68 @@ export const clientService = {
         return data || [];
     },
 
+    // Buscar slots disponíveis considerando horário de funcionamento e agendamentos
+    async getAvailableSlots(tenantId: string, barberId: string, date: string, durationMinutes: number) {
+        // 1. Buscar horários de funcionamento do tenant
+        const { data: tenant } = await supabase
+            .from('tenants')
+            .select('settings')
+            .eq('id', tenantId)
+            .single();
+
+        const config = tenant?.settings?.app_config;
+        if (!config?.hours) return [];
+
+        // 2. Identificar o dia da semana
+        const dateObj = new Date(date + 'T12:00:00');
+        const days = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+        const dayName = days[dateObj.getDay()];
+
+        const dayConfig = config.hours.find((h: any) => h.day === dayName);
+        if (!dayConfig || !dayConfig.isOpen) return [];
+
+        // 3. Buscar agendamentos existentes
+        const { data: appointments } = await supabase
+            .from('appointments')
+            .select('start_time, end_time')
+            .eq('tenant_id', tenantId)
+            .eq('barber_id', barberId)
+            .eq('date', date)
+            .neq('status', 'Cancelado');
+
+        // 4. Gerar slots a cada 30 min
+        const slots: string[] = [];
+        const [openH, openM] = dayConfig.open.split(':').map(Number);
+        const [closeH, closeM] = dayConfig.close.split(':').map(Number);
+
+        let currentMinutes = openH * 60 + openM;
+        const limitMinutes = closeH * 60 + closeM;
+
+        while (currentMinutes + durationMinutes <= limitMinutes) {
+            const h = Math.floor(currentMinutes / 60);
+            const m = currentMinutes % 60;
+            const timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+
+            // Validar conflito
+            const hasConflict = appointments?.some(app => {
+                const [appStartH, appStartM] = app.start_time.split(':').map(Number);
+                const [appEndH, appEndM] = app.end_time.split(':').map(Number);
+                const appStartTotal = appStartH * 60 + appStartM;
+                const appEndTotal = appEndH * 60 + appEndM;
+
+                return currentMinutes < appEndTotal && (currentMinutes + durationMinutes) > appStartTotal;
+            });
+
+            if (!hasConflict) {
+                slots.push(timeStr);
+            }
+
+            currentMinutes += 30;
+        }
+
+        return slots;
+    },
+
     // Criar agendamento
     async createAppointment(data: {
         tenantId: string;
@@ -202,6 +265,22 @@ export const clientService = {
         date: string;
         time: string;
     }): Promise<Appointment> {
+        // Buscar duração do serviço
+        const { data: service } = await supabase
+            .from('services')
+            .select('duration_minutes, price')
+            .eq('id', data.serviceId)
+            .single();
+
+        if (!service) throw new Error('Serviço não encontrado');
+
+        const duration = service.duration_minutes || 30;
+        const [h, m] = data.time.split(':').map(Number);
+        const endTotal = h * 60 + m + duration;
+        const endH = Math.floor(endTotal / 60);
+        const endM = endTotal % 60;
+        const endTime = `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
+
         const { data: appointment, error } = await supabase
             .from('appointments')
             .insert({
@@ -210,8 +289,10 @@ export const clientService = {
                 barber_id: data.barberId,
                 service_id: data.serviceId,
                 date: data.date,
-                time: data.time,
-                status: 'pending'
+                start_time: data.time,
+                end_time: endTime,
+                price: service.price,
+                status: 'Agendado'
             })
             .select()
             .single();
