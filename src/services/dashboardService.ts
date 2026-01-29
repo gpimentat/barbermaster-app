@@ -92,10 +92,12 @@ export const dashboardService = {
             revenueGrowth.push({ name: monthName, value: monthlyMrr });
         }
 
-        // 7. Fetch all profiles with tenant info (excluding current admin)
+        // 7. Fetch only ADMIN profiles with tenant info (excluding current admin)
+        // This hides staff members (barbers/receptionists) from the SaaS dash
         const { data: allProfiles } = await supabase
             .from('profiles')
             .select('*, tenants(name)')
+            .in('role', ['admin', 'super_admin'])
             .neq('email', adminEmail || 'g.pimentat@gmail.com')
             .order('name');
 
