@@ -31,7 +31,8 @@ const ClientPartners: React.FC<ClientPartnersProps> = ({ tenant }) => {
                                 </div>
                                 <div className="flex-1">
                                     <h3 className="text-white font-bold">{coupon.partnerName}</h3>
-                                    <p className="text-xs text-gray-400 mt-1">{coupon.description}</p>
+                                    <p className="text-xs text-primary-500 font-bold mt-1">{coupon.offer}</p>
+                                    <p className="text-[10px] text-gray-500 mt-1">Válido até: {coupon.validity}</p>
                                 </div>
                             </div>
 

@@ -51,23 +51,42 @@ const ClientApp: React.FC = () => {
 
     const loadTenantConfig = async () => {
         try {
-            const { data, error } = await supabase
-                .from('tenants')
-                .select('id, name, slug, settings')
-                .eq('slug', slug)
-                .single();
+            const hostname = window.location.hostname;
+            // Apenas o domínio principal e o subdomínio 'app' usam o slug na URL (/app/slug)
+            const isMainPlatform = hostname === 'barbermaster.com.br' || hostname === 'app.barbermaster.com.br' || hostname === 'localhost';
 
-            if (error) throw error;
+            if (!isMainPlatform) {
+                // Tenta buscar por domínio customizado OU subdomínio (ex: barbearia.barbermaster.com.br)
+                const { data } = await supabase
+                    .from('tenants')
+                    .select('id, name, slug, settings')
+                    .contains('settings', { app_config: { domain: { customDomain: hostname } } })
+                    .maybeSingle();
 
-            if (data) {
-                setTenant(data);
+                if (data) {
+                    setTenant(data);
+                    updatePWAManifest(data);
+                    const primaryColor = data.settings?.app_config?.general?.primaryColor || '#eab308';
+                    document.documentElement.style.setProperty('--primary-color', primaryColor);
+                    return;
+                }
+            }
 
-                // Configurar PWA manifest dinamicamente
-                updatePWAManifest(data);
+            // Fallback para slug via URL (usado em app.barbermaster.com.br/slug)
+            if (slug) {
+                const { data, error } = await supabase
+                    .from('tenants')
+                    .select('id, name, slug, settings')
+                    .eq('slug', slug)
+                    .single();
 
-                // Atualizar cores do tema
-                const primaryColor = data.settings?.app_config?.general?.primaryColor || '#eab308';
-                document.documentElement.style.setProperty('--primary-color', primaryColor);
+                if (error) throw error;
+                if (data) {
+                    setTenant(data);
+                    updatePWAManifest(data);
+                    const primaryColor = data.settings?.app_config?.general?.primaryColor || '#eab308';
+                    document.documentElement.style.setProperty('--primary-color', primaryColor);
+                }
             }
         } catch (error) {
             console.error('Erro ao carregar barbearia:', error);

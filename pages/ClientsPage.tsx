@@ -284,7 +284,7 @@ const ClientsPage: React.FC = () => {
                 // Optional: WhatsApp welcome message logic could go here
                 const phoneClean = formData.phone.replace(/\D/g, '');
                 if (phoneClean.length >= 10) {
-                    const appLink = "https://app.barbermaster.com";
+                    const appLink = "https://app.barbermaster.com.br";
                     const message = `Olá ${formData.name}! Seu cadastro na BarberMaster foi realizado com sucesso. ✂️\n\nBaixe nosso app e clique em "Primeiro Acesso" para definir sua senha.\n\nLink: ${appLink}`;
                     const whatsappUrl = `https://wa.me/55${phoneClean}?text=${encodeURIComponent(message)}`;
                     // window.open(whatsappUrl, '_blank'); // Uncomment if desired

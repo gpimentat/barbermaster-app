@@ -279,13 +279,24 @@ const MainLayout: React.FC = () => {
             {/* Cliente App PWA - Precisa estar ANTES das outras rotas */}
             <Route path="/app/:slug/*" element={<ClientApp />} />
 
+            {/* Suporte para Domínio Customizado na Raiz */}
+            <Route path="/" element={
+              (() => {
+                const hostname = window.location.hostname;
+                const isMainPlatform = hostname === 'barbermaster.com.br' || hostname === 'app.barbermaster.com.br' || hostname === 'localhost';
+                if (!isMainPlatform) {
+                  return <ClientApp />;
+                }
+                return <Dashboard />;
+              })()
+            } />
+
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignUpPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-            <Route path="/" element={<Dashboard />} />
             <Route path="/saas-admin" element={<SaasAdminPage />} />
             <Route path="/schedule" element={<Schedule />} />
-            <Route path="/waiting-list" element={<WaitingListPage />} /> {/* Nova Rota */}
+            <Route path="/waiting-list" element={<WaitingListPage />} />
             <Route path="/appt/:id/:action" element={<AppointmentActionPage />} />
             <Route path="/chat" element={<ChatPage />} />
             <Route path="/comandas" element={<ComandasPage />} />
@@ -299,8 +310,16 @@ const MainLayout: React.FC = () => {
             <Route path="/products" element={<ProductsPage />} />
             <Route path="/clients" element={<ClientsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
-            {/* <Route path="/profile" element={<ProfilePage />} /> */}
-            <Route path="*" element={<div className="p-8 text-center text-gray-500">Página não encontrada.</div>} />
+            <Route path="*" element={
+              (() => {
+                const hostname = window.location.hostname;
+                const isMainPlatform = hostname === 'barbermaster.com.br' || hostname === 'app.barbermaster.com.br' || hostname === 'localhost';
+                if (!isMainPlatform) {
+                  return <ClientApp />;
+                }
+                return <div className="p-8 text-center text-gray-500">Página não encontrada.</div>;
+              })()
+            } />
           </Routes>
         </main>
       </div>

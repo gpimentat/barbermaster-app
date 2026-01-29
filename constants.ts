@@ -3,47 +3,47 @@ import { Barber, Service, Client, Appointment, Transaction, AppointmentStatus, P
 
 // Atualizando as permissões para refletir os perfis
 export const MOCK_BARBERS: Barber[] = [
-  { 
-    id: '1', 
-    name: 'Carlos Silva', 
-    email: 'carlos@barbermaster.com',
+  {
+    id: '1',
+    name: 'Carlos Silva',
+    email: 'carlos@barbermaster.com.br',
     password: 'securepassword',
     mustChangePassword: false,
-    role: 'Master Barber', 
-    avatar: 'https://picsum.photos/150/150?random=1', 
-    active: true, 
-    commissionRate: 50, 
+    role: 'Master Barber',
+    avatar: 'https://picsum.photos/150/150?random=1',
+    active: true,
+    commissionRate: 50,
     loginEnabled: true,
     // Perfil Barbeiro: Vê própria agenda e comissões
-    permissions: ['view_own_schedule', 'manage_schedule', 'view_own_commissions'] 
+    permissions: ['view_own_schedule', 'manage_schedule', 'view_own_commissions']
   },
-  { 
-    id: '2', 
-    name: 'André Santos', 
-    email: 'andre@barbermaster.com',
+  {
+    id: '2',
+    name: 'André Santos',
+    email: 'andre@barbermaster.com.br',
     password: '1234', // Simula um usuário que acabou de ser criado
     mustChangePassword: true, // Vai pedir troca de senha ao logar
-    role: 'Barbeiro Pleno', 
-    avatar: 'https://picsum.photos/150/150?random=2', 
-    active: true, 
-    commissionRate: 40, 
+    role: 'Barbeiro Pleno',
+    avatar: 'https://picsum.photos/150/150?random=2',
+    active: true,
+    commissionRate: 40,
     loginEnabled: true,
     // Perfil Barbeiro
-    permissions: ['view_own_schedule', 'manage_schedule', 'view_own_commissions'] 
+    permissions: ['view_own_schedule', 'manage_schedule', 'view_own_commissions']
   },
-  { 
-    id: '3', 
-    name: 'Ana Recepção', 
-    email: 'ana@barbermaster.com',
+  {
+    id: '3',
+    name: 'Ana Recepção',
+    email: 'ana@barbermaster.com.br',
     password: 'securepassword',
     mustChangePassword: false,
-    role: 'Recepcionista', 
-    avatar: 'https://ui-avatars.com/api/?name=Ana+Recepcao&background=FF69B4&color=fff', 
+    role: 'Recepcionista',
+    avatar: 'https://ui-avatars.com/api/?name=Ana+Recepcao&background=FF69B4&color=fff',
     active: false, // Não aparece na agenda para corte
-    commissionRate: 0, 
+    commissionRate: 0,
     loginEnabled: true,
     // Perfil Recepcionista: Vê tudo operacional, mas não Financeiro/Config
-    permissions: ['view_full_schedule', 'manage_schedule', 'manage_clients', 'manage_products', 'manage_comandas'] 
+    permissions: ['view_full_schedule', 'manage_schedule', 'manage_clients', 'manage_products', 'manage_comandas']
   },
 ];
 
@@ -70,29 +70,29 @@ export const MOCK_REWARDS: Reward[] = [
 ];
 
 export const MOCK_SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
-  { 
-    id: 'sub1', 
-    name: 'Clube do Corte', 
-    price: 89.90, 
-    frequency: 'monthly', 
-    features: ['Cortes ilimitados', '10% OFF em produtos', 'Agenda preferencial'], 
-    active: true 
+  {
+    id: 'sub1',
+    name: 'Clube do Corte',
+    price: 89.90,
+    frequency: 'monthly',
+    features: ['Cortes ilimitados', '10% OFF em produtos', 'Agenda preferencial'],
+    active: true
   },
-  { 
-    id: 'sub2', 
-    name: 'Barba VIP', 
-    price: 69.90, 
-    frequency: 'monthly', 
-    features: ['Barba ilimitada', 'Toalha quente inclusa', 'Bebida grátis'], 
-    active: true 
+  {
+    id: 'sub2',
+    name: 'Barba VIP',
+    price: 69.90,
+    frequency: 'monthly',
+    features: ['Barba ilimitada', 'Toalha quente inclusa', 'Bebida grátis'],
+    active: true
   },
-  { 
-    id: 'sub3', 
-    name: 'Barber Master Pass', 
-    price: 149.90, 
-    frequency: 'monthly', 
-    features: ['Corte e Barba ilimitados', '20% OFF em produtos', 'Convidado mensal grátis'], 
-    active: true 
+  {
+    id: 'sub3',
+    name: 'Barber Master Pass',
+    price: 149.90,
+    frequency: 'monthly',
+    features: ['Corte e Barba ilimitados', '20% OFF em produtos', 'Convidado mensal grátis'],
+    active: true
   }
 ];
 
@@ -116,39 +116,39 @@ export const MOCK_PACKAGES: ServicePackage[] = [
 ];
 
 export const MOCK_CLIENTS: Client[] = [
-  { 
-    id: 'c1', 
-    name: 'João Pereira', 
-    email: 'joao@example.com', 
-    phone: '(11) 99999-1111', 
-    totalVisits: 12, 
-    lastVisit: '2023-10-25', 
+  {
+    id: 'c1',
+    name: 'João Pereira',
+    email: 'joao@example.com',
+    phone: '(11) 99999-1111',
+    totalVisits: 12,
+    lastVisit: '2023-10-25',
     avatar: 'https://picsum.photos/100/100?random=10',
     loyaltyPoints: 350,
     subscriptionPlanId: 'sub3',
     subscriptionStatus: 'active',
     subscriptionRenewsAt: '2023-11-25'
   },
-  { 
-    id: 'c2', 
-    name: 'Lucas Oliveira', 
-    email: 'lucas@example.com', 
-    phone: '(11) 98888-2222', 
-    totalVisits: 5, 
-    lastVisit: '2023-10-20', 
+  {
+    id: 'c2',
+    name: 'Lucas Oliveira',
+    email: 'lucas@example.com',
+    phone: '(11) 98888-2222',
+    totalVisits: 5,
+    lastVisit: '2023-10-20',
     avatar: 'https://picsum.photos/100/100?random=11',
     loyaltyPoints: 120,
     subscriptionPlanId: 'sub1',
     subscriptionStatus: 'active',
     subscriptionRenewsAt: '2023-11-10'
   },
-  { 
-    id: 'c3', 
-    name: 'Mateus Souza', 
-    email: 'mateus@example.com', 
-    phone: '(11) 97777-3333', 
-    totalVisits: 1, 
-    lastVisit: '2023-10-01', 
+  {
+    id: 'c3',
+    name: 'Mateus Souza',
+    email: 'mateus@example.com',
+    phone: '(11) 97777-3333',
+    totalVisits: 1,
+    lastVisit: '2023-10-01',
     avatar: 'https://picsum.photos/100/100?random=12',
     loyaltyPoints: 45
   },

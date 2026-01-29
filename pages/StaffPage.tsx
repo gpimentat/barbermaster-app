@@ -351,8 +351,8 @@ const StaffPage: React.FC = () => {
                       <div
                         onClick={triggerFileInput}
                         className={`w-32 h-32 rounded-full border-4 flex items-center justify-center overflow-hidden cursor-pointer transition-all relative ${selectedBarber.avatar
-                            ? 'border-gray-700 hover:border-primary-500'
-                            : 'border-dashed border-gray-600 hover:border-primary-500 bg-gray-800'
+                          ? 'border-gray-700 hover:border-primary-500'
+                          : 'border-dashed border-gray-600 hover:border-primary-500 bg-gray-800'
                           }`}
                       >
                         {selectedBarber.avatar ? (
@@ -421,7 +421,7 @@ const StaffPage: React.FC = () => {
                         value={selectedBarber.email}
                         onChange={(e) => updateField('email', e.target.value)}
                         className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-10 pr-4 py-2 text-white focus:outline-none focus:border-primary-500"
-                        placeholder="Ex: profissional@barbermaster.com"
+                        placeholder="Ex: profissional@barbermaster.com.br"
                       // removed required logic handled manually
                       />
                     </div>

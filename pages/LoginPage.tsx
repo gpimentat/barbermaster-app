@@ -37,13 +37,13 @@ const LoginPage: React.FC = () => {
     // Preenchimento rápido para demonstração
     const fillCredentials = (type: 'admin' | 'barber' | 'receptionist') => {
         if (type === 'admin') {
-            setEmail('admin@barbermaster.com');
+            setEmail('admin@barbermaster.com.br');
             setPassword('admin123');
         } else if (type === 'barber') {
-            setEmail('carlos@barbermaster.com');
+            setEmail('carlos@barbermaster.com.br');
             setPassword('securepassword');
         } else if (type === 'receptionist') {
-            setEmail('ana@barbermaster.com');
+            setEmail('ana@barbermaster.com.br');
             setPassword('securepassword');
         }
     };
@@ -154,21 +154,21 @@ const LoginPage: React.FC = () => {
                             <button
                                 onClick={() => fillCredentials('admin')}
                                 className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded text-xs text-gray-300 transition-colors"
-                                title="admin@barbermaster.com / admin"
+                                title="admin@barbermaster.com.br / admin"
                             >
                                 Admin
                             </button>
                             <button
                                 onClick={() => fillCredentials('barber')}
                                 className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded text-xs text-gray-300 transition-colors"
-                                title="carlos@barbermaster.com / securepassword"
+                                title="carlos@barbermaster.com.br / securepassword"
                             >
                                 Barbeiro
                             </button>
                             <button
                                 onClick={() => fillCredentials('receptionist')}
                                 className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded text-xs text-gray-300 transition-colors"
-                                title="ana@barbermaster.com / securepassword"
+                                title="ana@barbermaster.com.br / securepassword"
                             >
                                 Recepção
                             </button>

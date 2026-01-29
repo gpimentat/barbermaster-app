@@ -4,7 +4,7 @@ import { corsHeaders } from '../_shared/cors.ts';
 
 const VAPID_PUBLIC_KEY = Deno.env.get('VAPID_PUBLIC_KEY');
 const VAPID_PRIVATE_KEY = Deno.env.get('VAPID_PRIVATE_KEY');
-const VAPID_EMAIL = 'mailto:admin@barbermaster.com';
+const VAPID_EMAIL = 'mailto:admin@barbermaster.com.br';
 
 if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
     console.warn('VAPID Keys not set in environment variables');

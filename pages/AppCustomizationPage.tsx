@@ -257,6 +257,34 @@ const AppCustomizationPage: React.FC = () => {
         isVerified: false
     });
 
+    const [slugStatus, setSlugStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
+
+    const checkSlugAvailability = async (slug: string) => {
+        if (!slug) return;
+        if (slug === domainConfig.slug) {
+            setSlugStatus('available');
+            return;
+        }
+
+        setSlugStatus('checking');
+        try {
+            const { data, error } = await supabase
+                .from('tenants')
+                .select('id')
+                .eq('slug', slug)
+                .maybeSingle();
+
+            if (data && data.id !== currentUser?.tenantId) {
+                setSlugStatus('taken');
+            } else {
+                setSlugStatus('available');
+            }
+        } catch (error) {
+            console.error('Error checking slug:', error);
+            setSlugStatus('idle');
+        }
+    };
+
     const [features, setFeatures] = useState({
         loyaltyProgram: true,
         photoGallery: true,
@@ -406,6 +434,11 @@ const AppCustomizationPage: React.FC = () => {
     const handleSave = async () => {
         if (!currentUser?.tenantId) return;
 
+        if (slugStatus === 'taken') {
+            alert('⚠️ O endereço (slug) escolhido já está em uso. Por favor, escolha outro.');
+            return;
+        }
+
         try {
             setShowSuccess(true);
 
@@ -458,17 +491,30 @@ const AppCustomizationPage: React.FC = () => {
 
 
 
-    const handleGalleryUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            const newPhoto: GalleryPhoto = {
-                id: Date.now().toString(),
-                url: URL.createObjectURL(file),
-                status: 'approved',
-                uploader: 'Admin',
-                date: new Date().toLocaleDateString()
-            };
-            setGalleryPhotos([newPhoto, ...galleryPhotos]);
+    const handleGalleryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files || e.target.files.length === 0) return;
+        setLoading(true);
+
+        try {
+            const file = e.target.files[0];
+            const publicUrl = await uploadImage(file, 'gallery');
+
+            if (publicUrl) {
+                const newPhoto: GalleryPhoto = {
+                    id: Date.now().toString(),
+                    url: publicUrl,
+                    status: 'approved',
+                    uploader: 'Admin',
+                    date: new Date().toLocaleDateString()
+                };
+                setGalleryPhotos(prev => [newPhoto, ...prev]);
+                alert('Foto adicionada com sucesso! Não esqueça de salvar as alterações.');
+            }
+        } catch (error) {
+            console.error('Error in gallery upload:', error);
+            alert('Falha ao subir imagem para galeria.');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -1006,14 +1052,28 @@ const AppCustomizationPage: React.FC = () => {
                                             <span className="font-bold text-white">Domínio Grátis</span>
                                         </div>
                                         <div className="mt-3 flex items-center bg-gray-900 rounded-lg px-3 py-2 border border-gray-700 text-gray-400">
-                                            <span>app.barbermaster.com/</span>
+                                            <span>app.barbermaster.com.br/</span>
                                             <input
                                                 type="text"
                                                 value={domainConfig.slug}
-                                                onChange={(e) => setDomainConfig({ ...domainConfig, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') })}
-                                                className="bg-transparent text-white focus:outline-none ml-1 flex-1 font-bold"
+                                                onChange={(e) => {
+                                                    const newSlug = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
+                                                    setDomainConfig({ ...domainConfig, slug: newSlug });
+                                                    setSlugStatus('idle');
+                                                }}
+                                                onBlur={(e) => checkSlugAvailability(e.target.value)}
+                                                className={`bg-transparent text-white focus:outline-none ml-1 flex-1 font-bold ${slugStatus === 'taken' ? 'text-red-500' : slugStatus === 'available' ? 'text-green-500' : ''}`}
                                             />
+                                            {slugStatus === 'checking' && <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary-500 border-t-transparent"></div>}
+                                            {slugStatus === 'available' && <CheckCircle2 size={16} className="text-green-500" />}
+                                            {slugStatus === 'taken' && <AlertTriangle size={16} className="text-red-500" />}
                                         </div>
+                                        {slugStatus === 'taken' && (
+                                            <p className="text-[10px] text-red-500 mt-2 font-bold animate-in fade-in slide-in-from-top-1">Este endereço já está sendo usado por outra barbearia.</p>
+                                        )}
+                                        {slugStatus === 'available' && (
+                                            <p className="text-[10px] text-green-500 mt-2 font-bold animate-in fade-in slide-in-from-top-1">Endereço disponível!</p>
+                                        )}
                                     </div>
 
                                     <div
@@ -1040,7 +1100,7 @@ const AppCustomizationPage: React.FC = () => {
                                                     className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary-500"
                                                 />
                                                 <div className="flex items-center justify-between">
-                                                    <p className="text-xs text-gray-500">Configure o CNAME apontando para <strong>app.barbermaster.com</strong></p>
+                                                    <p className="text-xs text-gray-500">Configure o CNAME apontando para <strong>app.barbermaster.com.br</strong></p>
                                                     <button
                                                         onClick={verifyDomain}
                                                         className={`text-xs px-3 py-1.5 rounded font-bold flex items-center gap-1 ${domainConfig.isVerified ? 'bg-green-500/20 text-green-500' : 'bg-gray-700 text-white hover:bg-gray-600'}`}

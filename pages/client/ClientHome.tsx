@@ -248,45 +248,66 @@ const ClientHome: React.FC<ClientHomeProps> = ({ tenant, clientData }) => {
                     </div>
                 )}
 
-                {/* Serviços em Destaque */}
-                {services.length > 0 && (
-                    <div className="animate-in fade-in slide-in-from-bottom-2 duration-700">
-                        <div className="flex items-center justify-between mb-4">
-                            <h2 className={`font-black text-white ${homeStyle === 'modern' ? 'text-2xl' : 'text-lg'}`}>Sugestões para Você</h2>
+                {/* CLUBE DE VANTAGENS (PARCERIAS) */}
+                {features?.partnersClub && (appConfig?.coupons || []).length > 0 && (
+                    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-700">
+                        <div className="flex items-center justify-between">
+                            <h2 className="font-black text-white text-lg">Vantagens Exclusivas</h2>
                             <button
-                                onClick={() => navigate(`/app/${tenant.slug}/booking`)}
+                                onClick={() => navigate(`/app/${tenant.slug}/partners`)}
                                 className="text-xs font-black uppercase tracking-widest p-2"
                                 style={{ color: primaryColor }}
                             >
-                                Ver Tudo
+                                Ver Todas
                             </button>
                         </div>
-
-                        <div className="space-y-4">
-                            {services.map(service => (
-                                <div key={service.id} className="bg-gray-950 rounded-2xl p-4 border border-gray-900 group flex items-center justify-between transition-all hover:bg-gray-900 hover:border-gray-800">
-                                    <div className="flex items-center gap-4">
-                                        <div
-                                            className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform"
-                                            style={{ backgroundColor: `${primaryColor}10`, border: `1px solid ${primaryColor}20` }}
-                                        >
-                                            <Star style={{ color: primaryColor }} size={24} fill={primaryColor} />
-                                        </div>
-                                        <div>
-                                            <p className="font-black text-white text-base">{service.name}</p>
-                                            <div className="flex items-center gap-2 mt-1">
-                                                <span className="text-xs font-bold text-gray-600">{service.duration || '30'} MIN</span>
-                                                <span className="w-1 h-1 rounded-full bg-gray-700"></span>
-                                                <span className="text-xs font-black" style={{ color: primaryColor }}>R$ {parseFloat(service.price || 0).toFixed(0)}</span>
-                                            </div>
-                                        </div>
+                        <div className="flex overflow-x-auto gap-4 pb-2 no-scrollbar">
+                            {(appConfig.coupons || []).map((coupon: any) => (
+                                <div
+                                    key={coupon.id}
+                                    className={`min-w-[200px] p-4 rounded-2xl border relative flex flex-col ${coupon.vipOnly ? 'bg-gradient-to-br from-gray-900 to-gray-800 border-yellow-500/30' : 'bg-gray-900 border-gray-800'}`}
+                                >
+                                    <p className="text-[10px] text-gray-500 uppercase font-black mb-1 truncate">{coupon.partnerName}</p>
+                                    <p className={`font-black text-sm mb-3 ${coupon.vipOnly ? 'text-yellow-500' : 'text-primary-500'}`}>{coupon.offer}</p>
+                                    <div className="bg-black/30 rounded-xl p-2 text-center border border-dashed border-gray-700">
+                                        <span className="text-xs font-mono text-white font-bold">{coupon.code}</span>
                                     </div>
-                                    <button
-                                        onClick={() => navigate(`/app/${tenant.slug}/booking`)}
-                                        className="p-3 bg-gray-900 text-white rounded-xl hover:bg-white hover:text-dark-950 transition-all font-bold"
-                                    >
-                                        <Calendar size={18} />
-                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* NOSSA GALERIA */}
+                {features?.photoGallery && (appConfig?.gallery || []).length > 0 && (
+                    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-700">
+                        <h2 className="font-black text-white text-lg">Nossa Galeria</h2>
+                        <div className="grid grid-cols-2 gap-3">
+                            {(appConfig.gallery || []).filter((p: any) => p.status === 'approved').slice(0, 4).map((photo: any) => (
+                                <div key={photo.id} className="aspect-square rounded-2xl overflow-hidden border border-gray-800 shadow-xl">
+                                    <img src={photo.url} className="w-full h-full object-cover hover:scale-110 transition-transform duration-500" />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* AVALIAÇÕES */}
+                {features?.reviews && (appConfig?.feedbacks || []).length > 0 && (
+                    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-700">
+                        <h2 className="font-black text-white text-lg">O que dizem os clientes</h2>
+                        <div className="space-y-3">
+                            {(appConfig.feedbacks || []).filter((f: any) => f.status === 'approved').slice(0, 3).map((feedback: any) => (
+                                <div key={feedback.id} className="bg-gray-900/40 p-4 rounded-2xl border border-gray-800">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <div className="flex text-yellow-500">
+                                            {[...Array(5)].map((_, i) => (
+                                                <Star key={i} size={10} fill={i < feedback.rating ? "currentColor" : "none"} className={i < feedback.rating ? "text-yellow-500" : "text-gray-700"} />
+                                            ))}
+                                        </div>
+                                        <span className="text-white font-bold text-xs">{feedback.name}</span>
+                                    </div>
+                                    <p className="text-gray-400 text-xs italic">"{feedback.text}"</p>
                                 </div>
                             ))}
                         </div>
