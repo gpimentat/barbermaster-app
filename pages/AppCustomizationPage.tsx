@@ -1058,6 +1058,7 @@ const AppCustomizationPage: React.FC = () => {
                                 <h3 className="text-white font-medium mb-3 flex items-center gap-2"><Globe size={18} className="text-primary-500" /> Configuração de Domínio</h3>
 
                                 <div className="space-y-4">
+                                    {/* Opção 1: Domínio Grátis (Subdomínio) */}
                                     <div
                                         onClick={() => setDomainConfig({ ...domainConfig, type: 'platform' })}
                                         className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${domainConfig.type === 'platform' ? 'border-primary-500 bg-primary-500/10' : 'border-gray-700 bg-gray-800'}`}
@@ -1066,10 +1067,10 @@ const AppCustomizationPage: React.FC = () => {
                                             <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${domainConfig.type === 'platform' ? 'border-primary-500 bg-primary-500' : 'border-gray-500'}`}>
                                                 {domainConfig.type === 'platform' && <div className="w-2 h-2 bg-black rounded-full"></div>}
                                             </div>
-                                            <span className="font-bold text-white">Domínio Grátis</span>
+                                            <span className="font-bold text-white">Subdomínio Grátis</span>
+                                            <span className="text-[10px] bg-green-500 text-dark-950 px-2 py-0.5 rounded font-bold uppercase">GRÁTIS</span>
                                         </div>
                                         <div className="mt-3 flex items-center bg-gray-900 rounded-lg px-3 py-2 border border-gray-700 text-gray-400">
-                                            <span>barbermaster.com.br/</span>
                                             <input
                                                 type="text"
                                                 value={domainConfig.slug}
@@ -1079,20 +1080,50 @@ const AppCustomizationPage: React.FC = () => {
                                                     setSlugStatus('idle');
                                                 }}
                                                 onBlur={(e) => checkSlugAvailability(e.target.value)}
-                                                className={`bg-transparent text-white focus:outline-none ml-1 flex-1 font-bold ${slugStatus === 'taken' ? 'text-red-500' : slugStatus === 'available' ? 'text-green-500' : ''}`}
+                                                className={`bg-transparent text-white focus:outline-none flex-1 font-bold ${slugStatus === 'taken' ? 'text-red-500' : slugStatus === 'available' ? 'text-green-500' : ''}`}
                                             />
-                                            {slugStatus === 'checking' && <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary-500 border-t-transparent"></div>}
-                                            {slugStatus === 'available' && <CheckCircle2 size={16} className="text-green-500" />}
-                                            {slugStatus === 'taken' && <AlertTriangle size={16} className="text-red-500" />}
+                                            <span className="text-gray-500">.barbermaster.com.br</span>
+                                            {slugStatus === 'checking' && <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary-500 border-t-transparent ml-2"></div>}
+                                            {slugStatus === 'available' && <CheckCircle2 size={16} className="text-green-500 ml-2" />}
+                                            {slugStatus === 'taken' && <AlertTriangle size={16} className="text-red-500 ml-2" />}
                                         </div>
                                         {slugStatus === 'taken' && (
                                             <p className="text-[10px] text-red-500 mt-2 font-bold animate-in fade-in slide-in-from-top-1">Este endereço já está sendo usado por outra barbearia.</p>
                                         )}
                                         {slugStatus === 'available' && (
-                                            <p className="text-[10px] text-green-500 mt-2 font-bold animate-in fade-in slide-in-from-top-1">Endereço disponível!</p>
+                                            <p className="text-[10px] text-green-500 mt-2 font-bold animate-in fade-in slide-in-from-top-1">✓ Endereço disponível!</p>
+                                        )}
+
+                                        {/* Preview do Link */}
+                                        {domainConfig.slug && (
+                                            <div className="mt-3 p-3 bg-gray-900 rounded-lg border border-gray-700">
+                                                <p className="text-[10px] text-gray-500 mb-1">Seu app estará disponível em:</p>
+                                                <div className="flex items-center gap-2">
+                                                    <a
+                                                        href={`https://${domainConfig.slug}.barbermaster.com.br`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="text-sm text-primary-500 hover:underline font-mono flex items-center gap-1"
+                                                    >
+                                                        {domainConfig.slug}.barbermaster.com.br
+                                                        <ExternalLink size={12} />
+                                                    </a>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            navigator.clipboard.writeText(`https://${domainConfig.slug}.barbermaster.com.br`);
+                                                            alert('Link copiado!');
+                                                        }}
+                                                        className="p-1 hover:bg-gray-800 rounded"
+                                                    >
+                                                        <Copy size={14} className="text-gray-400" />
+                                                    </button>
+                                                </div>
+                                            </div>
                                         )}
                                     </div>
 
+                                    {/* Opção 2: Domínio Personalizado */}
                                     <div
                                         onClick={() => setDomainConfig({ ...domainConfig, type: 'custom' })}
                                         className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${domainConfig.type === 'custom' ? 'border-primary-500 bg-primary-500/10' : 'border-gray-700 bg-gray-800'}`}
@@ -1108,21 +1139,116 @@ const AppCustomizationPage: React.FC = () => {
                                         </div>
 
                                         {domainConfig.type === 'custom' && (
-                                            <div className="mt-4 space-y-3 animate-in slide-in-from-top-2">
-                                                <input
-                                                    type="text"
-                                                    placeholder="seudominio.com.br"
-                                                    value={domainConfig.customDomain}
-                                                    onChange={(e) => setDomainConfig({ ...domainConfig, customDomain: e.target.value })}
-                                                    className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary-500"
-                                                />
-                                                <div className="flex items-center justify-between">
-                                                    <p className="text-xs text-gray-500">Configure o CNAME apontando para <strong>barbermaster.com.br</strong></p>
+                                            <div className="mt-4 space-y-4 animate-in slide-in-from-top-2">
+                                                {/* Input do Domínio */}
+                                                <div>
+                                                    <label className="text-xs text-gray-400 mb-1 block">Seu domínio:</label>
+                                                    <input
+                                                        type="text"
+                                                        placeholder="www.minhabarbearia.com.br"
+                                                        value={domainConfig.customDomain}
+                                                        onChange={(e) => setDomainConfig({ ...domainConfig, customDomain: e.target.value })}
+                                                        className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary-500"
+                                                    />
+                                                </div>
+
+                                                {/* Instruções Detalhadas */}
+                                                <div className="bg-gray-900 rounded-lg p-4 border border-gray-700">
+                                                    <h4 className="text-white font-bold text-sm mb-3 flex items-center gap-2">
+                                                        <Info size={16} className="text-primary-500" />
+                                                        Como configurar seu domínio
+                                                    </h4>
+
+                                                    <div className="space-y-3 text-xs text-gray-400">
+                                                        <div className="flex gap-3">
+                                                            <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary-500 text-dark-950 flex items-center justify-center font-bold text-[10px]">1</div>
+                                                            <div>
+                                                                <p className="text-white font-medium mb-1">Acesse o painel do seu provedor de domínio</p>
+                                                                <p>Exemplos: Registro.br, GoDaddy, Hostinger, HostGator, etc.</p>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="flex gap-3">
+                                                            <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary-500 text-dark-950 flex items-center justify-center font-bold text-[10px]">2</div>
+                                                            <div>
+                                                                <p className="text-white font-medium mb-1">Vá até a seção de DNS / Zona de DNS</p>
+                                                                <p>Procure por "Gerenciar DNS", "Zona DNS" ou "DNS Settings"</p>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="flex gap-3">
+                                                            <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary-500 text-dark-950 flex items-center justify-center font-bold text-[10px]">3</div>
+                                                            <div>
+                                                                <p className="text-white font-medium mb-2">Adicione um registro CNAME</p>
+                                                                <div className="bg-gray-800 rounded p-2 font-mono text-[10px] space-y-1">
+                                                                    <div className="flex justify-between">
+                                                                        <span className="text-gray-500">Tipo:</span>
+                                                                        <span className="text-white">CNAME</span>
+                                                                    </div>
+                                                                    <div className="flex justify-between">
+                                                                        <span className="text-gray-500">Nome/Host:</span>
+                                                                        <span className="text-white">www</span>
+                                                                    </div>
+                                                                    <div className="flex justify-between">
+                                                                        <span className="text-gray-500">Valor/Destino:</span>
+                                                                        <span className="text-primary-500">cname.vercel-dns.com</span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="flex gap-3">
+                                                            <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary-500 text-dark-950 flex items-center justify-center font-bold text-[10px]">4</div>
+                                                            <div>
+                                                                <p className="text-white font-medium mb-1">Aguarde a propagação do DNS</p>
+                                                                <p>Pode levar de 5 minutos até 48 horas (geralmente 1-2 horas)</p>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="flex gap-3">
+                                                            <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary-500 text-dark-950 flex items-center justify-center font-bold text-[10px]">5</div>
+                                                            <div>
+                                                                <p className="text-white font-medium mb-1">Salve as configurações aqui</p>
+                                                                <p>Clique em "Salvar Configurações" no topo da página</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Nota Importante */}
+                                                    <div className="mt-4 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+                                                        <p className="text-yellow-500 text-[10px] font-medium flex items-start gap-2">
+                                                            <AlertTriangle size={14} className="flex-shrink-0 mt-0.5" />
+                                                            <span>
+                                                                <strong>Importante:</strong> Após configurar o DNS, entre em contato com o suporte para ativar o SSL (HTTPS) no seu domínio personalizado.
+                                                            </span>
+                                                        </p>
+                                                    </div>
+                                                </div>
+
+                                                {/* Status de Verificação */}
+                                                <div className="flex items-center justify-between bg-gray-900 rounded-lg px-4 py-3 border border-gray-700">
+                                                    <div className="flex items-center gap-2">
+                                                        {domainConfig.isVerified ? (
+                                                            <>
+                                                                <CheckCircle2 size={16} className="text-green-500" />
+                                                                <span className="text-sm text-green-500 font-medium">Domínio configurado</span>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <AlertTriangle size={16} className="text-yellow-500" />
+                                                                <span className="text-sm text-gray-400">Aguardando configuração</span>
+                                                            </>
+                                                        )}
+                                                    </div>
                                                     <button
                                                         onClick={verifyDomain}
-                                                        className={`text-xs px-3 py-1.5 rounded font-bold flex items-center gap-1 ${domainConfig.isVerified ? 'bg-green-500/20 text-green-500' : 'bg-gray-700 text-white hover:bg-gray-600'}`}
+                                                        className={`text-xs px-4 py-2 rounded font-bold transition-colors ${domainConfig.isVerified
+                                                                ? 'bg-green-500/20 text-green-500 cursor-not-allowed'
+                                                                : 'bg-primary-500 text-dark-950 hover:bg-primary-600'
+                                                            }`}
+                                                        disabled={domainConfig.isVerified}
                                                     >
-                                                        {domainConfig.isVerified ? <><CheckCircle2 size={12} /> Verificado</> : 'Verificar DNS'}
+                                                        {domainConfig.isVerified ? 'Verificado ✓' : 'Verificar DNS'}
                                                     </button>
                                                 </div>
                                             </div>
