@@ -350,6 +350,75 @@ export const clientService = {
 
         // 3. Deduzir os pontos
         await this.addLoyaltyPoints(clientId, -reward.pointsCost);
+    },
+
+    // Buscar histórico de recompensas resgatadas
+    async getRedeemedRewards(clientId: string): Promise<any[]> {
+        const { data, error } = await supabase
+            .from('reward_redemptions')
+            .select('*')
+            .eq('client_id', clientId)
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error('Error fetching redemptions:', error);
+            return [];
+        }
+        return data || [];
+    },
+
+    // Buscar histórico de produtos comprados (via Comandas Pagas)
+    async getPurchases(clientId: string): Promise<any[]> {
+        // Buscar comandas pagas do cliente
+        const { data: comandas, error } = await supabase
+            .from('comandas')
+            .select('id, close_date, items')
+            .eq('client_id', clientId)
+            .eq('status', 'paid')
+            .order('close_date', { ascending: false });
+
+        if (error) {
+            console.error('Error fetching purchases:', error);
+            return [];
+        }
+
+        // Extrair apenas itens do tipo 'product'
+        const purchases: any[] = [];
+        comandas?.forEach(comanda => {
+            const items = typeof comanda.items === 'string'
+                ? JSON.parse(comanda.items)
+                : comanda.items;
+
+            if (Array.isArray(items)) {
+                items.forEach((item: any) => {
+                    if (item.type === 'product') {
+                        purchases.push({
+                            ...item,
+                            date: comanda.close_date,
+                            comandaId: comanda.id
+                        });
+                    }
+                });
+            }
+        });
+
+        return purchases;
+    },
+
+    // Buscar notificações
+    async getNotifications(clientId: string): Promise<any[]> {
+        // Tenta buscar de uma tabela de notificações (caso exista)
+        const { data, error } = await supabase
+            .from('client_notifications')
+            .select('*')
+            .eq('client_id', clientId)
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            // Se a tabela não existir, retorna array vazio sem choro (feature flag implícita)
+            return [];
+        }
+        return data || [];
     }
 };
 
