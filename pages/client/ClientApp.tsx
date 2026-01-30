@@ -52,41 +52,73 @@ const ClientApp: React.FC = () => {
     const loadTenantConfig = async () => {
         try {
             const hostname = window.location.hostname;
-            // Apenas o domínio principal e o subdomínio 'app' usam o slug na URL (/app/slug)
-            const isMainPlatform = hostname === 'barbermaster.com.br' || hostname === 'app.barbermaster.com.br' || hostname === 'localhost';
+            let tenantData = null;
 
-            if (!isMainPlatform) {
-                // Tenta buscar por domínio customizado OU subdomínio (ex: barbearia.barbermaster.com.br)
-                const { data } = await supabase
+            // 1. Tentar extrair slug de subdomínio (ex: meuslug.barbermaster.com.br)
+            if (hostname.endsWith('.barbermaster.com.br') && hostname !== 'app.barbermaster.com.br' && hostname !== 'www.barbermaster.com.br') {
+                const subdomain = hostname.split('.')[0];
+                console.log('Tentando buscar tenant por subdomínio:', subdomain);
+
+                const { data, error } = await supabase
                     .from('tenants')
                     .select('id, name, slug, settings')
-                    .contains('settings', { app_config: { domain: { customDomain: hostname } } })
+                    .eq('slug', subdomain)
                     .maybeSingle();
 
+                if (error) console.error('Erro ao buscar por subdomínio:', error);
                 if (data) {
-                    setTenant(data);
-                    updatePWAManifest(data);
-                    const primaryColor = data.settings?.app_config?.general?.primaryColor || '#eab308';
-                    document.documentElement.style.setProperty('--primary-color', primaryColor);
-                    return;
+                    console.log('Tenant encontrado por subdomínio:', data);
+                    tenantData = data;
                 }
             }
 
-            // Fallback para slug via URL (usado em app.barbermaster.com.br/slug)
-            if (slug) {
+            // 2. Tentar buscar por domínio customizado (se não encontrou por subdomain)
+            if (!tenantData && hostname !== 'barbermaster.com.br' && hostname !== 'app.barbermaster.com.br' && hostname !== 'localhost' && !hostname.endsWith('.barbermaster.com.br')) {
+                console.log('Tentando buscar tenant por domínio customizado:', hostname);
+
+                // Buscar todos os tenants e filtrar manualmente (workaround para JSONB)
+                const { data: allTenants, error } = await supabase
+                    .from('tenants')
+                    .select('id, name, slug, settings');
+
+                if (error) console.error('Erro ao buscar tenants:', error);
+
+                if (allTenants) {
+                    tenantData = allTenants.find(t => {
+                        const customDomain = t.settings?.app_config?.domain?.customDomain;
+                        return customDomain === hostname || customDomain === `www.${hostname}` || `www.${customDomain}` === hostname;
+                    });
+
+                    if (tenantData) {
+                        console.log('Tenant encontrado por domínio customizado:', tenantData);
+                    }
+                }
+            }
+
+            // 3. Fallback para slug via URL (/app/:slug)
+            if (!tenantData && slug) {
+                console.log('Tentando buscar tenant por slug na URL:', slug);
+
                 const { data, error } = await supabase
                     .from('tenants')
                     .select('id, name, slug, settings')
                     .eq('slug', slug)
-                    .single();
+                    .maybeSingle();
 
-                if (error) throw error;
+                if (error) console.error('Erro ao buscar por slug:', error);
                 if (data) {
-                    setTenant(data);
-                    updatePWAManifest(data);
-                    const primaryColor = data.settings?.app_config?.general?.primaryColor || '#eab308';
-                    document.documentElement.style.setProperty('--primary-color', primaryColor);
+                    console.log('Tenant encontrado por slug na URL:', data);
+                    tenantData = data;
                 }
+            }
+
+            if (tenantData) {
+                setTenant(tenantData);
+                updatePWAManifest(tenantData);
+                const primaryColor = tenantData.settings?.app_config?.general?.primaryColor || '#eab308';
+                document.documentElement.style.setProperty('--primary-color', primaryColor);
+            } else {
+                console.error('Nenhum tenant encontrado para:', { hostname, slug });
             }
         } catch (error) {
             console.error('Erro ao carregar barbearia:', error);
