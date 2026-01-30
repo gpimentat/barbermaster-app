@@ -282,12 +282,20 @@ const MainLayout: React.FC = () => {
             {/* Suporte para Domínio Customizado na Raiz */}
             <Route path="/" element={
               (() => {
+                // Se o usuário está autenticado, sempre mostrar o Dashboard
+                if (isAuthenticated) {
+                  return <Dashboard />;
+                }
+
+                // Se não está autenticado, verificar se é domínio customizado
                 const hostname = window.location.hostname;
                 const isMainPlatform = hostname === 'barbermaster.com.br' || hostname === 'app.barbermaster.com.br' || hostname === 'localhost';
                 if (!isMainPlatform) {
                   return <ClientApp />;
                 }
-                return <Dashboard />;
+
+                // Domínio principal sem autenticação = Login
+                return <LoginPage />;
               })()
             } />
 
@@ -312,11 +320,19 @@ const MainLayout: React.FC = () => {
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="*" element={
               (() => {
+                // Se o usuário está autenticado, mostrar erro 404 do admin
+                if (isAuthenticated) {
+                  return <div className="p-8 text-center text-gray-500">Página não encontrada.</div>;
+                }
+
+                // Se não está autenticado, verificar se é domínio customizado
                 const hostname = window.location.hostname;
                 const isMainPlatform = hostname === 'barbermaster.com.br' || hostname === 'app.barbermaster.com.br' || hostname === 'localhost';
                 if (!isMainPlatform) {
                   return <ClientApp />;
                 }
+
+                // Domínio principal sem autenticação = 404
                 return <div className="p-8 text-center text-gray-500">Página não encontrada.</div>;
               })()
             } />
