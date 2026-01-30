@@ -1,5 +1,5 @@
 // Service Worker para PWA
-const CACHE_NAME = 'barbermaster-v1';
+const CACHE_NAME = 'barbermaster-v3-icons';
 const urlsToCache = [
     '/',
     '/index.html',
@@ -38,7 +38,7 @@ self.addEventListener('activate', (event) => {
 });
 // Push Notifications Listener
 self.addEventListener('push', (event) => {
-    let data = { title: 'BarberMaster', body: 'Nova notificação!', icon: '/pwa-icon-192.png' };
+    let data = { title: 'BarberMaster', body: 'Nova notificação!', icon: '/icon-192-v3.png' };
 
     if (event.data) {
         try {
@@ -50,8 +50,8 @@ self.addEventListener('push', (event) => {
 
     const options = {
         body: data.body,
-        icon: data.icon || '/pwa-icon-192.png',
-        badge: '/pwa-icon-192.png',
+        icon: data.icon || '/icon-192-v3.png',
+        badge: '/icon-192-v3.png',
         vibrate: [100, 50, 100],
         data: {
             url: data.url || '/'
