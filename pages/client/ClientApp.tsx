@@ -38,21 +38,28 @@ interface TenantConfig {
 }
 
 const ClientApp: React.FC = () => {
-    const { slug } = useParams<{ slug: string }>();
+    const { slug: urlSlug } = useParams<{ slug: string }>();
     const [tenant, setTenant] = useState<TenantConfig | null>(null);
+    const [resolvedSlug, setResolvedSlug] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [clientData, setClientData] = useState<any>(null);
 
     useEffect(() => {
         loadTenantConfig();
-        checkAuth();
-    }, [slug]);
+    }, [urlSlug]);
+
+    useEffect(() => {
+        if (resolvedSlug) {
+            checkAuth();
+        }
+    }, [resolvedSlug]);
 
     const loadTenantConfig = async () => {
         try {
             const hostname = window.location.hostname;
             let tenantData = null;
+            let currentSlug = urlSlug;
 
             // 1. Tentar extrair slug de subdomínio (ex: meuslug.barbermaster.com.br)
             if (hostname.endsWith('.barbermaster.com.br') && hostname !== 'app.barbermaster.com.br' && hostname !== 'www.barbermaster.com.br') {
@@ -69,6 +76,7 @@ const ClientApp: React.FC = () => {
                 if (data) {
                     console.log('Tenant encontrado por subdomínio:', data);
                     tenantData = data;
+                    currentSlug = data.slug;
                 }
             }
 
@@ -91,34 +99,37 @@ const ClientApp: React.FC = () => {
 
                     if (tenantData) {
                         console.log('Tenant encontrado por domínio customizado:', tenantData);
+                        currentSlug = tenantData.slug;
                     }
                 }
             }
 
             // 3. Fallback para slug via URL (/app/:slug)
-            if (!tenantData && slug) {
-                console.log('Tentando buscar tenant por slug na URL:', slug);
+            if (!tenantData && urlSlug) {
+                console.log('Tentando buscar tenant por slug na URL:', urlSlug);
 
                 const { data, error } = await supabase
                     .from('tenants')
                     .select('id, name, slug, settings')
-                    .eq('slug', slug)
+                    .eq('slug', urlSlug)
                     .maybeSingle();
 
                 if (error) console.error('Erro ao buscar por slug:', error);
                 if (data) {
                     console.log('Tenant encontrado por slug na URL:', data);
                     tenantData = data;
+                    currentSlug = data.slug;
                 }
             }
 
             if (tenantData) {
                 setTenant(tenantData);
+                setResolvedSlug(currentSlug || null);
                 updatePWAManifest(tenantData);
                 const primaryColor = tenantData.settings?.app_config?.general?.primaryColor || '#eab308';
                 document.documentElement.style.setProperty('--primary-color', primaryColor);
             } else {
-                console.error('Nenhum tenant encontrado para:', { hostname, slug });
+                console.error('Nenhum tenant encontrado para:', { hostname, urlSlug });
             }
         } catch (error) {
             console.error('Erro ao carregar barbearia:', error);
@@ -204,7 +215,7 @@ const ClientApp: React.FC = () => {
 
     const checkAuth = () => {
         // Verificar se cliente está logado
-        const clientSession = localStorage.getItem(`client_session_${slug}`);
+        const clientSession = localStorage.getItem(`client_session_${resolvedSlug}`);
         if (clientSession) {
             try {
                 const data = JSON.parse(clientSession);
@@ -225,7 +236,7 @@ const ClientApp: React.FC = () => {
     };
 
     const handleLogout = () => {
-        localStorage.removeItem(`client_session_${slug}`);
+        localStorage.removeItem(`client_session_${resolvedSlug}`);
         setClientData(null);
         setIsAuthenticated(false);
     };

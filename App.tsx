@@ -233,7 +233,11 @@ const MainLayout: React.FC = () => {
 
 
   // Proteção de Rotas
-  const isPublicRoute = location.pathname === '/login' ||
+  const hostname = window.location.hostname;
+  const isMainPlatform = hostname === 'barbermaster.com.br' || hostname === 'app.barbermaster.com.br' || hostname === 'localhost';
+
+  const isPublicRoute = !isMainPlatform ||
+    location.pathname === '/login' ||
     location.pathname === '/signup' ||
     location.pathname === '/forgot-password' ||
     location.pathname.startsWith('/app/'); // Cliente App é público
