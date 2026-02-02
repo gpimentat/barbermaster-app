@@ -152,16 +152,9 @@ const Schedule: React.FC = () => {
           <div className="flex min-w-full" style={{ width: 'max-content' }}>
             {/* Seletor de Profissionais / Colunas */}
             {(() => {
-              const apptBarberIds = new Set(displayAppointments.map(a => a.barberId));
               const filteredBarbers = (role === 'barber' && currentUser && !canViewAll
                 ? barbers.filter(b => b.id === currentUser.id)
-                : barbers.filter(b =>
-                  b.active ||
-                  apptBarberIds.has(b.id) ||
-                  b.id === currentUser?.id ||
-                  b.role?.toLowerCase().includes('recep') ||
-                  b.role?.toLowerCase().includes('atend')
-                )
+                : barbers.filter(b => b.active)
               );
 
               return filteredBarbers.map((barber) => {
