@@ -246,12 +246,15 @@ const StaffPage: React.FC = () => {
 
 
   return (
-    <div className="space-y-6 relative">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-white">Profissionais</h1>
+    <div className="space-y-6 relative pb-10">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-black text-white tracking-tight">Profissionais</h1>
+          <p className="text-gray-500 text-sm">Gerencie sua equipe e permissões de acesso</p>
+        </div>
         <button
           onClick={handleAddNew}
-          className="flex items-center gap-2 bg-primary-500 hover:bg-primary-600 text-dark-950 px-4 py-2 rounded-lg font-semibold transition-colors shadow-lg shadow-primary-500/20"
+          className="w-full md:w-auto flex items-center justify-center gap-2 bg-primary-500 hover:bg-primary-600 active:scale-[0.98] text-dark-950 px-6 py-3 rounded-xl font-black transition-all shadow-xl shadow-primary-500/10"
         >
           <Plus size={20} />
           Adicionar Profissional
@@ -260,11 +263,11 @@ const StaffPage: React.FC = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {barbers.map((barber) => (
-          <div key={barber.id} className="bg-dark-900 rounded-xl border border-gray-800 overflow-hidden group hover:border-primary-500/30 transition-all">
-            <div className="h-24 bg-gradient-to-r from-gray-800 to-gray-900 relative">
+          <div key={barber.id} className="bg-dark-900 rounded-2xl border border-gray-800 overflow-hidden group hover:border-primary-500/30 transition-all hover:shadow-2xl hover:shadow-primary-500/5">
+            <div className="h-24 bg-gradient-to-br from-gray-800 to-dark-950 relative">
               <button
                 onClick={() => handleEdit(barber)}
-                className="absolute top-4 right-4 text-gray-400 hover:text-white p-2 hover:bg-white/10 rounded-full transition-colors"
+                className="absolute top-4 right-4 bg-dark-950/40 backdrop-blur-md text-gray-400 hover:text-white p-2.5 rounded-xl transition-all border border-white/5"
                 title="Editar Profissional"
               >
                 <MoreHorizontal size={20} />
@@ -272,44 +275,50 @@ const StaffPage: React.FC = () => {
             </div>
             <div className="px-6 pb-6">
               <div className="relative -top-12 flex flex-col items-center">
-                <div className="w-24 h-24 rounded-full border-4 border-dark-900 overflow-hidden bg-gray-800 shadow-lg flex items-center justify-center relative">
+                <div className="w-24 h-24 rounded-full border-4 border-dark-900 overflow-hidden bg-gray-800 shadow-2xl flex items-center justify-center relative group-hover:scale-105 transition-transform">
                   {barber.avatar ? (
                     <img src={barber.avatar} alt={barber.name} className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full bg-primary-500 flex items-center justify-center text-4xl font-bold text-dark-950">
+                    <div className="w-full h-full bg-primary-500 flex items-center justify-center text-4xl font-black text-dark-950">
                       {barber.name.charAt(0).toUpperCase()}
                     </div>
                   )}
                 </div>
-                <h3 className="mt-3 text-xl font-bold text-white">{barber.name}</h3>
-                <div className="flex flex-col items-center">
-                  <p className="text-primary-500 font-medium">{barber.role}</p>
-                  <p className="text-gray-500 text-xs mt-0.5">{barber.email}</p>
+                <h3 className="mt-4 text-xl font-black text-white text-center leading-tight">{barber.name}</h3>
+                <div className="flex flex-col items-center mt-1">
+                  <p className="text-primary-500 font-bold text-sm tracking-wide uppercase">{barber.role}</p>
+                  <p className="text-gray-500 text-xs mt-1 font-medium">{barber.email || 'Sem e-mail'}</p>
                 </div>
-                <div className="flex items-center gap-1 mt-2 text-gray-400 text-sm">
-                  <span className={`w-2 h-2 rounded-full ${barber.active ? 'bg-green-500' : 'bg-red-500'}`}></span>
-                  {barber.active ? 'Ativo' : 'Inativo'}
-                  {barber.loginEnabled && <span className="ml-2 text-xs bg-gray-800 px-1.5 py-0.5 rounded border border-gray-700 flex items-center gap-1"><Lock size={10} /> Acesso Liberado</span>}
+
+                <div className="flex flex-wrap justify-center items-center gap-2 mt-4">
+                  <span className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${barber.active ? 'bg-green-500/10 text-green-500 border border-green-500/20' : 'bg-red-500/10 text-red-500 border border-red-500/20'}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${barber.active ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></span>
+                    {barber.active ? 'Ativo' : 'Inativo'}
+                  </span>
+                  {barber.loginEnabled && (
+                    <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-primary-500/10 text-primary-500 border border-primary-500/20 flex items-center gap-1">
+                      <Lock size={10} /> Acesso
+                    </span>
+                  )}
                 </div>
               </div>
 
-              <div className="mt-2 flex justify-center">
-                <div className="bg-gray-800/50 p-3 rounded-lg border border-gray-800 flex flex-col items-center justify-center w-32">
-                  <div className="flex items-center text-white font-bold text-lg gap-1">
-                    {barber.commissionRate}<Percent size={14} className="text-primary-500" />
+              <div className="mt-0 flex justify-center">
+                <div className="bg-gray-800/20 p-4 rounded-2xl border border-gray-800/50 flex flex-col items-center justify-center w-full max-w-[140px]">
+                  <div className="flex items-center text-white font-black text-2xl gap-0.5">
+                    {barber.commissionRate}<Percent size={16} className="text-primary-500 mt-1" />
                   </div>
-                  <span className="text-[10px] text-gray-500 uppercase tracking-wider">Comissão</span>
+                  <span className="text-[10px] text-gray-500 font-black uppercase tracking-widest mt-0.5">Comissão</span>
                 </div>
               </div>
 
-              <div className="mt-4 pt-4 border-t border-gray-800 flex justify-between items-center text-sm">
-                <div className="flex items-center gap-1 text-yellow-500 font-medium">
-                  <Star size={16} fill="currentColor" />
-                  <span>4.9</span>
-                  <span className="text-gray-500 font-normal ml-1">(120 reviews)</span>
+              <div className="mt-6 pt-6 border-t border-gray-800/50 flex justify-between items-center text-sm">
+                <div className="flex items-center gap-1.5 text-yellow-500 bg-yellow-500/5 px-2 py-1 rounded-lg">
+                  <Star size={14} fill="currentColor" />
+                  <span className="font-black">4.9</span>
                 </div>
-                <button onClick={() => handleEdit(barber)} className="text-primary-500 hover:text-primary-400 font-medium hover:underline">
-                  Ver Permissões
+                <button onClick={() => handleEdit(barber)} className="text-primary-500 hover:text-primary-400 font-black text-xs uppercase tracking-widest hover:underline transition-all">
+                  Permissões
                 </button>
               </div>
             </div>
@@ -317,28 +326,28 @@ const StaffPage: React.FC = () => {
         ))}
       </div>
 
-      {/* Modal de Edição */}
+      {/* Modal de Edição - Mobile First */}
       {selectedBarber && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-dark-900 rounded-xl border border-gray-800 shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
-            <div className="flex items-center justify-between p-6 border-b border-gray-800 bg-gray-900 sticky top-0 z-10">
-              <h2 className="text-xl font-bold text-white">
+        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-dark-900 w-full max-w-2xl rounded-t-3xl md:rounded-2xl border-t md:border border-gray-800 shadow-2xl overflow-hidden animate-in slide-in-from-bottom-10 md:zoom-in-95 duration-300 flex flex-col max-h-[92vh]">
+            <div className="flex items-center justify-between p-5 md:p-6 border-b border-gray-800 bg-dark-900/50 sticky top-0 z-10">
+              <h2 className="text-xl font-black text-white">
                 {barbers.some(b => b.id === selectedBarber.id) ? 'Editar Profissional' : 'Novo Profissional'}
               </h2>
               <button
                 onClick={() => setSelectedBarber(null)}
-                className="text-gray-400 hover:text-white transition-colors"
+                className="p-2 -mr-2 text-gray-400 hover:text-white transition-colors"
               >
                 <X size={24} />
               </button>
             </div>
 
-            <div className="p-6 space-y-6 overflow-y-auto custom-scrollbar">
+            <div className="p-5 md:p-8 space-y-8 overflow-y-auto custom-scrollbar">
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 {/* Coluna Esquerda: Foto e Info Básica */}
-                <div className="md:col-span-1 space-y-4">
-                  <div className="flex flex-col items-center justify-center space-y-3">
+                <div className="md:col-span-1 space-y-6">
+                  <div className="flex flex-col items-center justify-center space-y-4">
                     <input
                       type="file"
                       ref={fileInputRef}
@@ -351,161 +360,169 @@ const StaffPage: React.FC = () => {
                       <div
                         onClick={triggerFileInput}
                         className={`w-32 h-32 rounded-full border-4 flex items-center justify-center overflow-hidden cursor-pointer transition-all relative ${selectedBarber.avatar
-                          ? 'border-gray-700 hover:border-primary-500'
-                          : 'border-dashed border-gray-600 hover:border-primary-500 bg-gray-800'
+                          ? 'border-gray-800 hover:border-primary-500 shadow-xl'
+                          : 'border-dashed border-gray-700 hover:border-primary-500 bg-gray-800/50'
                           }`}
                       >
                         {selectedBarber.avatar ? (
                           <img src={selectedBarber.avatar} alt="Avatar" className="w-full h-full object-cover" />
                         ) : selectedBarber.name ? (
-                          <div className="w-full h-full bg-primary-500 flex items-center justify-center text-5xl font-bold text-dark-950">
+                          <div className="w-full h-full bg-primary-500 flex items-center justify-center text-5xl font-black text-dark-950">
                             {selectedBarber.name.charAt(0).toUpperCase()}
                           </div>
                         ) : (
-                          <div className="flex flex-col items-center text-gray-500">
+                          <div className="flex flex-col items-center text-gray-600">
                             <Upload size={24} />
-                            <span className="text-[10px] uppercase font-bold mt-1">Foto</span>
+                            <span className="text-[10px] uppercase font-black mt-2 tracking-widest">Foto</span>
                           </div>
                         )}
 
                         <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-full">
-                          <span className="text-white text-xs font-bold flex items-center gap-1"><ImageIcon size={14} /> Trocar</span>
+                          <span className="text-white text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5"><ImageIcon size={14} /> Trocar</span>
                         </div>
                       </div>
                       {selectedBarber.avatar && (
-                        <button type="button" onClick={removeImage} className="absolute bottom-0 right-0 p-2 bg-red-500 text-white rounded-full shadow-lg hover:bg-red-600 transition-colors z-20">
+                        <button type="button" onClick={removeImage} className="absolute bottom-1 right-1 p-2 bg-red-600 text-white rounded-full shadow-lg hover:bg-red-700 active:scale-90 transition-all z-20 border-2 border-dark-900">
                           <Trash2 size={14} />
                         </button>
                       )}
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-1">Status</label>
-                    <div className="flex items-center gap-2 bg-gray-800 p-2 rounded-lg border border-gray-700">
-                      <input
-                        type="checkbox"
-                        id="activeCheck"
-                        checked={selectedBarber.active}
-                        onChange={(e) => updateField('active', e.target.checked)}
-                        className="w-4 h-4 rounded border-gray-600 text-primary-500 focus:ring-primary-500 bg-gray-700 cursor-pointer"
-                      />
-                      <label htmlFor="activeCheck" className="text-white cursor-pointer select-none text-sm">Disponível na Agenda</label>
+                  <div className="bg-gray-800/20 p-4 rounded-xl border border-gray-800/50">
+                    <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-3 ml-1">Status na Agenda</label>
+                    <div
+                      onClick={() => updateField('active', !selectedBarber.active)}
+                      className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${selectedBarber.active ? 'bg-green-500/10 border-green-500/20' : 'bg-red-500/5 border-red-500/10'}`}
+                    >
+                      <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${selectedBarber.active ? 'bg-green-500 border-green-500' : 'border-gray-700 bg-transparent'}`}>
+                        {selectedBarber.active && <Check size={14} className="text-dark-950 font-black" />}
+                      </div>
+                      <span className={`text-sm font-bold ${selectedBarber.active ? 'text-white' : 'text-gray-500'}`}>
+                        Ativo e Visível
+                      </span>
                     </div>
                   </div>
                 </div>
 
                 {/* Coluna Direita: Dados Cadastrais */}
-                <div className="md:col-span-2 space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-1">Nome Completo</label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-2.5 text-gray-500" size={18} />
-                      <input
-                        type="text"
-                        value={selectedBarber.name}
-                        onChange={(e) => updateField('name', e.target.value)}
-                        className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-10 pr-4 py-2 text-white focus:outline-none focus:border-primary-500"
-                        placeholder="Ex: João Silva"
-                      // removed required, manual check
-                      />
+                <div className="md:col-span-2 space-y-6">
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 ml-1">Nome Completo</label>
+                      <div className="relative">
+                        <User className="absolute left-4 top-3.5 text-gray-600" size={18} />
+                        <input
+                          type="text"
+                          value={selectedBarber.name}
+                          onChange={(e) => updateField('name', e.target.value)}
+                          className="w-full bg-gray-800 border border-gray-700 rounded-xl pl-12 pr-4 py-3 text-white font-medium focus:outline-none focus:border-primary-500 transition-colors"
+                          placeholder="Ex: João Silva"
+                        />
+                      </div>
                     </div>
-                  </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-1">E-mail de Acesso</label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-2.5 text-gray-500" size={18} />
-                      <input
-                        type="email"
-                        value={selectedBarber.email}
-                        onChange={(e) => updateField('email', e.target.value)}
-                        className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-10 pr-4 py-2 text-white focus:outline-none focus:border-primary-500"
-                        placeholder="Ex: profissional@barbermaster.com.br"
-                      // removed required logic handled manually
-                      />
+                    <div>
+                      <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 ml-1">E-mail Corporativo</label>
+                      <div className="relative">
+                        <Mail className="absolute left-4 top-3.5 text-gray-600" size={18} />
+                        <input
+                          type="email"
+                          value={selectedBarber.email}
+                          onChange={(e) => updateField('email', e.target.value)}
+                          className="w-full bg-gray-800 border border-gray-700 rounded-xl pl-12 pr-4 py-3 text-white font-medium focus:outline-none focus:border-primary-500 transition-colors"
+                          placeholder="Ex: profissional@barbermaster.com.br"
+                        />
+                      </div>
+                      {selectedBarber.loginEnabled && (
+                        <p className="text-[10px] text-primary-500/70 mt-2 font-bold flex items-start gap-1.5 ml-1">
+                          <KeyRound size={12} className="shrink-0 mt-0.5" />
+                          Senhas novas começam como "1234" (alteração obrigatória no 1º acesso).
+                        </p>
+                      )}
                     </div>
-                    {selectedBarber.loginEnabled && (
-                      <p className="text-[10px] text-gray-500 mt-1 flex items-center gap-1">
-                        <KeyRound size={10} /> Senha inicial será definida como "1234" se for um novo cadastro.
-                      </p>
-                    )}
-                  </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-1">Cargo / Especialidade</label>
-                    <div className="relative">
-                      <Briefcase className="absolute left-3 top-2.5 text-gray-500" size={18} />
-                      <input
-                        type="text"
-                        value={selectedBarber.role}
-                        onChange={(e) => updateField('role', e.target.value)}
-                        className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-10 pr-4 py-2 text-white focus:outline-none focus:border-primary-500"
-                        placeholder="Ex: Master Barber, Recepcionista"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-1">Comissão Padrão (%)</label>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        value={selectedBarber.commissionRate}
-                        onChange={(e) => updateField('commissionRate', parseFloat(e.target.value))}
-                        className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-4 pr-8 py-2 text-white focus:outline-none focus:border-primary-500"
-                      />
-                      <Percent className="absolute right-3 top-2.5 text-gray-500" size={16} />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 ml-1">Cargo</label>
+                        <div className="relative">
+                          <Briefcase className="absolute left-4 top-3.5 text-gray-600" size={18} />
+                          <input
+                            type="text"
+                            value={selectedBarber.role}
+                            onChange={(e) => updateField('role', e.target.value)}
+                            className="w-full bg-gray-800 border border-gray-700 rounded-xl pl-12 pr-4 py-3 text-white font-medium focus:outline-none focus:border-primary-500 transition-colors"
+                            placeholder="Ex: Barbeiro"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 ml-1">Comissão (%)</label>
+                        <div className="relative">
+                          <Percent className="absolute right-4 top-3.5 text-gray-600" size={18} />
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            value={selectedBarber.commissionRate}
+                            onChange={(e) => updateField('commissionRate', parseFloat(e.target.value))}
+                            className="w-full bg-gray-800 border border-gray-700 rounded-xl pl-4 pr-12 py-3 text-white font-black focus:outline-none focus:border-primary-500 transition-colors"
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Seção de Permissões e Login */}
-              <div className="border-t border-gray-800 pt-6">
-                <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                  <Shield size={20} className="text-primary-500" /> Acesso e Permissões
-                </h3>
+              <div className="pt-8 border-t border-gray-800">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2 bg-primary-500/10 rounded-lg text-primary-500">
+                    <Shield size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-black text-white">Segurança e Acesso</h3>
+                    <p className="text-xs text-gray-500 font-medium">Controle o que este profissional pode fazer</p>
+                  </div>
+                </div>
 
-                <div className="bg-gray-800/30 rounded-xl p-4 border border-gray-800">
+                <div className="bg-gray-800/10 rounded-2xl p-5 md:p-6 border border-gray-800">
                   {/* Toggle Login */}
-                  <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-800">
-                    <div className="flex items-center gap-3">
-                      <button
-                        type="button"
-                        onClick={() => updateField('loginEnabled', !selectedBarber.loginEnabled)}
-                        className={`w-12 h-6 rounded-full relative transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-500/50 ${selectedBarber.loginEnabled ? 'bg-primary-500' : 'bg-gray-700'}`}
-                      >
-                        <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all shadow-md ${selectedBarber.loginEnabled ? 'left-7' : 'left-1'}`}></div>
-                      </button>
-                      <div>
-                        <p className="text-white font-medium cursor-pointer" onClick={() => updateField('loginEnabled', !selectedBarber.loginEnabled)}>Permitir Login no Sistema</p>
-                        <p className="text-xs text-gray-500">O profissional poderá acessar o painel com seu e-mail e senha.</p>
-                      </div>
+                  <div className="flex items-center justify-between mb-8 pb-6 border-b border-gray-800/50">
+                    <div className="flex-1 mr-4">
+                      <p className="text-white font-black text-sm uppercase tracking-wide">Permitir Login no Sistema</p>
+                      <p className="text-xs text-gray-500 mt-1 font-medium">Libera acesso ao painel administrativo via e-mail corporativo.</p>
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => updateField('loginEnabled', !selectedBarber.loginEnabled)}
+                      className={`w-14 h-7 rounded-full relative transition-all shadow-inner focus:outline-none ${selectedBarber.loginEnabled ? 'bg-primary-500' : 'bg-gray-700'}`}
+                    >
+                      <div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-all shadow-sm ${selectedBarber.loginEnabled ? 'left-8' : 'left-1'}`}></div>
+                    </button>
                   </div>
 
                   {/* Presets de Permissão */}
                   {selectedBarber.loginEnabled && (
-                    <div className="space-y-6 animate-in fade-in duration-300">
+                    <div className="space-y-8 animate-in fade-in slide-in-from-top-4 duration-500">
                       <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase mb-3">Carregar Perfil Predefinido</label>
-                        <div className="flex flex-wrap gap-2">
-                          <button type="button" onClick={() => applyPreset('barber')} className="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white text-sm rounded-lg border border-gray-700 transition-colors">
-                            <User size={16} /> Perfil Barbeiro
+                        <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-4 ml-1">Configurações Rápidas (Presets)</label>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          <button type="button" onClick={() => applyPreset('barber')} className="flex items-center justify-center gap-2 px-4 py-3 bg-gray-800 hover:bg-gray-700 text-white text-xs font-black uppercase tracking-widest rounded-xl border border-gray-700 transition-all active:scale-[0.98]">
+                            <User size={14} /> Barbeiro
                           </button>
-                          <button type="button" onClick={() => applyPreset('receptionist')} className="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white text-sm rounded-lg border border-gray-700 transition-colors">
-                            <CheckSquare size={16} /> Perfil Recepcionista
+                          <button type="button" onClick={() => applyPreset('receptionist')} className="flex items-center justify-center gap-2 px-4 py-3 bg-gray-800 hover:bg-gray-700 text-white text-xs font-black uppercase tracking-widest rounded-xl border border-gray-700 transition-all active:scale-[0.98]">
+                            <CheckSquare size={14} /> Recepção
                           </button>
-                          <button type="button" onClick={() => applyPreset('admin')} className="flex items-center gap-2 px-4 py-2 bg-primary-500/10 hover:bg-primary-500/20 text-primary-500 hover:text-primary-400 text-sm rounded-lg border border-primary-500/30 transition-colors">
-                            <Shield size={16} /> Acesso Admin
+                          <button type="button" onClick={() => applyPreset('admin')} className="flex items-center justify-center gap-2 px-4 py-3 bg-primary-500/10 hover:bg-primary-500/20 text-primary-500 text-xs font-black uppercase tracking-widest rounded-xl border border-primary-500/20 transition-all active:scale-[0.98]">
+                            <Shield size={14} /> Admin
                           </button>
                         </div>
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase mb-3">Funcionalidades Liberadas</label>
+                        <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-4 ml-1">Nível de Acesso Customizado</label>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           {SYSTEM_PERMISSIONS.map(permission => {
                             const isChecked = selectedBarber.permissions?.includes(permission.id);
@@ -513,12 +530,12 @@ const StaffPage: React.FC = () => {
                               <div
                                 key={permission.id}
                                 onClick={() => togglePermission(permission.id)}
-                                className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all select-none ${isChecked ? 'bg-primary-500/10 border-primary-500/30 shadow-sm' : 'bg-gray-800/50 border-gray-700 hover:border-gray-600'}`}
+                                className={`flex items-center gap-3 p-3.5 rounded-xl border transition-all select-none active:scale-[0.98] ${isChecked ? 'bg-primary-500/5 border-primary-500/30 shadow-lg shadow-primary-500/5' : 'bg-dark-900 border-gray-800 hover:border-gray-700'}`}
                               >
-                                <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${isChecked ? 'bg-primary-500 border-primary-500' : 'border-gray-500 bg-transparent'}`}>
-                                  {isChecked && <Check size={14} className="text-dark-950 stroke-[4]" />}
+                                <div className={`w-5 h-5 rounded flex items-center justify-center transition-all ${isChecked ? 'bg-primary-500 shadow-lg shadow-primary-500/20' : 'bg-gray-800 border-2 border-gray-700'}`}>
+                                  {isChecked && <Check size={12} className="text-dark-950 stroke-[5]" />}
                                 </div>
-                                <span className={`text-sm font-medium ${isChecked ? 'text-white' : 'text-gray-400'}`}>{permission.label}</span>
+                                <span className={`text-xs font-bold ${isChecked ? 'text-white' : 'text-gray-500'}`}>{permission.label}</span>
                               </div>
                             );
                           })}
@@ -529,61 +546,63 @@ const StaffPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Footer do Modal */}
-              <div className="flex justify-between w-full pt-4 border-t border-gray-800">
-                <div className="flex items-center">
+              {/* Footer do Modal - Sticky and Adaptive */}
+              <div className="flex flex-col-reverse sm:flex-row justify-between items-center w-full gap-4 pt-4 border-t border-gray-800">
+                <div className="w-full sm:w-auto">
                   {/* Botão de Excluir / Confirmação */}
                   {selectedBarber.id && selectedBarber.id.length > 20 && (
                     isDeleteConfirming ? (
-                      <div className="flex items-center gap-2 animate-in slide-in-from-left-2 fade-in">
-                        <span className="text-white font-bold mr-2">Tem certeza?</span>
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(selectedBarber.id)}
-                          className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-colors shadow-lg"
-                        >
-                          SIM, APAGAR
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setIsDeleteConfirming(false)}
-                          className="px-3 py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-lg transition-colors"
-                        >
-                          Cancelar
-                        </button>
+                      <div className="flex items-center gap-2 animate-in slide-in-from-left-2 fade-in w-full">
+                        <span className="text-white text-sm font-black uppercase mr-2 shrink-0">Confirmar?</span>
+                        <div className="flex gap-2 w-full">
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(selectedBarber.id)}
+                            className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white text-xs font-black uppercase tracking-widest rounded-lg transition-all shadow-lg active:scale-95"
+                          >
+                            Sim
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setIsDeleteConfirming(false)}
+                            className="flex-1 px-4 py-2.5 bg-gray-800 hover:bg-gray-700 text-gray-400 text-xs font-black uppercase tracking-widest rounded-lg transition-all active:scale-95"
+                          >
+                            Não
+                          </button>
+                        </div>
                       </div>
                     ) : (
                       <button
                         type="button"
                         onClick={() => setIsDeleteConfirming(true)}
-                        className="flex items-center gap-2 px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 hover:text-red-400 font-bold rounded-lg transition-colors border border-red-500/20"
+                        className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-red-500/10 hover:bg-red-500/20 text-red-500 font-black text-xs uppercase tracking-widest rounded-xl transition-all border border-red-500/20 active:scale-95"
                       >
-                        <Trash2 size={20} />
-                        Excluir
+                        <Trash2 size={16} />
+                        Excluir Profissional
                       </button>
                     )
                   )}
                 </div>
 
-                <div className="flex gap-3 ml-auto">
+                <div className="flex gap-3 w-full sm:w-auto">
                   <button
                     type="button"
                     onClick={() => {
                       setSelectedBarber(null);
                       setIsDeleteConfirming(false);
                     }}
-                    className="px-4 py-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+                    className="flex-1 sm:flex-none px-6 py-3 text-gray-500 hover:text-white font-black text-xs uppercase tracking-widest transition-all"
                   >
-                    Cancelar
+                    Sair
                   </button>
                   {!isDeleteConfirming && (
                     <button
                       type="button"
                       onClick={handleSave}
-                      className="flex items-center gap-2 px-6 py-2 bg-primary-500 hover:bg-primary-600 text-dark-950 font-bold rounded-lg transition-colors"
+                      className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-8 py-3 bg-primary-500 hover:bg-primary-600 active:scale-[0.98] text-dark-950 font-black text-xs uppercase tracking-widest rounded-xl transition-all shadow-xl shadow-primary-500/10"
                     >
-                      <Save size={20} />
-                      Salvar Dados
+                      <Save size={18} />
+                      Salvar Alterações
                     </button>
                   )}
                 </div>

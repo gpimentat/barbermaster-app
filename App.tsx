@@ -18,7 +18,8 @@ import {
   Percent,
   MessageCircle,
   Link as LinkIcon,
-  Clock // Icone para Fila
+  Clock,
+  User
 } from 'lucide-react';
 
 // Context
@@ -117,10 +118,19 @@ const Sidebar = ({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
   const location = useLocation();
   const { hasPermission, role, logout, currentUser } = useAuth();
 
+  // Bloquear scroll quando a sidebar está aberta no mobile
+  React.useEffect(() => {
+    if (isOpen && window.innerWidth < 768) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+  }, [isOpen]);
+
   const links = [
-    { path: '/', name: 'Dashboard', icon: <LayoutDashboard size={20} />, requiredPermission: 'public' },
+    { path: '/', name: 'Dashboard', icon: <LayoutDashboard size={20} tracking-tight />, requiredPermission: 'public' },
     { path: '/schedule', name: 'Agenda', icon: <Calendar size={20} />, requiredPermission: 'view_own_schedule' },
-    { path: '/waiting-list', name: 'Fila de Espera', icon: <Clock size={20} />, requiredPermission: 'manage_waitlist' }, // Novo Link
+    { path: '/waiting-list', name: 'Fila de Espera', icon: <Clock size={20} />, requiredPermission: 'manage_waitlist' },
     { path: '/chat', name: 'Chat & Suporte', icon: <MessageCircle size={20} />, requiredPermission: 'manage_clients' },
     { path: '/comandas', name: 'Comandas', icon: <ClipboardList size={20} />, requiredPermission: 'manage_comandas' },
     { path: '/commissions', name: 'Comissões', icon: <Percent size={20} />, requiredPermission: 'view_own_commissions' },
@@ -137,13 +147,11 @@ const Sidebar = ({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
 
   const visibleLinks = links.filter(link => {
     if (link.requiredPermission === 'public') return true;
-    if (role === 'super_admin') return true; // Super admin sees everything
+    if (role === 'super_admin') return true;
     if (link.requiredPermission === 'super_admin' && role !== 'super_admin') return false;
     if (role === 'admin') return true;
     if (role === 'receptionist' && ['Financeiro', 'Profissionais', 'App do Cliente'].includes(link.name)) return false;
-    // Permissão 'manage_integrations' será checada aqui
 
-    // FIX: Agendamento deve aparecer se tiver view_own_schedule OU view_full_schedule
     if (link.path === '/schedule') {
       return hasPermission('view_own_schedule') || hasPermission('view_full_schedule');
     }
@@ -152,76 +160,100 @@ const Sidebar = ({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
   });
 
   return (
-    <aside
-      className={`fixed inset-y-0 left-0 z-50 w-64 bg-dark-900 border-r border-gray-800 transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full'
-        } md:relative md:translate-x-0`}
-    >
-      <div className="flex items-center justify-between h-16 px-6 border-b border-gray-800">
-        <span className="text-xl font-bold text-primary-500 tracking-wider">BARBER<span className="text-white">MASTER</span></span>
-        <button onClick={() => setIsOpen(false)} className="md:hidden text-gray-400">
-          <X size={24} />
-        </button>
-      </div>
+    <>
+      {/* Overlay - Premium Focal Effect */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 bg-black/80 backdrop-blur-md z-40 md:hidden transition-all duration-500 animate-in fade-in"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
 
-      <div className="px-6 py-4">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-full bg-gray-800 border border-gray-700 overflow-hidden">
-            {currentUser?.avatar ? (
-              <img src={currentUser.avatar} className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center bg-primary-500 text-dark-950 font-bold text-xl">
-                {currentUser?.name?.charAt(0).toUpperCase() || 'A'}
-              </div>
-            )}
-          </div>
-          <div>
-            <p className="text-sm font-bold text-white leading-none">{currentUser ? currentUser.name : 'Administrador'}</p>
-            <p className="text-[10px] text-gray-400 uppercase mt-1">{role === 'admin' ? 'Gerente Geral' : role}</p>
-          </div>
-        </div>
-      </div>
-
-      <nav className="px-4 space-y-1 overflow-y-auto max-h-[calc(100vh-180px)] custom-scrollbar">
-        {visibleLinks.map((link) => {
-          const isActive = location.pathname === link.path;
-          return (
-            <Link
-              key={link.path}
-              to={link.path}
-              onClick={() => setIsOpen(false)}
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors duration-200 ${isActive
-                ? 'bg-primary-500 text-dark-950 font-medium'
-                : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-                }`}
-            >
-              {link.icon}
-              <span>{link.name}</span>
-            </Link>
-          );
-        })}
-
-        <div className="pt-4 mt-4 border-t border-gray-800">
-          <Link
-            to="/settings"
-            onClick={() => setIsOpen(false)}
-            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${location.pathname === '/settings'
-              ? 'bg-gray-800 text-white'
-              : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-              }`}
-          >
-            <Settings size={20} />
-            <span>Minha Conta</span>
-          </Link>
-          <button
-            onClick={logout}
-            className="w-full flex items-center gap-3 px-4 py-3 text-red-400 hover:bg-red-900/20 hover:text-red-300 rounded-lg transition-colors mt-2"
-          >
-            <LogOut size={20} />
-            <span>Sair</span>
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 w-72 bg-dark-950 border-r border-gray-800/50 transform transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] ${isOpen ? 'translate-x-0' : '-translate-x-full'
+          } md:relative md:translate-x-0 shadow-[20px_0_60px_-15px_rgba(0,0,0,0.5)] md:shadow-none flex flex-col`}
+      >
+        <div className="flex items-center justify-between h-24 px-8 border-b border-gray-800/30">
+          <span className="text-xl font-black text-primary-500 tracking-tighter uppercase italic">BARBER<span className="text-white not-italic">MASTER</span></span>
+          <button onClick={() => setIsOpen(false)} className="md:hidden text-gray-400 p-2 hover:bg-gray-800 rounded-xl transition-all">
+            <X size={24} />
           </button>
         </div>
-      </nav>
-    </aside>
+
+        <div className="px-8 py-8">
+          <div className="flex items-center gap-4 group p-1">
+            <div className="w-12 h-12 rounded-2xl bg-dark-900 border border-gray-800 overflow-hidden shadow-2xl group-hover:border-primary-500/50 transition-all duration-300">
+              {currentUser?.avatar ? (
+                <img src={currentUser.avatar} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-primary-500 text-dark-950 font-black text-xl">
+                  {currentUser?.name?.charAt(0).toUpperCase() || 'A'}
+                </div>
+              )}
+            </div>
+            <div className="overflow-hidden">
+              <p className="text-sm font-black text-white leading-none truncate w-36 uppercase tracking-tight">{currentUser ? currentUser.name : 'Master'}</p>
+              <p className="text-[10px] text-primary-500 font-bold uppercase tracking-[0.2em] mt-2 opacity-80">{role === 'admin' ? 'Gerente Geral' : role}</p>
+            </div>
+          </div>
+        </div>
+
+        <nav className="flex-1 px-4 space-y-1.5 overflow-y-auto custom-scrollbar pb-8">
+          <div className="px-4 mb-4">
+            <p className="text-[9px] font-black text-gray-600 uppercase tracking-[0.3em]">Menu Principal</p>
+          </div>
+          {visibleLinks.map((link) => {
+            const isActive = location.pathname === link.path;
+            return (
+              <Link
+                key={link.path}
+                to={link.path}
+                onClick={() => setIsOpen(false)}
+                className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 group ${isActive
+                  ? 'bg-primary-500 text-dark-950 font-black shadow-xl shadow-primary-500/20'
+                  : 'text-gray-500 hover:bg-gray-800/50 hover:text-white'
+                  }`}
+              >
+                <div className={`${isActive ? 'text-dark-950' : 'text-gray-600 group-hover:text-primary-500'} transition-colors duration-300`}>
+                  {link.icon}
+                </div>
+                <span className="text-[11px] uppercase font-black tracking-widest">{link.name}</span>
+              </Link>
+            );
+          })}
+
+          <div className="pt-6 mt-6 border-t border-gray-800/50 space-y-1.5">
+            <div className="px-4 mb-4">
+              <p className="text-[9px] font-black text-gray-600 uppercase tracking-[0.3em]">Ajustes</p>
+            </div>
+            <Link
+              to="/settings"
+              onClick={() => setIsOpen(false)}
+              className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 group ${location.pathname === '/settings'
+                ? 'bg-gray-800 text-white font-black'
+                : 'text-gray-500 hover:bg-gray-800/50 hover:text-white'
+                }`}
+            >
+              <Settings size={20} className="text-gray-600 group-hover:text-white transition-colors" />
+              <span className="text-[11px] uppercase font-black tracking-widest">Configurações</span>
+            </Link>
+            <button
+              onClick={logout}
+              className="w-full flex items-center gap-4 px-4 py-3.5 text-red-500/70 hover:bg-red-500/10 hover:text-red-400 rounded-2xl transition-all duration-300 mt-2 font-black group"
+            >
+              <LogOut size={20} className="group-hover:rotate-12 transition-transform" />
+              <span className="text-[11px] uppercase tracking-widest">Sair do Sistema</span>
+            </button>
+          </div>
+        </nav>
+
+        <div className="p-8 border-t border-gray-800/30">
+          <div className="bg-dark-900/50 p-4 rounded-2xl border border-gray-800/50 text-center">
+            <p className="text-[8px] font-black text-gray-600 uppercase tracking-[0.4em]">v1.4.2 Premium</p>
+          </div>
+        </div>
+      </aside>
+    </>
   );
 };
 
@@ -262,23 +294,34 @@ const MainLayout: React.FC = () => {
   }
 
   return (
-    <div className="flex h-screen bg-dark-950 text-gray-100 overflow-hidden font-sans relative">
+    <div className="flex h-screen bg-dark-950 text-gray-100 overflow-hidden font-sans relative selection:bg-primary-500/30">
       {currentUser?.mustChangePassword && <ForcePasswordChangeModal />}
 
       {!isPublicRoute && <Sidebar isOpen={isSidebarOpen} setIsOpen={setSidebarOpen} />}
 
       <div className="flex-1 flex flex-col overflow-hidden relative">
         {!isPublicRoute && (
-          <header className="md:hidden flex items-center justify-between h-16 px-4 bg-dark-900 border-b border-gray-800">
-            <button onClick={() => setSidebarOpen(true)} className="text-gray-300">
-              <Menu size={24} />
+          <header className="md:hidden flex items-center justify-between h-20 px-6 bg-dark-950/40 backdrop-blur-xl border-b border-gray-800/30 sticky top-0 z-30">
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="text-white p-3 -ml-3 hover:bg-gray-800/50 rounded-2xl transition-all active:scale-95"
+              aria-label="Abrir menu"
+            >
+              <Menu size={28} strokeWidth={2.5} />
             </button>
-            <span className="text-xl font-bold text-primary-500">BARBERMASTER</span>
-            <div className="w-6" />
+            <div className="flex flex-col items-center">
+              <span className="text-lg font-black text-primary-500 tracking-tighter italic leading-none">BARBER<span className="text-white not-italic">MASTER</span></span>
+              <span className="text-[7px] font-black text-gray-500 uppercase tracking-[0.4em] mt-1 mr-[-0.4em]">Professional POS</span>
+            </div>
+            <div className="w-12 h-12 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-full bg-primary-500/10 border border-primary-500/20 flex items-center justify-center text-primary-500">
+                <User size={16} />
+              </div>
+            </div>
           </header>
         )}
 
-        <main className="flex-1 overflow-y-auto p-4 md:p-8">
+        <main className={`flex-1 overflow-y-auto p-4 md:p-10 ${isPublicRoute ? '' : 'pb-28 md:pb-10'} custom-scrollbar scroll-smooth`}>
           <Routes>
             {/* Cliente App PWA - Precisa estar ANTES das outras rotas */}
             <Route path="/app/:slug/*" element={<ClientApp />} />

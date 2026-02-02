@@ -403,12 +403,13 @@ const ClientsPage: React.FC = () => {
                 </div>
             </div>
 
-            <div className="bg-dark-900 rounded-xl border border-gray-800 overflow-hidden">
+            {/* Desktop Table View */}
+            <div className="hidden md:block bg-dark-900 rounded-xl border border-gray-800 overflow-hidden shadow-xl">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left text-gray-400">
-                        <thead className="bg-gray-900/50 text-xs uppercase font-semibold text-gray-500">
+                        <thead className="bg-gray-900 text-xs uppercase font-bold text-gray-500 border-b border-gray-800">
                             <tr>
-                                <th className="px-6 py-4">Nome (A-Z)</th>
+                                <th className="px-6 py-4">Nome</th>
                                 <th className="px-6 py-4">Contato</th>
                                 <th className="px-6 py-4">Fidelidade</th>
                                 <th className="px-6 py-4">Assinatura</th>
@@ -417,14 +418,14 @@ const ClientsPage: React.FC = () => {
                         </thead>
                         <tbody className="divide-y divide-gray-800">
                             {loading ? (
-                                <tr><td colSpan={5} className="py-8 text-center">Carregando...</td></tr>
+                                <tr><td colSpan={5} className="py-20 text-center"><span className="animate-pulse">Carregando...</span></td></tr>
                             ) : filteredAndSortedClients.length > 0 ? (
                                 filteredAndSortedClients.map(client => (
-                                    <tr key={client.id} className="hover:bg-gray-800/30 transition-colors">
+                                    <tr key={client.id} className="hover:bg-gray-800/30 transition-colors group">
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
                                                 <div className="relative">
-                                                    <img src={client.avatar} alt={client.name} className="w-10 h-10 rounded-full bg-gray-800 object-cover" />
+                                                    <img src={client.avatar} alt={client.name} className="w-10 h-10 rounded-full bg-gray-800 object-cover border border-gray-700" />
                                                     {client.subscriptionStatus === 'active' && (
                                                         <div className="absolute -top-1 -right-1 bg-primary-500 text-dark-950 rounded-full p-0.5 border-2 border-dark-900" title="Assinante VIP">
                                                             <Crown size={10} fill="currentColor" />
@@ -432,13 +433,8 @@ const ClientsPage: React.FC = () => {
                                                     )}
                                                 </div>
                                                 <div>
-                                                    <p className="font-medium text-white flex items-center gap-2">
+                                                    <p className="font-bold text-white group-hover:text-primary-500 transition-colors">
                                                         {client.name}
-                                                        {client.subscriptionStatus === 'active' && (
-                                                            <span className="text-[10px] bg-primary-500/20 text-primary-500 px-1.5 py-0.5 rounded border border-primary-500/30 uppercase font-bold tracking-wider">
-                                                                VIP
-                                                            </span>
-                                                        )}
                                                     </p>
                                                     {client.birthDate && <p className="text-[10px] text-gray-500">Nasc: {new Date(client.birthDate).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</p>}
                                                 </div>
@@ -446,15 +442,15 @@ const ClientsPage: React.FC = () => {
                                         </td>
                                         <td className="px-6 py-4 text-sm">
                                             <div className="flex items-center gap-2 mb-1">
-                                                <Mail size={14} className={client.email ? "text-gray-400" : "text-gray-700"} />
-                                                {client.email || <span className="text-gray-600 italic">Sem e-mail</span>}
+                                                <Mail size={14} className={client.email ? "text-gray-400" : "text-gray-800"} />
+                                                <span className={client.email ? "text-gray-300" : "text-gray-700 italic"}>{client.email || 'Sem e-mail'}</span>
                                             </div>
                                             <div className="flex items-center gap-2">
-                                                <Phone size={14} className={client.phone ? "text-gray-400" : "text-gray-700"} />
-                                                {client.phone || <span className="text-gray-600 italic">Sem telefone</span>}
+                                                <Phone size={14} className={client.phone ? "text-gray-400" : "text-gray-800"} />
+                                                <span className={client.phone ? "text-gray-300" : "text-gray-700 italic"}>{client.phone || 'Sem telefone'}</span>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-6 py-4 text-center">
                                             <div className="flex flex-col items-start">
                                                 <div className="flex items-center gap-1.5 bg-gray-800 px-2 py-1 rounded-md border border-gray-700">
                                                     <Gift size={14} className="text-primary-500" />
@@ -475,40 +471,99 @@ const ClientsPage: React.FC = () => {
                                                     <span className="text-[10px] text-gray-500">Renova em {client.subscriptionRenewsAt ? new Date(client.subscriptionRenewsAt).toLocaleDateString('pt-BR') : '-'}</span>
                                                 </div>
                                             ) : (
-                                                <span className="px-2 py-1 rounded-full text-xs bg-gray-800 text-gray-500 border border-gray-700">Comum</span>
+                                                <span className="px-2 py-1 rounded-full text-[10px] bg-gray-800 text-gray-500 border border-gray-700 uppercase font-black">Comum</span>
                                             )}
                                         </td>
                                         <td className="px-6 py-4 text-right">
                                             <div className="flex items-center justify-end gap-2">
                                                 <button
                                                     onClick={() => navigate('/chat', { state: { clientId: client.id } })}
-                                                    className="text-primary-500 hover:text-primary-400 p-2 hover:bg-gray-800 rounded transition-colors"
+                                                    className="text-gray-400 hover:text-primary-500 p-2 hover:bg-gray-800 rounded-lg transition-all"
                                                     title="Conversar"
                                                 >
-                                                    <MessageCircle size={16} />
+                                                    <MessageCircle size={18} />
                                                 </button>
                                                 <button
                                                     onClick={() => handleOpenModal(client)}
-                                                    className="text-primary-500 hover:text-primary-400 p-2 hover:bg-gray-800 rounded transition-colors"
+                                                    className="text-gray-400 hover:text-primary-500 p-2 hover:bg-gray-800 rounded-lg transition-all"
                                                     title="Editar"
                                                 >
-                                                    <Edit2 size={16} />
+                                                    <Edit2 size={18} />
                                                 </button>
                                             </div>
                                         </td>
                                     </tr>
                                 ))
                             ) : (
-                                <tr>
-                                    <td colSpan={5} className="py-8 text-center text-gray-500">
-                                        Nenhum cliente encontrado.
-                                    </td>
-                                </tr>
+                                <tr><td colSpan={5} className="py-20 text-center text-gray-500 italic">Nenhum cliente encontrado.</td></tr>
                             )}
                         </tbody>
                     </table>
                 </div>
-            </div >
+            </div>
+
+            {/* Mobile Cards View */}
+            <div className="md:hidden space-y-4">
+                {loading ? (
+                    <div className="py-20 text-center animate-pulse text-gray-500">Carregando clientes...</div>
+                ) : filteredAndSortedClients.length > 0 ? (
+                    filteredAndSortedClients.map(client => (
+                        <div key={client.id} className="bg-dark-900 p-4 rounded-xl border border-gray-800 shadow-lg relative overflow-hidden group active:scale-[0.98] transition-transform">
+                            {client.subscriptionStatus === 'active' && (
+                                <div className="absolute top-0 right-0 bg-primary-500 text-dark-950 font-black text-[10px] px-3 py-1 rounded-bl-xl shadow-lg flex items-center gap-1 z-10">
+                                    <Crown size={12} /> VIP
+                                </div>
+                            )}
+
+                            <div className="flex items-start gap-4">
+                                <img src={client.avatar} alt={client.name} className="w-14 h-14 rounded-full bg-gray-800 object-cover border border-gray-700 shadow-md" />
+                                <div className="flex-1 min-w-0">
+                                    <h3 className="font-bold text-white text-lg truncate leading-tight mb-1">{client.name}</h3>
+                                    <div className="space-y-1">
+                                        <div className="flex items-center gap-2 text-xs text-gray-400">
+                                            <Phone size={12} className="text-primary-500" />
+                                            <span className="truncate">{client.phone || 'Sem telefone'}</span>
+                                        </div>
+                                        <div className="flex items-center gap-2 text-xs text-gray-400">
+                                            <Mail size={12} className="text-primary-500" />
+                                            <span className="truncate">{client.email || 'Sem e-mail'}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="mt-4 pt-4 border-t border-gray-800 flex items-center justify-between">
+                                <div className="flex gap-2">
+                                    <div className="bg-gray-800/50 px-2 py-1 rounded border border-gray-700 flex items-center gap-1.5">
+                                        <Gift size={12} className="text-primary-500" />
+                                        <span className="text-white font-bold text-xs">{client.loyaltyPoints || 0}</span>
+                                        <span className="text-[10px] text-gray-500 font-bold">PTS</span>
+                                    </div>
+                                    <div className="bg-gray-800/50 px-2 py-1 rounded border border-gray-700 flex items-center gap-1.5 text-[10px] font-bold text-gray-400">
+                                        {client.totalVisits} visitas
+                                    </div>
+                                </div>
+                                <div className="flex gap-1">
+                                    <button
+                                        onClick={() => navigate('/chat', { state: { clientId: client.id } })}
+                                        className="p-3 bg-gray-800 text-primary-500 rounded-xl border border-gray-700 active:bg-primary-500 active:text-dark-950 transition-colors"
+                                    >
+                                        <MessageCircle size={18} />
+                                    </button>
+                                    <button
+                                        onClick={() => handleOpenModal(client)}
+                                        className="p-3 bg-gray-800 text-primary-500 rounded-xl border border-gray-700 active:bg-primary-500 active:text-dark-950 transition-colors"
+                                    >
+                                        <Edit2 size={18} />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    ))
+                ) : (
+                    <div className="py-20 text-center text-gray-500 italic">Nenhum cliente encontrado.</div>
+                )}
+            </div>
 
             {/* Modal Cliente */}
             {isModalOpen && (

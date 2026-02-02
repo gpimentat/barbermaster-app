@@ -105,52 +105,69 @@ const Schedule: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="space-y-8 animate-in fade-in duration-500 pb-10">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-3xl font-bold text-white">Agenda</h1>
-          {role === 'barber' && !canViewAll && <p className="text-gray-500 text-sm">Visualizando apenas seus agendamentos.</p>}
+          <h1 className="text-3xl md:text-4xl font-black text-white uppercase tracking-tight">Agenda 📅</h1>
+          {role === 'barber' && !canViewAll && (
+            <p className="text-gray-500 font-bold uppercase tracking-[0.2em] text-[10px] mt-2">Visualizando seus atendimentos</p>
+          )}
         </div>
 
-        {/* FIX: Botão de Novo Agendamento apenas para quem tem permissão */}
+        {/* Botão de Novo Agendamento - Mobile Optimized */}
         {(role === 'admin' || role === 'super_admin' || role === 'receptionist' || currentUser?.permissions?.includes('manage_schedule')) && (
           <button
             onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 bg-primary-500 hover:bg-primary-600 text-dark-950 px-4 py-2 rounded-lg font-semibold transition-colors"
+            className="flex items-center justify-center gap-3 bg-primary-500 hover:bg-primary-600 text-dark-950 px-8 py-4 md:py-3 rounded-2xl font-black uppercase tracking-widest transition-all shadow-xl shadow-primary-500/20 active:scale-95 text-[11px]"
           >
-            <Plus size={20} />
+            <Plus size={20} strokeWidth={3} />
             Novo Agendamento
           </button>
         )}
       </div>
 
-      {/* Date Picker & Stats (Assume existing code here, omitted for brevity in replace if not targeted) */}
-      <div className="flex items-center justify-between bg-dark-900 p-4 rounded-xl border border-gray-800">
-        <button onClick={() => setSelectedDate(new Date(selectedDate.setDate(selectedDate.getDate() - 1)))} className="p-2 hover:bg-gray-800 rounded-lg text-gray-400 hover:text-white transition-colors">
+      {/* Date Picker - Premium Selector */}
+      <div className="flex items-center justify-between bg-dark-900/50 p-4 md:p-6 rounded-[2rem] border border-gray-800/50 shadow-2xl backdrop-blur-md">
+        <button
+          onClick={() => setSelectedDate(new Date(selectedDate.setDate(selectedDate.getDate() - 1)))}
+          className="p-3 md:p-4 hover:bg-gray-800 rounded-2xl text-gray-400 hover:text-white transition-all active:scale-90 border border-transparent hover:border-gray-700"
+        >
           <ChevronLeft size={24} />
         </button>
-        <div className="flex items-center gap-3">
-          <CalendarIcon className="text-primary-500" />
-          <span className="text-xl font-bold text-white capitalize">{formatDate(selectedDate)}</span>
+        <div className="flex flex-col items-center gap-1">
+          <div className="flex items-center gap-3">
+            <CalendarIcon size={18} className="text-primary-500" />
+            <span className="text-sm md:text-lg font-black text-white uppercase tracking-tighter">{formatDate(selectedDate)}</span>
+          </div>
+          <p className="text-[10px] text-gray-500 font-bold uppercase tracking-[0.3em]">Navegação Temporal</p>
         </div>
-        <button onClick={() => setSelectedDate(new Date(selectedDate.setDate(selectedDate.getDate() + 1)))} className="p-2 hover:bg-gray-800 rounded-lg text-gray-400 hover:text-white transition-colors">
+        <button
+          onClick={() => setSelectedDate(new Date(selectedDate.setDate(selectedDate.getDate() + 1)))}
+          className="p-3 md:p-4 hover:bg-gray-800 rounded-2xl text-gray-400 hover:text-white transition-all active:scale-90 border border-transparent hover:border-gray-700"
+        >
           <ChevronRight size={24} />
         </button>
       </div>
 
-      {/* Timeline / Multi-column View */}
-      <div className="bg-dark-900 rounded-xl border border-gray-800 overflow-hidden flex flex-col h-[70vh]">
-        <div className="p-4 border-b border-gray-800 flex justify-between items-center bg-gray-900/50">
-          <h2 className="text-lg font-semibold text-white">Agenda por Profissional</h2>
-          <div className="flex items-center gap-2 text-xs text-gray-500">
-            <div className="w-3 h-3 rounded-full bg-blue-500"></div> Agendado
-            <div className="w-3 h-3 rounded-full bg-green-500"></div> Concluído
+      {/* Timeline / Multi-column View - Professional Layout */}
+      <div className="bg-dark-900/40 rounded-[3rem] border border-gray-800/50 overflow-hidden flex flex-col h-[75vh] shadow-3xl">
+        <div className="p-6 md:p-8 border-b border-gray-800/50 flex flex-col sm:flex-row justify-between items-center gap-4 bg-dark-900/60 backdrop-blur-md">
+          <h2 className="text-sm md:text-base font-black text-white uppercase tracking-tight flex items-center gap-3">
+            <div className="w-2 h-2 rounded-full bg-primary-500 animate-pulse"></div>
+            Fluxo de Trabalho
+          </h2>
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2 text-[10px] text-gray-400 font-black uppercase tracking-widest">
+              <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]"></div> Agendado
+            </div>
+            <div className="flex items-center gap-2 text-[10px] text-gray-400 font-black uppercase tracking-widest">
+              <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]"></div> Concluído
+            </div>
           </div>
         </div>
 
-        <div className="flex-1 overflow-x-auto overflow-y-auto custom-scrollbar">
-          <div className="flex min-w-full" style={{ width: 'max-content' }}>
-            {/* Seletor de Profissionais / Colunas */}
+        <div className="flex-1 overflow-x-auto overflow-y-auto custom-scrollbar bg-dark-950/20">
+          <div className="flex min-w-full h-full" style={{ width: 'max-content' }}>
             {(() => {
               const filteredBarbers = (role === 'barber' && currentUser && !canViewAll
                 ? barbers.filter(b => b.id === currentUser.id)
@@ -161,31 +178,32 @@ const Schedule: React.FC = () => {
                 const barberAppts = displayAppointments.filter(a => a.barberId === barber.id);
 
                 return (
-                  <div key={barber.id} className="min-w-[280px] w-72 border-r border-gray-800 last:border-r-0 flex flex-col bg-gray-900/20">
-                    {/* Header do Profissional */}
-                    <div className="p-3 border-b border-gray-800 bg-gray-900/40 sticky top-0 z-10 flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-primary-500 flex items-center justify-center text-dark-950 font-bold overflow-hidden">
+                  <div key={barber.id} className="min-w-[280px] md:min-w-[320px] w-72 md:w-80 border-r border-gray-800/30 last:border-r-0 flex flex-col group/col">
+                    {/* Header do Profissional - Premium Stick */}
+                    <div className="p-5 border-b border-gray-800/30 bg-dark-900/80 sticky top-0 z-10 flex items-center gap-4 backdrop-blur-md group-hover/col:bg-dark-900 transition-colors">
+                      <div className="w-12 h-12 rounded-2xl bg-dark-950 border border-gray-800 flex items-center justify-center text-primary-500 font-black overflow-hidden shadow-2xl relative">
                         {barber.avatar ? (
                           <img src={barber.avatar} alt={barber.name} className="w-full h-full object-cover" />
                         ) : (
-                          barber.name.charAt(0).toUpperCase()
+                          <span className="text-xl">{barber.name.charAt(0).toUpperCase()}</span>
                         )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
                       </div>
-                      <div>
-                        <h3 className="text-sm font-bold text-white truncate w-32">{barber.name}</h3>
-                        <p className="text-[10px] text-gray-500">{barber.role}</p>
+                      <div className="min-w-0 flex-1">
+                        <h3 className="text-sm font-black text-white truncate uppercase tracking-tight leading-none mb-1">{barber.name.split(' ')[0]}</h3>
+                        <p className="text-[10px] text-gray-500 font-bold uppercase tracking-[0.1em]">{barber.role}</p>
                       </div>
-                      <div className="ml-auto text-xs px-1.5 py-0.5 bg-gray-800 rounded text-gray-400">
-                        {barberAppts.length}
+                      <div className="text-[10px] px-3 py-1 bg-dark-950 rounded-xl text-primary-500 font-black border border-gray-800/50 shadow-inner">
+                        {barberAppts.length} slots
                       </div>
                     </div>
 
-                    {/* Lista de Agendamentos para o Profissional */}
-                    <div className="p-2 space-y-2 flex-1">
+                    {/* Lista de Agendamentos - Card Based */}
+                    <div className="p-4 space-y-4 flex-1 overflow-y-auto hide-scrollbar scroll-smooth">
                       {barberAppts.length === 0 ? (
-                        <div className="h-full flex flex-col items-center justify-center py-12 opacity-30">
-                          <User size={32} className="text-gray-600 mb-2" />
-                          <span className="text-xs text-center px-4">Sem horários para hoje</span>
+                        <div className="h-full flex flex-col items-center justify-center py-32 opacity-10">
+                          <User size={48} className="text-gray-600 mb-4" />
+                          <span className="text-[10px] font-black uppercase tracking-[0.5em]">Livre</span>
                         </div>
                       ) : (
                         barberAppts.map((appt) => (
@@ -195,20 +213,39 @@ const Schedule: React.FC = () => {
                               setSelectedAppointment(appt);
                               setIsDetailsModalOpen(true);
                             }}
-                            className={`p-3 rounded-lg border cursor-pointer transition-all hover:scale-[1.02] active:scale-95 ${getStatusColor(appt.status)}`}
+                            className={`p-5 rounded-[2rem] border border-gray-800/50 cursor-pointer transition-all active:scale-[0.96] shadow-2xl group relative overflow-hidden bg-dark-900/20 hover:border-primary-500/30`}
                           >
-                            <div className="flex justify-between items-start mb-1">
-                              <span className="text-sm font-bold">{appt.startTime}</span>
-                              <span className="text-[10px] opacity-70">{appt.endTime}</span>
+                            {/* Status Strip */}
+                            <div className={`absolute left-0 top-0 bottom-0 w-1 ${appt.status === 'Concluído' ? 'bg-green-500' :
+                              appt.status === 'Agendado' ? 'bg-blue-500' : 'bg-gray-700'
+                              }`} />
+
+                            <div className="flex justify-between items-start mb-4">
+                              <div className="py-1 px-3 bg-dark-950 rounded-xl border border-gray-800 text-[11px] font-black text-white">
+                                {appt.startTime}
+                              </div>
+                              <span className={`text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full border ${getStatusColor(appt.status)}`}>
+                                {appt.status}
+                              </span>
                             </div>
-                            <h4 className="text-sm font-bold truncate mb-1">{appt.client?.name || 'Cliente'}</h4>
-                            <div className="flex items-center gap-1 text-[10px] opacity-80">
-                              <ScissorsIcon size={10} />
+
+                            <h4 className="text-base font-black text-white truncate mb-1 uppercase tracking-tight group-hover:text-primary-500 transition-colors">
+                              {appt.client?.name || 'Cliente Particular'}
+                            </h4>
+
+                            <div className="flex items-center gap-2 text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-6">
+                              <ScissorsIcon size={12} />
                               <span className="truncate">{appt.service?.name}</span>
                             </div>
-                            <div className="mt-2 text-[10px] font-bold flex justify-between border-t border-current/20 pt-1">
-                              <span>R$ {Number(appt.price || 0).toFixed(2)}</span>
-                              <span>{appt.service?.durationMinutes} min</span>
+
+                            <div className="flex items-center justify-between pt-4 border-t border-gray-800/50">
+                              <div className="flex items-center gap-1.5">
+                                <Clock size={12} className="text-gray-600" />
+                                <span className="text-[10px] font-black text-gray-400 uppercase">{appt.service?.durationMinutes} min</span>
+                              </div>
+                              <div className="text-[11px] font-black text-primary-500">
+                                R$ {Number(appt.price || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                              </div>
                             </div>
                           </div>
                         ))

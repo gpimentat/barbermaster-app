@@ -235,150 +235,179 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ isOpen, onClose, on
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="bg-dark-900 rounded-xl border border-gray-800 shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
-                <div className="flex items-center justify-between p-6 border-b border-gray-800">
+        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-dark-900 w-full max-w-lg rounded-t-2xl md:rounded-2xl border-t md:border border-gray-800 shadow-2xl overflow-hidden animate-in slide-in-from-bottom-10 md:zoom-in-95 duration-300 max-h-[95vh] flex flex-col">
+                <div className="flex items-center justify-between p-5 md:p-6 border-b border-gray-800 bg-dark-900/50">
                     <h2 className="text-xl font-bold text-white">Novo Agendamento</h2>
-                    <button onClick={onClose} className="text-gray-400 hover:text-white"><X size={24} /></button>
+                    <button onClick={onClose} className="p-2 -mr-2 text-gray-400 hover:text-white transition-colors"><X size={24} /></button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                <form onSubmit={handleSubmit} className="p-5 md:p-6 space-y-5 overflow-y-auto custom-scrollbar">
 
                     {/* Client Selection */}
-                    <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
-                        <div className="flex gap-4 mb-3">
+                    <div className="bg-gray-800/30 p-4 rounded-xl border border-gray-800">
+                        <div className="flex gap-2 mb-4">
                             <button
                                 type="button"
                                 onClick={() => setClientMode('existing')}
-                                className={`flex-1 py-1.5 text-sm rounded transition-colors ${clientMode === 'existing' ? 'bg-primary-500 text-dark-950 font-bold' : 'bg-gray-700 text-gray-300'}`}
+                                className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${clientMode === 'existing' ? 'bg-primary-500 text-dark-950 shadow-lg shadow-primary-500/20' : 'bg-gray-800 text-gray-400'}`}
                             >
                                 Cliente Existente
                             </button>
                             <button
                                 type="button"
                                 onClick={() => setClientMode('new')}
-                                className={`flex-1 py-1.5 text-sm rounded transition-colors ${clientMode === 'new' ? 'bg-primary-500 text-dark-950 font-bold' : 'bg-gray-700 text-gray-300'}`}
+                                className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${clientMode === 'new' ? 'bg-primary-500 text-dark-950 shadow-lg shadow-primary-500/20' : 'bg-gray-800 text-gray-400'}`}
                             >
                                 Novo Cliente
                             </button>
                         </div>
 
                         {clientMode === 'existing' ? (
-                            <div>
-                                <input
-                                    type="text"
-                                    placeholder="Buscar cliente..."
-                                    className="w-full bg-dark-900 border border-gray-600 rounded px-3 py-2 text-white text-sm mb-2"
-                                    value={clientSearch}
-                                    onChange={e => setClientSearch(e.target.value)}
-                                />
-                                <div className="max-h-32 overflow-y-auto space-y-1">
+                            <div className="space-y-3">
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        placeholder="Buscar por nome ou celular..."
+                                        className="w-full bg-dark-900 border border-gray-700 rounded-lg px-4 py-2.5 text-white text-sm focus:border-primary-500 outline-none transition-colors"
+                                        value={clientSearch}
+                                        onChange={e => setClientSearch(e.target.value)}
+                                    />
+                                </div>
+                                <div className="max-h-40 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
                                     {displayClients.map(c => (
                                         <div
                                             key={c.id}
                                             onClick={() => setSelectedClientId(c.id)}
-                                            className={`p-2 rounded cursor-pointer text-sm flex justify-between ${selectedClientId === c.id ? 'bg-primary-500/20 border border-primary-500 text-white' : 'hover:bg-gray-700 text-gray-300'}`}
+                                            className={`p-3 rounded-lg cursor-pointer text-sm flex justify-between items-center transition-all ${selectedClientId === c.id ? 'bg-primary-500/20 border border-primary-500/50 text-white' : 'bg-dark-900/50 border border-gray-800 text-gray-400 hover:border-gray-700'}`}
                                         >
-                                            <span>{c.name}</span>
-                                            <span className="text-gray-500">{c.phone}</span>
+                                            <span className="font-medium truncate">{c.name}</span>
+                                            <span className="text-[10px] bg-gray-800 px-1.5 py-0.5 rounded text-gray-500 font-mono">{c.phone}</span>
                                         </div>
                                     ))}
-                                    {displayClients.length === 0 && <p className="text-xs text-gray-500 p-2">Nenhum cliente encontrado.</p>}
+                                    {displayClients.length === 0 && (
+                                        <div className="text-center py-4 text-xs text-gray-600 italic">
+                                            {clientSearch ? 'Nenhum cliente encontrado.' : 'Comece a digitar para buscar...'}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         ) : (
-                            <div className="space-y-3">
-                                <input
-                                    type="text"
-                                    placeholder="Nome Completo"
-                                    value={newClientName}
-                                    onChange={e => setNewClientName(e.target.value)}
-                                    className="w-full bg-dark-900 border border-gray-600 rounded px-3 py-2 text-white text-sm"
-                                    required
-                                />
-                                <input
-                                    type="tel"
-                                    placeholder="WhatsApp (DDD+Número)"
-                                    value={newClientPhone}
-                                    onChange={e => setNewClientPhone(e.target.value)}
-                                    className="w-full bg-dark-900 border border-gray-600 rounded px-3 py-2 text-white text-sm"
-                                    required
-                                />
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1.5 ml-1">Nome do Cliente</label>
+                                    <input
+                                        type="text"
+                                        placeholder="Ex: João Silva"
+                                        value={newClientName}
+                                        onChange={e => setNewClientName(e.target.value)}
+                                        className="w-full bg-dark-900 border border-gray-700 rounded-lg px-4 py-2.5 text-white text-sm focus:border-primary-500 outline-none transition-colors"
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1.5 ml-1">WhatsApp</label>
+                                    <input
+                                        type="tel"
+                                        placeholder="(11) 99999-9999"
+                                        value={newClientPhone}
+                                        onChange={e => setNewClientPhone(e.target.value)}
+                                        className="w-full bg-dark-900 border border-gray-700 rounded-lg px-4 py-2.5 text-white text-sm focus:border-primary-500 outline-none transition-colors"
+                                        required
+                                    />
+                                </div>
                             </div>
                         )}
                     </div>
 
                     {/* Details */}
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-xs font-medium text-gray-400 mb-1">Data</label>
-                            <input
-                                type="date"
-                                className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white"
-                                value={selectedDate}
-                                onChange={e => setSelectedDate(e.target.value)}
-                                required
-                            />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                            <label className="block text-[10px] font-bold text-gray-500 uppercase ml-1">Data</label>
+                            <div className="relative">
+                                <Calendar className="absolute left-3 top-2.5 text-gray-500" size={16} />
+                                <input
+                                    type="date"
+                                    className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-white text-sm outline-none focus:border-primary-500 transition-colors"
+                                    value={selectedDate}
+                                    onChange={e => setSelectedDate(e.target.value)}
+                                    required
+                                />
+                            </div>
                         </div>
-                        <div>
-                            <label className="block text-xs font-medium text-gray-400 mb-1">Horário</label>
-                            <input
-                                type="time"
-                                className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white"
-                                value={selectedTime}
-                                onChange={e => setSelectedTime(e.target.value)}
-                                required
-                            />
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-xs font-medium text-gray-400 mb-1">Serviço</label>
-                            <select
-                                className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white text-sm"
-                                value={selectedServiceId}
-                                onChange={e => setSelectedServiceId(e.target.value)}
-                                required
-                            >
-                                <option value="">Selecione...</option>
-                                {services.map(s => (
-                                    <option key={s.id} value={s.id}>{s.name} (R$ {s.price})</option>
-                                ))}
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-xs font-medium text-gray-400 mb-1">Profissional</label>
-                            <select
-                                className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white text-sm"
-                                value={selectedBarberId}
-                                onChange={e => setSelectedBarberId(e.target.value)}
-                                required
-                            >
-                                <option value="">Selecione...</option>
-                                {barbers.filter(b => b.active).map(b => (
-                                    <option key={b.id} value={b.id}>{b.name}</option>
-                                ))}
-                            </select>
+                        <div className="space-y-1.5">
+                            <label className="block text-[10px] font-bold text-gray-500 uppercase ml-1">Horário</label>
+                            <div className="relative">
+                                <Clock className="absolute left-3 top-2.5 text-gray-500" size={16} />
+                                <input
+                                    type="time"
+                                    className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-white text-sm outline-none focus:border-primary-500 transition-colors"
+                                    value={selectedTime}
+                                    onChange={e => setSelectedTime(e.target.value)}
+                                    required
+                                />
+                            </div>
                         </div>
                     </div>
 
-                    <div className="pt-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                            <label className="block text-[10px] font-bold text-gray-500 uppercase ml-1">Serviço</label>
+                            <div className="relative">
+                                <Scissors className="absolute left-3 top-2.5 text-gray-500" size={16} />
+                                <select
+                                    className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-white text-sm outline-none focus:border-primary-500 transition-colors appearance-none"
+                                    value={selectedServiceId}
+                                    onChange={e => setSelectedServiceId(e.target.value)}
+                                    required
+                                >
+                                    <option value="">Selecione...</option>
+                                    {services.map(s => (
+                                        <option key={s.id} value={s.id}>{s.name} (R$ {s.price})</option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="block text-[10px] font-bold text-gray-500 uppercase ml-1">Profissional</label>
+                            <div className="relative">
+                                <User className="absolute left-3 top-2.5 text-gray-500" size={16} />
+                                <select
+                                    className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-white text-sm outline-none focus:border-primary-500 transition-colors appearance-none"
+                                    value={selectedBarberId}
+                                    onChange={e => setSelectedBarberId(e.target.value)}
+                                    required
+                                >
+                                    <option value="">Selecione...</option>
+                                    {barbers.filter(b => b.active).map(b => (
+                                        <option key={b.id} value={b.id}>{b.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="pt-4 border-t border-gray-800">
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full flex items-center justify-center gap-2 bg-primary-500 hover:bg-primary-600 text-dark-950 font-bold py-3 rounded-lg transition-colors shadow-lg disabled:opacity-50"
+                            className="w-full flex items-center justify-center gap-3 bg-primary-500 hover:bg-primary-600 active:scale-[0.98] text-dark-950 font-black py-4 rounded-xl transition-all shadow-xl shadow-primary-500/10 disabled:opacity-50"
                         >
-                            {loading ? 'Salvando...' : (
+                            {loading ? (
+                                <span className="flex items-center gap-2">
+                                    <div className="w-4 h-4 border-2 border-dark-950/30 border-t-dark-950 rounded-full animate-spin" />
+                                    Processando...
+                                </span>
+                            ) : (
                                 <>
                                     <Save size={20} /> Confirmar Agendamento
                                 </>
                             )}
                         </button>
-                        <p className="text-center text-xs text-gray-500 mt-2 flex items-center justify-center gap-1">
-                            <AlertCircle size={12} />
-                            O cliente receberá uma confirmação via WhatsApp.
-                        </p>
+                        <div className="text-center text-[10px] text-gray-500 mt-4 flex items-center justify-center gap-2 bg-gray-800/20 py-2 rounded-lg border border-gray-800/50">
+                            <AlertCircle size={12} className="text-primary-500/50" />
+                            O cliente receberá o link de confirmação no WhatsApp
+                        </div>
                     </div>
                 </form>
             </div>
