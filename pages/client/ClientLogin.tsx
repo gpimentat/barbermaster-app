@@ -39,7 +39,13 @@ const ClientLogin: React.FC<ClientLoginProps> = ({ tenant, onLogin }) => {
         e.preventDefault();
         setLoading(true);
         try {
-            await clientService.requestOTP(otpData.phone);
+            const result = await clientService.requestOTP(otpData.phone);
+
+            // Se houver código de dev (Simulação), mostrar em alerta
+            if (result?.dev_code) {
+                alert(`[MODO TESTE] Seu código de acesso é: ${result.dev_code}`);
+            }
+
             setOtpStep('code');
         } catch (error) {
             console.error('OTP request error:', error);
