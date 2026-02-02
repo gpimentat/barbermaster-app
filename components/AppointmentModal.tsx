@@ -356,7 +356,7 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ isOpen, onClose, on
                                 required
                             >
                                 <option value="">Selecione...</option>
-                                {barbers.map(b => (
+                                {barbers.filter(b => b.active).map(b => (
                                     <option key={b.id} value={b.id}>{b.name}</option>
                                 ))}
                             </select>
