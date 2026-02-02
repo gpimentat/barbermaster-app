@@ -138,70 +138,80 @@ const Schedule: React.FC = () => {
         </button>
       </div>
 
-      {/* Timeline / List View */}
-      <div className="bg-dark-900 rounded-xl border border-gray-800 overflow-hidden">
-        <div className="p-6 border-b border-gray-800">
-          <h2 className="text-lg font-semibold text-white">Agendamentos do Dia</h2>
+      {/* Timeline / Multi-column View */}
+      <div className="bg-dark-900 rounded-xl border border-gray-800 overflow-hidden flex flex-col h-[70vh]">
+        <div className="p-4 border-b border-gray-800 flex justify-between items-center bg-gray-900/50">
+          <h2 className="text-lg font-semibold text-white">Agenda por Profissional</h2>
+          <div className="flex items-center gap-2 text-xs text-gray-500">
+            <div className="w-3 h-3 rounded-full bg-blue-500"></div> Agendado
+            <div className="w-3 h-3 rounded-full bg-green-500"></div> Concluído
+          </div>
         </div>
 
-        <div className="divide-y divide-gray-800">
-          {displayAppointments.map((appt) => (
-            <div key={appt.id} className="p-4 hover:bg-gray-800/30 transition-colors group">
-              <div className="flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-8">
+        <div className="flex-1 overflow-x-auto overflow-y-auto custom-scrollbar">
+          <div className="flex min-w-full" style={{ width: 'max-content' }}>
+            {/* Seletor de Profissionais / Colunas */}
+            {(role === 'barber' && currentUser && !canViewAll ? barbers.filter(b => b.id === currentUser.id) : barbers.filter(b => b.active)).map((barber) => {
+              const barberAppts = displayAppointments.filter(a => a.barberId === barber.id);
 
-                {/* Time */}
-                <div className="flex flex-col items-center min-w-[80px]">
-                  <span className="text-xl font-bold text-white">{appt.startTime}</span>
-                  <span className="text-sm text-gray-500">{appt.endTime}</span>
-                </div>
-
-                {/* Main Info */}
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-1">
-                    <h3 className="text-lg font-medium text-primary-100">{appt.client?.name || 'Cliente'}</h3>
-                    <span className={`text-xs px-2 py-0.5 rounded border ${getStatusColor(appt.status)}`}>
-                      {appt.status}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-4 text-sm text-gray-400">
-                    <div className="flex items-center gap-1">
-                      <ScissorsIcon size={14} />
-                      <span>{appt.service?.name}</span>
+              return (
+                <div key={barber.id} className="min-w-[280px] w-72 border-r border-gray-800 last:border-r-0 flex flex-col bg-gray-900/20">
+                  {/* Header do Profissional */}
+                  <div className="p-3 border-b border-gray-800 bg-gray-900/40 sticky top-0 z-10 flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-primary-500 flex items-center justify-center text-dark-950 font-bold overflow-hidden">
+                      {barber.avatar ? (
+                        <img src={barber.avatar} alt={barber.name} className="w-full h-full object-cover" />
+                      ) : (
+                        barber.name.charAt(0).toUpperCase()
+                      )}
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-white truncate w-32">{barber.name}</h3>
+                      <p className="text-[10px] text-gray-500">{barber.role}</p>
+                    </div>
+                    <div className="ml-auto text-xs px-1.5 py-0.5 bg-gray-800 rounded text-gray-400">
+                      {barberAppts.length}
                     </div>
                   </div>
-                </div>
 
-                {/* Price & Action */}
-                <div className="flex items-center gap-6 mt-2 md:mt-0 w-full md:w-auto justify-between md:justify-end">
-                  <div className="text-right">
-                    <span className="block text-lg font-bold text-white">R$ {appt.price.toFixed(2)}</span>
-                    <span className="text-xs text-gray-500">{appt.service?.durationMinutes} min</span>
+                  {/* Lista de Agendamentos para o Profissional */}
+                  <div className="p-2 space-y-2 flex-1">
+                    {barberAppts.length === 0 ? (
+                      <div className="h-full flex flex-col items-center justify-center py-12 opacity-30">
+                        <User size={32} className="text-gray-600 mb-2" />
+                        <span className="text-xs text-center px-4">Sem horários para hoje</span>
+                      </div>
+                    ) : (
+                      barberAppts.map((appt) => (
+                        <div
+                          key={appt.id}
+                          onClick={() => {
+                            setSelectedAppointment(appt);
+                            setIsDetailsModalOpen(true);
+                          }}
+                          className={`p-3 rounded-lg border cursor-pointer transition-all hover:scale-[1.02] active:scale-95 ${getStatusColor(appt.status)}`}
+                        >
+                          <div className="flex justify-between items-start mb-1">
+                            <span className="text-sm font-bold">{appt.startTime}</span>
+                            <span className="text-[10px] opacity-70">{appt.endTime}</span>
+                          </div>
+                          <h4 className="text-sm font-bold truncate mb-1">{appt.client?.name || 'Cliente'}</h4>
+                          <div className="flex items-center gap-1 text-[10px] opacity-80">
+                            <ScissorsIcon size={10} />
+                            <span className="truncate">{appt.service?.name}</span>
+                          </div>
+                          <div className="mt-2 text-[10px] font-bold flex justify-between border-t border-current/20 pt-1">
+                            <span>R$ {appt.price.toFixed(2)}</span>
+                            <span>{appt.service?.durationMinutes} min</span>
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
-                  <button
-                    onClick={() => {
-                      setSelectedAppointment(appt);
-                      setIsDetailsModalOpen(true);
-                    }}
-                    className="opacity-100 md:opacity-0 group-hover:opacity-100 text-sm bg-gray-800 hover:bg-gray-700 text-white px-3 py-1.5 rounded border border-gray-700 transition-all"
-                  >
-                    Detalhes
-                  </button>
                 </div>
-              </div>
-            </div>
-          ))}
-
-          {!loading && displayAppointments.length === 0 && (
-            <div className="p-12 text-center text-gray-500">
-              {role === 'barber'
-                ? 'Você não tem agendamentos para este dia.'
-                : 'Nenhum agendamento na barbearia para este dia.'}
-            </div>
-          )}
-
-          {loading && (
-            <div className="p-12 text-center text-gray-500">Carregando agenda...</div>
-          )}
+              );
+            })}
+          </div>
         </div>
       </div>
 
