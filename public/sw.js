@@ -1,4 +1,4 @@
-const CACHE_NAME = 'barbermaster-v10';
+const CACHE_NAME = 'barbermaster-v11';
 const urlsToCache = [
     '/',
     '/index.html',
@@ -14,8 +14,18 @@ self.addEventListener('install', (event) => {
     );
 });
 
-// Fetch
+// Fetch - Estratégia: Network First para evitar arquivos zumbis (MIME Error)
 self.addEventListener('fetch', (event) => {
+    // Para navegação e HTML, priorizamos a rede
+    if (event.request.mode === 'navigate' || (event.request.method === 'GET' && event.request.headers.get('accept').includes('text/html'))) {
+        event.respondWith(
+            fetch(event.request)
+                .catch(() => caches.match(event.request))
+        );
+        return;
+    }
+
+    // Para outros recursos, Cache Primeiro (com fallback para rede)
     event.respondWith(
         caches.match(event.request)
             .then((response) => response || fetch(event.request))
