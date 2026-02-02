@@ -234,7 +234,7 @@ const MainLayout: React.FC = () => {
 
   // Proteção de Rotas
   const hostname = window.location.hostname;
-  const isMainPlatform = hostname === 'barbermaster.com.br' || hostname === 'app.barbermaster.com.br' || hostname === 'localhost';
+  const isMainPlatform = hostname === 'barbermaster.com.br' || hostname === 'www.barbermaster.com.br' || hostname === 'app.barbermaster.com.br' || hostname === 'localhost';
 
   const isPublicRoute = !isMainPlatform ||
     location.pathname === '/login' ||
@@ -293,7 +293,7 @@ const MainLayout: React.FC = () => {
 
                 // Se não está autenticado, verificar se é domínio customizado
                 const hostname = window.location.hostname;
-                const isMainPlatform = hostname === 'barbermaster.com.br' || hostname === 'app.barbermaster.com.br' || hostname === 'localhost';
+                const isMainPlatform = hostname === 'barbermaster.com.br' || hostname === 'www.barbermaster.com.br' || hostname === 'app.barbermaster.com.br' || hostname === 'localhost';
                 if (!isMainPlatform) {
                   return <ClientApp />;
                 }
@@ -331,7 +331,7 @@ const MainLayout: React.FC = () => {
 
                 // Se não está autenticado, verificar se é domínio customizado
                 const hostname = window.location.hostname;
-                const isMainPlatform = hostname === 'barbermaster.com.br' || hostname === 'app.barbermaster.com.br' || hostname === 'localhost';
+                const isMainPlatform = hostname === 'barbermaster.com.br' || hostname === 'www.barbermaster.com.br' || hostname === 'app.barbermaster.com.br' || hostname === 'localhost';
                 if (!isMainPlatform) {
                   return <ClientApp />;
                 }
