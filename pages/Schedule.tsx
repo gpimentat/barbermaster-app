@@ -16,7 +16,7 @@ import AppointmentDetailsModal from '../components/AppointmentDetailsModal';
 import { MOCK_BARBERS, MOCK_SERVICES, MOCK_CLIENTS } from '../constants';
 
 const Schedule: React.FC = () => {
-  const { role, currentUser } = useAuth();
+  const { role, currentUser, barbers } = useAuth();
   const [selectedDate, setSelectedDate] = useState(new Date());
 
   // Helper to format date like "Segunda, 26 de Outubro"
@@ -201,7 +201,7 @@ const Schedule: React.FC = () => {
                             <span className="truncate">{appt.service?.name}</span>
                           </div>
                           <div className="mt-2 text-[10px] font-bold flex justify-between border-t border-current/20 pt-1">
-                            <span>R$ {appt.price.toFixed(2)}</span>
+                            <span>R$ {Number(appt.price || 0).toFixed(2)}</span>
                             <span>{appt.service?.durationMinutes} min</span>
                           </div>
                         </div>
