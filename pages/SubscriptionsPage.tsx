@@ -29,10 +29,11 @@ import { MOCK_APPOINTMENTS, MOCK_TRANSACTIONS } from '../constants';
 import { SubscriptionPlan, ServicePackage, Transaction, PaymentMethod } from '../types';
 import { useAuth } from '../AuthContext';
 import subscriptionService from '../src/services/subscriptionService';
+import { supabase } from '../src/supabaseClient';
 
 const SubscriptionsPage: React.FC = () => {
     const { currentUser } = useAuth();
-    const [activeTab, setActiveTab] = useState<'plans' | 'packages' | 'settings'>('plans');
+    const [activeTab, setActiveTab] = useState<'plans' | 'packages' | 'wallet' | 'settings'>('plans');
     const [loading, setLoading] = useState(true);
 
     // State for Plans
@@ -52,10 +53,17 @@ const SubscriptionsPage: React.FC = () => {
         public_key: ''
     });
 
-    // State for Wallet/Balance (MOCK for now, integration with billing later)
-    const [walletBalance, setWalletBalance] = useState<number>(0);
+    // State for Wallet/Balance (Database driven)
+    const [balanceData, setBalanceData] = useState<any>({ balance: 0, withdrawn_total: 0, pending_payout: 0 });
+    const [transactions, setTransactions] = useState<any[]>([]);
+    const [payoutRequests, setPayoutRequests] = useState<any[]>([]);
     const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
-    const [withdrawAmount, setWithdrawAmount] = useState<string>('');
+    const [withdrawForm, setWithdrawForm] = useState({
+        amount: '',
+        pixKey: '',
+        pixKeyType: 'cpf',
+        notes: ''
+    });
 
     useEffect(() => {
         if (currentUser?.tenantId) {
@@ -76,17 +84,25 @@ const SubscriptionsPage: React.FC = () => {
             setPackages(pkgsData);
             setSubscribers(subsData);
 
+            // Load Wallet Data
+            const [bal, txs, payouts] = await Promise.all([
+                subscriptionService.getBalance(tid),
+                subscriptionService.getTransactions(tid),
+                subscriptionService.getPayoutRequests(tid)
+            ]);
+            setBalanceData(bal);
+            setTransactions(txs);
+            setPayoutRequests(payouts);
+
+            // Load payout config from tenant settings if available
+            if (currentUser?.settings?.payout_info) {
+                setWithdrawForm(prev => ({ ...prev, ...currentUser.settings.payout_info }));
+            }
+
             // Load gateway config from tenant settings if available
             if (currentUser?.settings?.gateways?.mercado_pago) {
                 setGatewayConfig(currentUser.settings.gateways.mercado_pago);
             }
-
-            // Calculate pseudo-wallet based on subs
-            const totalRev = subsData.filter(s => s.status === 'active').reduce((acc, s) => {
-                const plan = plansData.find(p => p.id === s.plan_id);
-                return acc + (plan?.price || 0);
-            }, 0);
-            setWalletBalance(totalRev * 1.5); // Simulation of accumulated balance
 
         } catch (err) {
             console.error('Error loading subscriptions data:', err);
@@ -204,10 +220,20 @@ const SubscriptionsPage: React.FC = () => {
         e.preventDefault();
         if (!currentUser) return;
         try {
-            await subscriptionService.updateGatewayConfig(currentUser.tenantId, gatewayConfig);
-            alert('Configurações salvas com sucesso!');
+            const { error } = await supabase
+                .from('tenants')
+                .update({
+                    settings: {
+                        ...currentUser.settings,
+                        payout_info: withdrawForm
+                    }
+                })
+                .eq('id', currentUser.tenantId);
+
+            if (error) throw error;
+            alert('Dados de recebimento salvos com sucesso!');
         } catch (err) {
-            alert('Erro ao salvar chaves');
+            alert('Erro ao salvar dados');
         }
     };
 
@@ -251,10 +277,35 @@ const SubscriptionsPage: React.FC = () => {
 
     const getPlanName = (id: string) => plans.find(p => p.id === id)?.name || 'Plano';
 
-    const handleWithdraw = (e: React.FormEvent) => {
+    const handleWithdraw = async (e: React.FormEvent) => {
         e.preventDefault();
-        alert('Solicitação de saque enviada!');
-        setIsWithdrawModalOpen(false);
+        if (!currentUser) return;
+
+        try {
+            const amount = parseFloat(withdrawForm.amount);
+            if (isNaN(amount) || amount < 50) {
+                alert('Valor mínimo para saque é R$ 50,00');
+                return;
+            }
+            if (amount > balanceData.balance) {
+                alert('Saldo insuficiente');
+                return;
+            }
+
+            await subscriptionService.requestPayout(currentUser.tenantId, {
+                amount,
+                pixKey: withdrawForm.pixKey,
+                pixKeyType: withdrawForm.pixKeyType,
+                notes: withdrawForm.notes
+            });
+
+            alert('Solicitação de saque enviada com sucesso! Você receberá o valor em breve.');
+            setIsWithdrawModalOpen(false);
+            loadData(); // Refresh balance
+        } catch (err) {
+            console.error('Error requesting payout:', err);
+            alert('Erro ao processar saque');
+        }
     };
 
     if (loading) {
@@ -312,13 +363,22 @@ const SubscriptionsPage: React.FC = () => {
                     <Package size={16} /> Pacotes (Avulso)
                 </button>
                 <button
+                    onClick={() => setActiveTab('wallet')}
+                    className={`px-6 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'wallet'
+                        ? 'bg-primary-500 text-dark-950 shadow'
+                        : 'text-gray-400 hover:text-white'
+                        }`}
+                >
+                    <Wallet size={16} /> Minha Carteira
+                </button>
+                <button
                     onClick={() => setActiveTab('settings')}
                     className={`px-6 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'settings'
                         ? 'bg-primary-500 text-dark-950 shadow'
                         : 'text-gray-400 hover:text-white'
                         }`}
                 >
-                    <Settings size={16} /> Pagamentos
+                    <Settings size={16} /> Dados de Saque
                 </button>
             </div>
 
@@ -326,26 +386,26 @@ const SubscriptionsPage: React.FC = () => {
             {activeTab === 'plans' && (
                 <div className="space-y-6 animate-in fade-in">
 
-                    {/* NOVO: Painel de Saldo e Saque */}
-                    <div className="bg-gradient-to-r from-green-900 to-green-800 rounded-xl border border-green-700/50 p-6 shadow-lg relative overflow-hidden">
-                        <div className="absolute top-0 right-0 p-24 bg-green-500/10 rounded-full blur-3xl -mr-12 -mt-12 pointer-events-none"></div>
+                    {/* Hero de Assinaturas */}
+                    <div className="bg-gradient-to-r from-primary-950 to-dark-900 rounded-xl border border-primary-500/20 p-6 shadow-lg relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-24 bg-primary-500/10 rounded-full blur-3xl -mr-12 -mt-12 pointer-events-none"></div>
 
                         <div className="flex flex-col md:flex-row justify-between items-center relative z-10 gap-6">
                             <div className="flex items-center gap-4">
-                                <div className="p-3 bg-green-500/20 rounded-xl border border-green-500/30 text-green-400">
-                                    <Wallet size={32} />
+                                <div className="p-3 bg-primary-500/20 rounded-xl border border-primary-500/30 text-primary-500">
+                                    <Crown size={32} />
                                 </div>
                                 <div>
-                                    <p className="text-green-300 text-sm font-medium mb-1">Saldo Disponível (Assinaturas)</p>
-                                    <h2 className="text-4xl font-bold text-white">R$ {walletBalance.toFixed(2)}</h2>
+                                    <p className="text-gray-400 text-sm font-medium mb-1">Receita Mensal Recorrente</p>
+                                    <h2 className="text-4xl font-bold text-white">R$ {mrr.toFixed(2)}</h2>
                                 </div>
                             </div>
                             <div className="flex gap-3 w-full md:w-auto">
                                 <button
-                                    onClick={() => setIsWithdrawModalOpen(true)}
-                                    className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-white text-green-900 px-6 py-3 rounded-lg font-bold hover:bg-green-50 transition-colors shadow-lg"
+                                    onClick={() => setActiveTab('wallet')}
+                                    className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-white text-dark-950 px-6 py-3 rounded-lg font-bold hover:bg-gray-100 transition-colors shadow-lg"
                                 >
-                                    <ArrowUpRight size={20} /> Solicitar Saque
+                                    <Wallet size={20} /> Ver Minha Carteira
                                 </button>
                             </div>
                         </div>
@@ -510,78 +570,200 @@ const SubscriptionsPage: React.FC = () => {
                 </div>
             )}
 
-            {/* ======================= ABA: CONFIGURAÇÕES ======================= */}
+            {/* ======================= ABA: CARTEIRA ======================= */}
+            {activeTab === 'wallet' && (
+                <div className="space-y-6 animate-in fade-in">
+                    {/* Sumário de Saldo */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="bg-gradient-to-br from-green-950 to-dark-900 rounded-xl border border-green-500/20 p-6 flex flex-col">
+                            <p className="text-green-400 text-sm font-medium mb-1">Saldo Disponível</p>
+                            <h2 className="text-4xl font-bold text-white mb-4">R$ {balanceData.balance.toFixed(2)}</h2>
+                            <button
+                                onClick={() => setIsWithdrawModalOpen(true)}
+                                disabled={balanceData.balance < 50}
+                                className="w-full py-3 bg-green-600 hover:bg-green-500 disabled:bg-gray-800 disabled:text-gray-500 text-white font-bold rounded-lg transition-all flex items-center justify-center gap-2 shadow-lg shadow-green-900/20"
+                            >
+                                <ArrowUpRight size={18} /> Solicitar Saque
+                            </button>
+                            <p className="text-[10px] text-gray-500 mt-2 text-center italic">Mínimo para saque: R$ 50,00</p>
+                        </div>
+
+                        <div className="bg-dark-900 p-6 rounded-xl border border-gray-800 flex flex-col justify-between">
+                            <div>
+                                <p className="text-gray-400 text-sm font-medium mb-1">Total Já Recebido</p>
+                                <h2 className="text-2xl font-bold text-white">R$ {balanceData.withdrawn_total.toFixed(2)}</h2>
+                            </div>
+                            <div className="mt-4 pt-4 border-t border-gray-800 flex items-center justify-between">
+                                <span className="text-xs text-gray-500">Histórico Total</span>
+                                <TrendingUp size={16} className="text-primary-500" />
+                            </div>
+                        </div>
+
+                        <div className="bg-dark-900 p-6 rounded-xl border border-gray-800 flex flex-col justify-between">
+                            <div>
+                                <p className="text-gray-400 text-sm font-medium mb-1">Saques Pendentes</p>
+                                <h2 className="text-2xl font-bold text-white">R$ {balanceData.pending_payout.toFixed(2)}</h2>
+                            </div>
+                            <div className="mt-4 pt-4 border-t border-gray-800 flex items-center justify-between">
+                                <span className="text-xs text-gray-500 text-yellow-500">Em processamento</span>
+                                <Clock size={16} className="text-yellow-500" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {/* Histórico de Transações */}
+                        <div className="bg-dark-900 rounded-xl border border-gray-800 overflow-hidden h-fit">
+                            <div className="p-4 border-b border-gray-800 bg-gray-900/50 flex justify-between items-center">
+                                <h3 className="text-white font-bold">Últimas Transações</h3>
+                                <Landmark size={18} className="text-gray-600" />
+                            </div>
+                            <div className="p-0 overflow-x-auto">
+                                <table className="w-full text-left text-xs">
+                                    <thead className="text-gray-500 uppercase font-bold bg-gray-900/30">
+                                        <tr>
+                                            <th className="px-4 py-3">Data</th>
+                                            <th className="px-4 py-3">Descrição</th>
+                                            <th className="px-4 py-3 text-right">Valor</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-800">
+                                        {transactions.length === 0 ? (
+                                            <tr>
+                                                <td colSpan={3} className="px-4 py-8 text-center text-gray-500">Nenhuma transação registrada.</td>
+                                            </tr>
+                                        ) : (
+                                            transactions.map(tx => (
+                                                <tr key={tx.id} className="hover:bg-gray-800/30 transition-colors">
+                                                    <td className="px-4 py-3 text-gray-400">{new Date(tx.created_at).toLocaleDateString()}</td>
+                                                    <td className="px-4 py-3">
+                                                        <div className="flex flex-col">
+                                                            <span className="text-white font-medium">{tx.description}</span>
+                                                            <span className="text-[10px] text-gray-500">REF: {tx.reference_id}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td className={`px-4 py-3 text-right font-bold ${tx.type === 'credit' ? 'text-green-500' : 'text-red-500'}`}>
+                                                        {tx.type === 'credit' ? '+' : '-'} R$ {Math.abs(tx.amount).toFixed(2)}
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        {/* Solicitações de Saque */}
+                        <div className="bg-dark-900 rounded-xl border border-gray-800 overflow-hidden h-fit">
+                            <div className="p-4 border-b border-gray-800 bg-gray-900/50 flex justify-between items-center">
+                                <h3 className="text-white font-bold">Histórico de Saques</h3>
+                                <ArrowUpRight size={18} className="text-gray-600" />
+                            </div>
+                            <div className="p-0">
+                                <table className="w-full text-left text-xs">
+                                    <thead className="text-gray-500 uppercase font-bold bg-gray-900/30">
+                                        <tr>
+                                            <th className="px-4 py-3">Data</th>
+                                            <th className="px-4 py-3">Status</th>
+                                            <th className="px-4 py-3 text-right">Valor</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-800">
+                                        {payoutRequests.length === 0 ? (
+                                            <tr>
+                                                <td colSpan={3} className="px-4 py-8 text-center text-gray-500">Nenhuma solicitação de saque.</td>
+                                            </tr>
+                                        ) : (
+                                            payoutRequests.map(req => (
+                                                <tr key={req.id} className="hover:bg-gray-800/30 transition-colors">
+                                                    <td className="px-4 py-3 text-gray-400">{new Date(req.created_at).toLocaleDateString()}</td>
+                                                    <td className="px-4 py-3">
+                                                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${req.status === 'paid' ? 'bg-green-500/10 text-green-500' :
+                                                            req.status === 'rejected' ? 'bg-red-500/10 text-red-500' :
+                                                                'bg-yellow-500/10 text-yellow-500'
+                                                            }`}>
+                                                            {req.status === 'pending' ? 'Pendente' :
+                                                                req.status === 'approved' ? 'Aprovado' :
+                                                                    req.status === 'paid' ? 'Pago' : 'Recusado'}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-4 py-3 text-right text-white font-medium">
+                                                        R$ {req.amount.toFixed(2)}
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ======================= ABA: CONFIGURAÇÕES DE SAQUE ======================= */}
             {activeTab === 'settings' && (
                 <div className="space-y-6 animate-in fade-in max-w-2xl">
-                    <div className="bg-dark-900 border border-gray-800 rounded-xl overflow-hidden">
+                    <div className="bg-dark-900 border border-gray-800 rounded-xl overflow-hidden shadow-xl">
                         <div className="p-6 border-b border-gray-800 bg-gray-900/50 flex items-center gap-3">
-                            <div className="p-2 bg-blue-500/10 rounded-lg text-blue-500">
+                            <div className="p-2 bg-primary-500/10 rounded-lg text-primary-500">
                                 <Landmark size={24} />
                             </div>
                             <div>
-                                <h3 className="text-white font-bold text-lg">Mercado Pago</h3>
-                                <p className="text-xs text-gray-500">Configure suas chaves para receber por cartão.</p>
+                                <h3 className="text-white font-bold text-lg">Dados de Recebimento (PIX)</h3>
+                                <p className="text-xs text-gray-500">Onde você receberá os lucros líquidos das suas assinaturas.</p>
                             </div>
                         </div>
 
                         <form onSubmit={handleSaveGateway} className="p-6 space-y-6">
-                            <div className="space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-400 mb-1.5 flex items-center gap-2">
-                                        <Key size={14} /> Access Token (Produção)
+                                        Tipo de Chave
                                     </label>
-                                    <input
-                                        type="password"
-                                        value={gatewayConfig.access_token}
-                                        onChange={(e) => setGatewayConfig({ ...gatewayConfig, access_token: e.target.value })}
-                                        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-primary-500 transition-colors"
-                                        placeholder="APP_USR-..."
-                                    />
+                                    <select
+                                        value={withdrawForm.pixKeyType}
+                                        onChange={(e) => setWithdrawForm({ ...withdrawForm, pixKeyType: e.target.value })}
+                                        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-primary-500"
+                                    >
+                                        <option value="cpf">CPF</option>
+                                        <option value="cnpj">CNPJ</option>
+                                        <option value="email">E-mail</option>
+                                        <option value="phone">Telefone</option>
+                                        <option value="random">Chave Aleatória</option>
+                                    </select>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-400 mb-1.5 flex items-center gap-2">
-                                        <Key size={14} /> Public Key
+                                        Chave PIX
                                     </label>
                                     <input
                                         type="text"
-                                        value={gatewayConfig.public_key}
-                                        onChange={(e) => setGatewayConfig({ ...gatewayConfig, public_key: e.target.value })}
-                                        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-primary-500 transition-colors"
-                                        placeholder="APP_USR-..."
+                                        value={withdrawForm.pixKey}
+                                        onChange={(e) => setWithdrawForm({ ...withdrawForm, pixKey: e.target.value })}
+                                        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-primary-500"
+                                        placeholder="Digite sua chave aqui"
+                                        required
                                     />
                                 </div>
                             </div>
 
-                            <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4 flex gap-3">
-                                <ShieldCheck className="text-blue-500 shrink-0" size={20} />
-                                <div className="text-xs text-blue-200/80 leading-relaxed">
-                                    Suas chaves são criptografadas e usadas apenas para processar os pagamentos dos seus clientes.
-                                    <a href="https://www.mercadopago.com.br/developers/pt/panel" target="_blank" rel="noreferrer" className="text-blue-400 hover:underline flex items-center gap-1 mt-1">
-                                        Onde encontro minhas chaves? <ExternalLink size={10} />
-                                    </a>
-                                </div>
+                            <div className="p-4 bg-gray-950 border border-gray-800 rounded-xl space-y-3">
+                                <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Atenção</h4>
+                                <ul className="text-[11px] text-gray-400 space-y-2 list-disc pl-4">
+                                    <li>Os saques são processados em até 48h úteis após a solicitação.</li>
+                                    <li>Certifique-se de que a chave PIX está correta e vinculada ao titular da barbearia.</li>
+                                    <li>Taxa de intermediação da plataforma (5%) já descontada automaticamente em cada transação.</li>
+                                </ul>
                             </div>
 
                             <button
                                 type="submit"
                                 className="w-full py-3 bg-primary-500 hover:bg-primary-600 text-dark-950 font-bold rounded-lg transition-all shadow-lg shadow-primary-500/10 flex items-center justify-center gap-2"
                             >
-                                <Save size={18} /> Salvar Configurações
+                                <Save size={18} /> Salvar Dados de Saque
                             </button>
                         </form>
-                    </div>
-
-                    <div className="bg-gray-800/30 border border-gray-800 rounded-xl p-6">
-                        <h4 className="text-white font-bold mb-2 flex items-center gap-2">
-                            <TrendingUp size={18} className="text-green-500" /> Webhooks de Pagamento
-                        </h4>
-                        <p className="text-sm text-gray-400 mb-4">
-                            Copie a URL abaixo e cole nas configurações de Webhook do seu painel do Mercado Pago para automação de assinaturas.
-                        </p>
-                        <div className="bg-dark-950 p-3 rounded-lg border border-gray-700 flex items-center justify-between font-mono text-[10px] text-gray-300">
-                            <span>https://aogsaxrduljhmrdajvlo.supabase.co/functions/v1/payment-webhook</span>
-                            <button className="text-primary-500 hover:text-primary-400 font-bold">Copiar</button>
-                        </div>
                     </div>
                 </div>
             )}
@@ -851,60 +1033,66 @@ const SubscriptionsPage: React.FC = () => {
                 </div>
             )}
 
-            {/* Modal de SAQUE */}
+            {/* Modal de Saque */}
             {isWithdrawModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
-                    <div className="bg-dark-900 rounded-xl border border-gray-800 shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95">
-                        <div className="flex items-center justify-between p-6 border-b border-gray-800 bg-gray-900">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-dark-900 rounded-xl border border-gray-800 shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="flex items-center justify-between p-6 border-b border-gray-800">
                             <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                                <Landmark className="text-green-500" size={24} /> Solicitar Saque
+                                <Landmark className="text-primary-500" /> Solicitar Saque
                             </h2>
                             <button onClick={() => setIsWithdrawModalOpen(false)} className="text-gray-400 hover:text-white">
                                 <X size={24} />
                             </button>
                         </div>
-                        <form onSubmit={handleWithdraw} className="p-6 space-y-6">
-                            <div className="bg-gray-800/50 p-4 rounded-xl border border-gray-700/50 text-center">
-                                <p className="text-gray-400 text-sm mb-1">Disponível para retirada</p>
-                                <p className="text-3xl font-bold text-white">R$ {walletBalance.toFixed(2)}</p>
-                            </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-gray-400 mb-2">Valor do Saque</label>
-                                <div className="relative">
-                                    <span className="absolute left-3 top-3 text-gray-500 text-lg">R$</span>
-                                    <input
-                                        type="number"
-                                        step="0.01"
-                                        max={walletBalance}
-                                        value={withdrawAmount}
-                                        onChange={(e) => setWithdrawAmount(e.target.value)}
-                                        className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-10 pr-4 py-3 text-white text-lg focus:outline-none focus:border-green-500"
-                                        placeholder="0.00"
-                                        required
-                                    />
+                        <form onSubmit={handleWithdraw} className="p-6 space-y-4">
+                            <div className="bg-primary-500/10 border border-primary-500/20 rounded-xl p-4 mb-4">
+                                <div className="flex justify-between items-center mb-1">
+                                    <span className="text-xs text-gray-400">Saldo Disponível</span>
+                                    <span className="text-xl font-bold text-white">R$ {balanceData.balance.toFixed(2)}</span>
                                 </div>
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-400 mb-2">Destino</label>
-                                <select className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-green-500">
-                                    <option>Chave PIX (CNPJ)</option>
-                                    <option>Conta Bancária Principal</option>
-                                </select>
-                                <p className="text-xs text-gray-500 mt-2">O valor será transferido em até 1 dia útil.</p>
+                                <label className="block text-sm font-medium text-gray-400 mb-1">Valor do Saque (R$)</label>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    value={withdrawForm.amount}
+                                    onChange={(e) => setWithdrawForm({ ...withdrawForm, amount: e.target.value })}
+                                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary-500"
+                                    placeholder="0.00"
+                                    required
+                                />
                             </div>
 
-                            <div className="flex gap-3 pt-2">
+                            <div className="space-y-2">
+                                <p className="text-xs font-medium text-gray-500 flex items-center gap-1">
+                                    <Key size={12} /> Sua Chave PIX:
+                                </p>
+                                <div className="bg-gray-950 p-3 rounded-lg border border-gray-800">
+                                    <p className="text-xs text-white break-all">
+                                        <span className="text-primary-500 font-bold uppercase mr-2">{withdrawForm.pixKeyType}:</span>
+                                        {withdrawForm.pixKey || 'Nenhuma chave cadastrada'}
+                                    </p>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setIsWithdrawModalOpen(false);
+                                            setActiveTab('settings');
+                                        }}
+                                        className="text-[10px] text-primary-500 hover:underline mt-2"
+                                    >
+                                        Alterar chave PIX
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="flex justify-end gap-3 pt-4 border-t border-gray-800">
                                 <button
                                     type="button"
                                     onClick={() => setIsWithdrawModalOpen(false)}
-                                    className="flex-1 py-3 bg-gray-800 text-white rounded-lg font-bold hover:bg-gray-700"
-                                >
-                                    Cancelar
-                                </button>
-                                <button
-                                    type="submit"
                                     className="flex-1 py-3 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 shadow-lg shadow-green-900/20"
                                 >
                                     Confirmar

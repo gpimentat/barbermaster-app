@@ -110,6 +110,65 @@ const subscriptionService = {
 
         if (error) throw error;
         return data.init_point;
+    },
+
+    // --- WALLET & PAYOUTS ---
+    async getBalance(tenantId: string): Promise<any> {
+        const { data, error } = await supabase
+            .from('tenant_balances')
+            .select('*')
+            .eq('tenant_id', tenantId)
+            .maybeSingle();
+
+        if (error) throw error;
+        return data || { balance: 0, withdrawn_total: 0, pending_payout: 0 };
+    },
+
+    async getTransactions(tenantId: string): Promise<any[]> {
+        const { data, error } = await supabase
+            .from('balance_transactions')
+            .select('*')
+            .eq('tenant_id', tenantId)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        return data || [];
+    },
+
+    async getPayoutRequests(tenantId: string): Promise<any[]> {
+        const { data, error } = await supabase
+            .from('payout_requests')
+            .select('*')
+            .eq('tenant_id', tenantId)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        return data || [];
+    },
+
+    async requestPayout(tenantId: string, payload: any): Promise<any> {
+        const { data, error } = await supabase
+            .from('payout_requests')
+            .insert({
+                tenant_id: tenantId,
+                amount: payload.amount,
+                pix_key: payload.pixKey,
+                pix_key_type: payload.pixKeyType,
+                notes: payload.notes,
+                status: 'pending'
+            })
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        // Opcional: Atualizar pending_payout no balance
+        await supabase.rpc('update_pending_payout', {
+            t_id: tenantId,
+            amount_to_add: payload.amount
+        });
+
+        return data;
     }
 };
 
