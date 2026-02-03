@@ -60,17 +60,41 @@ export interface SubscriptionPlan {
   name: string;
   price: number;
   frequency: 'monthly' | 'quarterly' | 'yearly';
-  features: string[]; // Lista de benefícios (ex: "Cortes Ilimitados")
+  features: string[];
   active: boolean;
+  tenant_id: string;
+  gateway_plan_id?: string;
 }
 
 export interface ServicePackage {
   id: string;
   name: string;
   price: number;
-  validityDays: number; // Validade em dias para usar o pacote
-  features: string[]; // Itens inclusos
+  validityDays: number;
+  features: string[];
   active: boolean;
+  tenant_id: string;
+}
+
+export interface ClientSubscription {
+  id: string;
+  clientId: string;
+  planId: string;
+  status: 'active' | 'inactive' | 'past_due' | 'canceled' | 'pending';
+  renewsAt: string;
+  gatewaySubscriptionId?: string;
+  tenantId: string;
+}
+
+export interface ClientPackage {
+  id: string;
+  clientId: string;
+  packageId: string;
+  purchasedAt: string;
+  expiresAt: string;
+  remainingUses: Record<string, number>;
+  status: 'active' | 'used' | 'expired';
+  tenantId: string;
 }
 
 export interface Reward {
@@ -85,16 +109,15 @@ export interface Client {
   name: string;
   email: string;
   phone: string;
-  birthDate?: string; // Novo campo data de nascimento
+  birthDate?: string;
   totalVisits: number;
   lastVisit?: string;
   avatar: string;
-  loyaltyPoints: number; // Campo novo para Fidelidade
-  // Campos de Assinatura
-  subscriptionPlanId?: string; // ID do plano
-  subscriptionStatus?: 'active' | 'inactive' | 'pending';
-  subscriptionRenewsAt?: string; // Data da próxima cobrança
-  // Campos de Acesso
+  loyaltyPoints: number;
+  subscriptionPlanId?: string;
+  subscriptionStatus?: 'active' | 'inactive' | 'past_due' | 'canceled' | 'pending';
+  subscriptionRenewsAt?: string;
+  tenant_id: string;
   password?: string;
   mustChangePassword?: boolean;
 }

@@ -419,6 +419,45 @@ export const clientService = {
             return [];
         }
         return data || [];
+    },
+
+    // --- ASSINATURAS E PACOTES ---
+
+    // Buscar planos disponíveis para o tenant
+    async getSubscriptionPlans(tenantId: string): Promise<any[]> {
+        const { data, error } = await supabase
+            .from('subscription_plans')
+            .select('*')
+            .eq('tenant_id', tenantId)
+            .eq('active', true);
+
+        if (error) throw error;
+        return data || [];
+    },
+
+    // Iniciar checkout de assinatura
+    async subscribeToPlan(tenantId: string, clientId: string, planId: string): Promise<{ init_point: string }> {
+        const { data, error } = await supabase.functions.invoke('create-checkout-session', {
+            body: { tenantId, clientId, planId }
+        });
+
+        if (error) throw error;
+        return data; // Contém o init_point do Mercado Pago
+    },
+
+    // Buscar pacotes ativos do cliente
+    async getClientPackages(clientId: string): Promise<any[]> {
+        const { data, error } = await supabase
+            .from('client_packages')
+            .select(`
+                *,
+                package:service_packages(*)
+            `)
+            .eq('client_id', clientId)
+            .eq('status', 'active');
+
+        if (error) throw error;
+        return data || [];
     }
 };
 

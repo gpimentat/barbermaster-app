@@ -8,6 +8,7 @@ import ClientProfile from './ClientProfile';
 import ClientRewards from './ClientRewards';
 import ClientPartners from './ClientPartners';
 import BottomNav from '../../components/client/BottomNav';
+import ClientSubscriptionPlans from './ClientSubscriptionPlans';
 
 interface TenantConfig {
     id: string;
@@ -272,6 +273,7 @@ const ClientApp: React.FC = () => {
                 <Route path="/rewards" element={<ClientRewards tenant={tenant} clientData={clientData} />} />
                 <Route path="/partners" element={<ClientPartners tenant={tenant} />} />
                 <Route path="/profile" element={<ClientProfile tenant={tenant} clientData={clientData} onLogout={handleLogout} />} />
+                <Route path="/plans" element={<ClientSubscriptionPlans tenant={tenant} clientData={clientData} />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
 

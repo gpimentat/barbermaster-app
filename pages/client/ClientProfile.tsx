@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { User, Mail, Phone, Calendar, LogOut, Clock, Star, Edit2, ShoppingBag, Gift, Bell, ChevronRight, ArrowLeft, Package, Check } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { User, Mail, Phone, Calendar, LogOut, Clock, Star, Edit2, ShoppingBag, Gift, Bell, ChevronRight, ArrowLeft, Package, Check, Crown, CreditCard } from 'lucide-react';
 import clientService from '../../src/services/clientService';
 
 interface ClientProfileProps {
@@ -11,6 +12,7 @@ interface ClientProfileProps {
 type SubScreen = 'main' | 'history' | 'purchases' | 'rewards' | 'notifications';
 
 const ClientProfile: React.FC<ClientProfileProps> = ({ tenant, clientData, onLogout }) => {
+    const navigate = useNavigate();
     const [subScreen, setSubScreen] = useState<SubScreen>('main');
     const [client, setClient] = useState<any>(null);
 
@@ -158,7 +160,43 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ tenant, clientData, onLog
                             </div>
                         </div>
 
-                        {/* Menu Navigation */}
+                        {/* Subscription Status Card */}
+                        {client?.subscription_status === 'active' ? (
+                            <div className="bg-gradient-to-br from-primary-600/20 to-primary-900/40 rounded-2xl p-4 border border-primary-500/30 flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2.5 bg-primary-500 rounded-xl text-dark-950">
+                                        <Crown size={20} />
+                                    </div>
+                                    <div>
+                                        <p className="text-primary-500 font-bold text-sm">Assinante VIP</p>
+                                        <p className="text-[10px] text-gray-400">Renovação em {formatDate(client.subscription_renews_at)}</p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => navigate('/plans')}
+                                    className="text-xs font-bold text-white bg-white/10 px-3 py-2 rounded-lg hover:bg-white/20 transition-all"
+                                >
+                                    Gerenciar
+                                </button>
+                            </div>
+                        ) : (
+                            <div
+                                onClick={() => navigate('/plans')}
+                                className="bg-gray-900 rounded-2xl p-4 border border-gray-800 flex items-center justify-between group cursor-pointer hover:border-primary-500/30 transition-all relative overflow-hidden"
+                            >
+                                <div className="absolute top-0 right-0 p-8 bg-primary-500/5 rounded-full blur-2xl -mr-4 -mt-4"></div>
+                                <div className="flex items-center gap-3 relative z-10">
+                                    <div className="p-2.5 bg-gray-800 rounded-xl text-primary-500 group-hover:scale-110 transition-transform">
+                                        <Crown size={20} />
+                                    </div>
+                                    <div>
+                                        <p className="text-white font-bold text-sm">Seja VIP</p>
+                                        <p className="text-[10px] text-gray-400">Garanta descontos e agenda prioritária</p>
+                                    </div>
+                                </div>
+                                <ArrowLeft className="rotate-180 text-gray-600 group-hover:text-primary-500 transition-colors" size={20} />
+                            </div>
+                        )}
                         <div className="space-y-3">
                             <button
                                 onClick={() => setSubScreen('history')}
