@@ -98,8 +98,7 @@ const SettingsPage: React.FC = () => {
             // For now, I'll use a placeholder or assume the user will set it up.
             // But to make it work, we need a real subscription.
             const subscription = await registration.pushManager.subscribe({
-                userVisibleOnly: true,
-                applicationServerKey: 'BIEn9cEiwTmf3nDEaKHE5iUWMIz7fRCOjdSFvmQWSaPcvZZnDZAH-n3VxJtcU3WTZg1RMCmzgjmPClMuSBLLfz8'
+                applicationServerKey: 'BJ9Jyw8XiQOfr87AbjKHvwFTNYOMg-hUu4UBpc_Pd1SVBYXpfE6rG-rJLqGeaUChNV6CRKBW2jYBzjlTbfJOUow'
             });
 
             const { error } = await supabase
