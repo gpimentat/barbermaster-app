@@ -17,6 +17,7 @@ import {
   Crown,
   Percent,
   MessageCircle,
+  MessageSquare,
   Link as LinkIcon,
   Clock,
   User
@@ -42,6 +43,7 @@ import CommissionsPage from './pages/CommissionsPage';
 import ChatPage from './pages/ChatPage';
 import IntegrationsPage from './pages/IntegrationsPage';
 import WaitingListPage from './pages/WaitingListPage'; // Nova Página
+import ReviewsPage from './pages/ReviewsPage';
 import SignUpPage from './pages/SignUpPage';
 import AppointmentActionPage from './pages/AppointmentActionPage';
 import SaasAdminPage from './pages/SaasAdminPage';
@@ -141,6 +143,7 @@ const Sidebar = ({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
     { path: '/products', name: 'Produtos', icon: <Package size={20} />, requiredPermission: 'manage_products' },
     { path: '/clients', name: 'Clientes', icon: <Users size={20} />, requiredPermission: 'manage_clients' },
     { path: '/app-customization', name: 'App do Cliente', icon: <Smartphone size={20} />, requiredPermission: 'manage_products' },
+    { path: '/reviews', name: 'Avaliações', icon: <MessageSquare size={20} />, requiredPermission: 'manage_clients' },
     { path: '/integrations', name: 'Integrações', icon: <LinkIcon size={20} />, requiredPermission: 'manage_integrations' },
     { path: '/saas-admin', name: 'Super Admin', icon: <Crown size={20} />, requiredPermission: 'super_admin' },
   ];
@@ -364,6 +367,7 @@ const MainLayout: React.FC = () => {
             <Route path="/integrations" element={<IntegrationsPage />} />
             <Route path="/products" element={<ProductsPage />} />
             <Route path="/clients" element={<ClientsPage />} />
+            <Route path="/reviews" element={<ReviewsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="*" element={
               (() => {

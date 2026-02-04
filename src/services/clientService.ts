@@ -566,6 +566,65 @@ export const clientService = {
             }, { onConflict: 'user_id' }); // Garantir uma subscrição por cliente
 
         if (error) throw error;
+    },
+
+    // --- REVIEWS & FEEDBACK ---
+    async submitReview(data: {
+        tenantId: string;
+        clientId: string;
+        clientName: string;
+        rating: number;
+        comment: string;
+        photoFile?: File;
+    }): Promise<any> {
+        let photoUrl = '';
+
+        // 1. Upload da foto se existir
+        if (data.photoFile) {
+            const fileExt = data.photoFile.name.split('.').pop();
+            const fileName = `${data.tenantId}/${data.clientId}/${Date.now()}.${fileExt}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('reviews')
+                .upload(fileName, data.photoFile);
+
+            if (uploadError) throw uploadError;
+
+            const { data: { publicUrl } } = supabase.storage
+                .from('reviews')
+                .getPublicUrl(fileName);
+
+            photoUrl = publicUrl;
+        }
+
+        // 2. Salvar no banco
+        const { data: review, error } = await supabase
+            .from('client_reviews')
+            .insert({
+                tenant_id: data.tenantId,
+                client_id: data.clientId,
+                client_name: data.clientName,
+                rating: data.rating,
+                comment: data.comment,
+                photo_url: photoUrl,
+                status: 'pending'
+            })
+            .select()
+            .single();
+
+        if (error) throw error;
+        return review;
+    },
+
+    async getMyReviews(clientId: string): Promise<any[]> {
+        const { data, error } = await supabase
+            .from('client_reviews')
+            .select('*')
+            .eq('client_id', clientId)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        return data || [];
     }
 };
 

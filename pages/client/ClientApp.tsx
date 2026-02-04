@@ -9,6 +9,7 @@ import ClientRewards from './ClientRewards';
 import ClientPartners from './ClientPartners';
 import BottomNav from '../../components/client/BottomNav';
 import ClientSubscriptionPlans from './ClientSubscriptionPlans';
+import ClientFeedback from './ClientFeedback';
 
 interface TenantConfig {
     id: string;
@@ -280,6 +281,7 @@ const ClientApp: React.FC = () => {
                 <Route path="/partners" element={<ClientPartners tenant={tenant} />} />
                 <Route path="/profile" element={<ClientProfile tenant={tenant} clientData={clientData} onLogout={handleLogout} onUpdateProfile={handleUpdateProfile} />} />
                 <Route path="/plans" element={<ClientSubscriptionPlans tenant={tenant} clientData={clientData} />} />
+                <Route path="/feedback" element={<ClientFeedback tenant={tenant} clientData={clientData} />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
 

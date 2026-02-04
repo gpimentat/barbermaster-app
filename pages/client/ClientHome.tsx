@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Calendar, Clock, Gift, Star, TrendingUp, Phone, MapPin, Bell, X } from 'lucide-react';
+import { Calendar, Clock, Gift, Star, TrendingUp, Phone, MapPin, Bell, X, Camera } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../src/supabaseClient';
 import clientService from '../../src/services/clientService';
@@ -348,6 +348,27 @@ const ClientHome: React.FC<ClientHomeProps> = ({ tenant, clientData }) => {
                         </div>
                     </div>
                 )}
+
+                {/* AVALIAÇÃO E FEEDBACK */}
+                <div
+                    onClick={() => navigate(`/app/${tenant.slug}/feedback`)}
+                    className="p-6 rounded-[2.5rem] bg-gradient-to-br from-primary-600/20 to-transparent border border-white/5 relative overflow-hidden group active:scale-95 transition-all cursor-pointer"
+                >
+                    <div className="relative z-10 flex items-center justify-between">
+                        <div className="space-y-1">
+                            <div className="flex gap-1 mb-2">
+                                {[1, 2, 3, 4, 5].map(i => <Star key={i} size={12} fill={primaryColor} stroke="none" />)}
+                            </div>
+                            <h3 className="font-black text-white uppercase tracking-tighter text-xl">Avalie seu Corte</h3>
+                            <p className="text-xs text-gray-400">Suba uma foto e conte o que achou!</p>
+                        </div>
+                        <div className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center border border-white/10 group-hover:scale-110 transition-transform">
+                            <Camera size={24} style={{ color: primaryColor }} />
+                        </div>
+                    </div>
+                    {/* Efeito de luz */}
+                    <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-primary-500/20 blur-[60px] rounded-full"></div>
+                </div>
 
                 {/* NOSSA GALERIA */}
                 {features?.photoGallery && (appConfig?.gallery || []).length > 0 && (
