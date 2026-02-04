@@ -1,5 +1,5 @@
 import { supabase } from '../supabaseClient';
-import { SubscriptionPlan, ServicePackage, ClientSubscription, ClientPackage } from '../types';
+import { SubscriptionPlan, ServicePackage, ClientSubscription, ClientPackage } from '../../types';
 
 const subscriptionService = {
     // --- PLANS ---
@@ -15,9 +15,17 @@ const subscriptionService = {
     },
 
     async savePlan(tenantId: string, plan: Partial<SubscriptionPlan>): Promise<SubscriptionPlan> {
+        const { id, ...rest } = plan;
+        const payload: any = { ...rest, tenant_id: tenantId };
+
+        // If id is empty string or null, don't send it so Supabase generates one
+        if (id && id.trim() !== '') {
+            payload.id = id;
+        }
+
         const { data, error } = await supabase
             .from('subscription_plans')
-            .upsert({ ...plan, tenant_id: tenantId })
+            .upsert(payload)
             .select()
             .single();
 
@@ -47,9 +55,16 @@ const subscriptionService = {
     },
 
     async savePackage(tenantId: string, pkg: Partial<ServicePackage>): Promise<ServicePackage> {
+        const { id, ...rest } = pkg;
+        const payload: any = { ...rest, tenant_id: tenantId };
+
+        if (id && id.trim() !== '') {
+            payload.id = id;
+        }
+
         const { data, error } = await supabase
             .from('service_packages')
-            .upsert({ ...pkg, tenant_id: tenantId })
+            .upsert(payload)
             .select()
             .single();
 
