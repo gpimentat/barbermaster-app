@@ -395,7 +395,6 @@ const MainLayout: React.FC = () => {
 }
 
 const App: React.FC = () => {
-  console.log('--- BARBERMASTER V14 LOADED ---');
   return (
     <AuthProvider>
       <HashRouter>
