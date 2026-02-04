@@ -242,6 +242,7 @@ const AppCustomizationPage: React.FC = () => {
     // Refs para Upload
     const logoInputRef = useRef<HTMLInputElement>(null);
     const coverInputRef = useRef<HTMLInputElement>(null);
+    const pwaIconInputRef = useRef<HTMLInputElement>(null);
     const galleryInputRef = useRef<HTMLInputElement>(null);
 
     // Configurações de Layout
@@ -260,6 +261,7 @@ const AppCustomizationPage: React.FC = () => {
         primaryColor: '#eab308',
         logoPreview: 'https://picsum.photos/200/200?random=logo',
         coverPreview: 'https://picsum.photos/800/400?random=cover',
+        pwaIconPreview: 'https://picsum.photos/192/192?random=pwa',
         address: 'Rua das Flores, 123 - Centro',
         phone: '(11) 99999-9999',
         instagram: '@barbermaster',
@@ -392,6 +394,26 @@ const AppCustomizationPage: React.FC = () => {
         } catch (error) {
             console.error('Erro no upload:', error);
             alert('Falha no upload. Verifique o console.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handlePwaIconUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files || e.target.files.length === 0) return;
+        setLoading(true);
+
+        try {
+            const file = e.target.files[0];
+            const publicUrl = await uploadImage(file, 'pwa-icon');
+
+            if (publicUrl) {
+                setSettings(prev => ({ ...prev, pwaIconPreview: publicUrl }));
+                alert('Ícone do App enviado com sucesso! Não esqueça de salvar.');
+            }
+        } catch (error) {
+            console.error('Erro no upload do ícone PWA:', error);
+            alert('Falha no upload do ícone.');
         } finally {
             setLoading(false);
         }
@@ -708,6 +730,15 @@ const AppCustomizationPage: React.FC = () => {
                                                 <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><span className="text-xs text-white font-bold">Alterar</span></div>
                                             </div>
                                             <input type="file" ref={coverInputRef} onChange={handleCoverUpload} className="hidden" accept="image/*" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm text-gray-400 mb-2">Ícone do App (PWA)</label>
+                                            <div onClick={() => pwaIconInputRef.current?.click()} className="h-32 border-2 border-dashed border-gray-700 rounded-xl flex items-center justify-center cursor-pointer hover:border-primary-500 hover:bg-gray-800 transition-colors relative overflow-hidden group">
+                                                {settings.pwaIconPreview ? <img src={settings.pwaIconPreview} className="h-20 w-20 object-contain rounded-xl" /> : <div className="text-center text-gray-500"><Smartphone className="mx-auto mb-1" /><span>Upload Ícone</span></div>}
+                                                <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><span className="text-xs text-white font-bold">Alterar</span></div>
+                                            </div>
+                                            <input type="file" ref={pwaIconInputRef} onChange={handlePwaIconUpload} className="hidden" accept="image/*" />
+                                            <p className="text-[10px] text-gray-500 mt-1">Recomendado: 512x512px, PNG ou JPG sem transparência.</p>
                                         </div>
                                     </div>
                                 </div>

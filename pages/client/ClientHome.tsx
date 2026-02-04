@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../src/supabaseClient';
 import clientService from '../../src/services/clientService';
 import PWAInstallPrompt from '../../components/client/PWAInstallPrompt';
+import { updateDynamicManifest } from '../../src/utils/pwaUtils';
 
 interface ClientHomeProps {
     tenant: any;
@@ -23,6 +24,12 @@ const ClientHome: React.FC<ClientHomeProps> = ({ tenant, clientData }) => {
     const general = appConfig?.general;
     const features = appConfig?.features;
     const primaryColor = general?.primaryColor || '#eab308';
+
+    useEffect(() => {
+        if (tenant) {
+            updateDynamicManifest(tenant);
+        }
+    }, [tenant]);
 
     useEffect(() => {
         loadData();
