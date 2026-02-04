@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Mail, Lock, User, Phone, Calendar, Eye, EyeOff, LogIn, UserPlus, Smartphone } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Phone, User, ArrowRight, MessageCircle, Star, ShieldCheck } from 'lucide-react';
 import clientService from '../../src/services/clientService';
 
 interface ClientLoginProps {
@@ -8,126 +8,45 @@ interface ClientLoginProps {
 }
 
 const ClientLogin: React.FC<ClientLoginProps> = ({ tenant, onLogin }) => {
-    const [mode, setMode] = useState<'login' | 'register' | 'otp'>('otp');
-    const [otpStep, setOtpStep] = useState<'phone' | 'code'>('phone');
-    const [showPassword, setShowPassword] = useState(false);
+    const [step, setStep] = useState<'phone' | 'name'>('phone');
+    const [phone, setPhone] = useState('');
+    const [name, setName] = useState('');
     const [loading, setLoading] = useState(false);
-
-    const [loginData, setLoginData] = useState({
-        phone: '',
-        password: ''
-    });
-
-    const [otpData, setOtpData] = useState({
-        phone: '',
-        code: ''
-    });
-
-    const [registerData, setRegisterData] = useState({
-        name: '',
-        phone: '',
-        email: '',
-        birthDate: '',
-        password: '',
-        confirmPassword: ''
-    });
+    const [foundClient, setFoundClient] = useState<any>(null);
 
     const appConfig = tenant?.settings?.app_config?.general;
     const primaryColor = appConfig?.primaryColor || '#eab308';
 
-    const handleSendOTP = async (e: React.FormEvent) => {
+    // Formatar Telefone automaticamente
+    const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        let value = e.target.value.replace(/\D/g, '');
+        if (value.length > 11) value = value.slice(0, 11);
+
+        if (value.length > 2) value = `(${value.slice(0, 2)}) ${value.slice(2)}`;
+        if (value.length > 9) value = `${value.slice(0, 9)}-${value.slice(9)}`;
+
+        setPhone(value);
+    };
+
+    const handleNext = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (phone.length < 14) return;
+
         setLoading(true);
         try {
-            const result = await clientService.requestOTP(otpData.phone);
+            const cleanPhone = phone.replace(/\D/g, '');
+            const client = await clientService.getByPhone(tenant.id, cleanPhone);
 
-            // Se houver código de dev (Simulação), mostrar em alerta
-            if (result?.dev_code) {
-                alert(`[MODO TESTE] Seu código de acesso é: ${result.dev_code}`);
+            if (client) {
+                // Cliente já existe -> LOGIN DIRETO
+                login(client);
+            } else {
+                // Novo cliente -> Pedir nome
+                setStep('name');
             }
-
-            setOtpStep('code');
         } catch (error) {
-            console.error('OTP request error:', error);
-            alert('Erro ao enviar código. Verifique o número.');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleVerifyOTP = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setLoading(true);
-        try {
-            const result = await clientService.verifyOTP(tenant.id, otpData.phone, otpData.code);
-
-            if (result.isNew) {
-                // Cliente novo que validou o telefone, levar para o registro pré-preenchido
-                alert('Telefone validado! Complete seu cadastro para continuar.');
-                setMode('register');
-                setRegisterData(prev => ({ ...prev, phone: result.phone }));
-                return;
-            }
-
-            // Cliente existente
-            const sessionData = {
-                clientId: result.id,
-                phone: result.phone,
-                name: result.name,
-                tenantId: tenant.id
-            };
-
-            localStorage.setItem(`client_session_${tenant.slug}`, JSON.stringify(sessionData));
-            onLogin(sessionData);
-        } catch (error: any) {
-            console.error('OTP verification error:', error);
-            if (error.message === 'invalid_code') {
-                alert('Código inválido ou expirado.');
-            } else {
-                alert('Erro ao verificar código.');
-            }
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleLogin = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setLoading(true);
-
-        try {
-            const result = await clientService.login(tenant.id, loginData.phone, loginData.password);
-
-            if (!result) {
-                alert('Cliente não encontrado! Cadastre-se ou use o Acesso Rápido.');
-                setLoading(false);
-                return;
-            }
-
-            if (result.needsPassword) {
-                alert('Sua conta foi migrada! Use o "Acesso por Código" para entrar rapidamente ou defina uma senha no cadastro.');
-                setMode('otp');
-                setOtpData({ ...otpData, phone: result.phone });
-                setLoading(false);
-                return;
-            }
-
-            const sessionData = {
-                clientId: result.id,
-                phone: result.phone,
-                name: result.name,
-                tenantId: tenant.id
-            };
-
-            localStorage.setItem(`client_session_${tenant.slug}`, JSON.stringify(sessionData));
-            onLogin(sessionData);
-        } catch (error: any) {
-            console.error('Login error:', error);
-            if (error.message === 'invalid_password') {
-                alert('Senha incorreta!');
-            } else {
-                alert('Erro ao fazer login.');
-            }
+            console.error('Error in fast login:', error);
+            alert('Erro ao verificar acesso. Tente novamente.');
         } finally {
             setLoading(false);
         }
@@ -135,301 +54,170 @@ const ClientLogin: React.FC<ClientLoginProps> = ({ tenant, onLogin }) => {
 
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!name.trim()) return;
+
         setLoading(true);
-
         try {
-            if (registerData.password !== registerData.confirmPassword) {
-                alert('As senhas não coincidem!');
-                setLoading(false);
-                return;
-            }
-
+            const cleanPhone = phone.replace(/\D/g, '');
+            // Registro sem senha (passwordless)
             const client = await clientService.register(tenant.id, {
-                name: registerData.name,
-                phone: registerData.phone,
-                email: registerData.email,
-                birthDate: registerData.birthDate,
-                password: registerData.password
+                name: name.trim(),
+                phone: cleanPhone,
+                password: '' // Vazio para login por telefone
             });
-
-            const sessionData = {
-                clientId: client.id,
-                phone: client.phone,
-                name: client.name,
-                tenantId: tenant.id
-            };
-
-            localStorage.setItem(`client_session_${tenant.slug}`, JSON.stringify(sessionData));
-            onLogin(sessionData);
-        } catch (error: any) {
-            console.error('Registration error:', error);
-            if (error.code === '23505') {
-                alert('Este telefone já está cadastrado!');
-            } else {
-                alert('Erro ao criar conta.');
-            }
+            login(client);
+        } catch (error) {
+            console.error('Error in registration:', error);
+            alert('Erro ao criar seu acesso.');
         } finally {
             setLoading(false);
         }
+    };
+
+    const login = (client: any) => {
+        const sessionData = {
+            clientId: client.id,
+            phone: client.phone,
+            name: client.name,
+            tenantId: tenant.id
+        };
+
+        localStorage.setItem(`client_session_${tenant.slug}`, JSON.stringify(sessionData));
+        onLogin(sessionData);
+    };
+
+    const handleWhatsAppLogin = () => {
+        const message = encodeURIComponent(`Olá! Gostaria de agendar um horário na ${appConfig?.name || 'barbearia'}.`);
+        window.open(`https://wa.me/${tenant?.settings?.app_config?.general?.phone?.replace(/\D/g, '')}?text=${message}`, '_blank');
     };
 
     return (
         <div
             className="min-h-screen flex flex-col items-center justify-center p-6"
             style={{
-                background: `linear-gradient(135deg, ${primaryColor}15 0%, #0f172a 100%)`
+                background: `radial-gradient(circle at top right, ${primaryColor}10, transparent), radial-gradient(circle at bottom left, #0f172a, #000000)`
             }}
         >
-            {/* Logo */}
-            <div className="mb-8 text-center">
-                {appConfig?.logoPreview && (
-                    <div className="w-24 h-24 mx-auto mb-4 rounded-2xl overflow-hidden bg-white shadow-xl">
+            {/* Header com Logo */}
+            <div className="mb-10 text-center animate-in fade-in zoom-in duration-700">
+                {appConfig?.logoPreview ? (
+                    <div className="w-28 h-28 mx-auto mb-6 rounded-3xl overflow-hidden bg-white shadow-2xl p-1 border-4 border-gray-900/50">
                         <img
                             src={appConfig.logoPreview}
                             alt={appConfig.name}
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-cover rounded-2xl"
                         />
                     </div>
+                ) : (
+                    <div className="w-20 h-20 mx-auto mb-6 rounded-3xl bg-gray-900 flex items-center justify-center border-2 border-gray-800 shadow-xl">
+                        <Star className="text-primary-500" size={32} />
+                    </div>
                 )}
-                <h1 className="text-2xl font-bold text-white">{appConfig?.name || 'BarberMaster'}</h1>
-                <p className="text-gray-400 text-sm mt-1">{appConfig?.slogan || 'Agende seu corte'}</p>
+                <h1 className="text-3xl font-black text-white tracking-tight">{appConfig?.name || 'BarberMaster'}</h1>
+                <p className="text-gray-500 text-sm mt-2 font-medium">Sua beleza em boas mãos</p>
             </div>
 
-            {/* Card de Login/Registro/OTP */}
-            <div className="w-full max-w-md bg-gray-900 rounded-2xl shadow-2xl border border-gray-800 overflow-hidden">
-                {/* Tabs */}
-                <div className="flex border-b border-gray-800">
-                    <button
-                        onClick={() => { setMode('otp'); setOtpStep('phone'); }}
-                        className={`flex-1 py-4 font-medium transition-colors ${mode === 'otp' ? 'border-b-2 text-white' : 'text-gray-400'}`}
-                        style={{ borderColor: mode === 'otp' ? primaryColor : 'transparent' }}
-                    >
-                        <Smartphone className="inline-block mr-2" size={18} />
-                        Código
-                    </button>
-                    <button
-                        onClick={() => setMode('login')}
-                        className={`flex-1 py-4 font-medium transition-colors ${mode === 'login' ? 'border-b-2 text-white' : 'text-gray-400'}`}
-                        style={{ borderColor: mode === 'login' ? primaryColor : 'transparent' }}
-                    >
-                        <LogIn className="inline-block mr-2" size={18} />
-                        Senha
-                    </button>
-                    <button
-                        onClick={() => setMode('register')}
-                        className={`flex-1 py-4 font-medium transition-colors ${mode === 'register' ? 'border-b-2 text-white' : 'text-gray-400'}`}
-                        style={{ borderColor: mode === 'register' ? primaryColor : 'transparent' }}
-                    >
-                        <UserPlus className="inline-block mr-2" size={18} />
-                        Cadastrar
-                    </button>
-                </div>
+            {/* Card de Ação */}
+            <div className="w-full max-w-sm animate-in slide-in-from-bottom-8 duration-500">
+                <div className="bg-gray-900/40 backdrop-blur-xl rounded-[2.5rem] p-8 border border-white/5 shadow-2xl relative overflow-hidden">
+                    {/* Efeito Glow no fundo do card */}
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-primary-500/5 blur-3xl -mr-16 -mt-16"></div>
 
-                <div className="p-6">
-                    {mode === 'otp' ? (
-                        <div className="space-y-4">
-                            {otpStep === 'phone' ? (
-                                <form onSubmit={handleSendOTP} className="space-y-4">
-                                    <p className="text-sm text-gray-400 text-center mb-4">
-                                        Digite seu celular para receber um código de acesso por mensagem.
-                                    </p>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-300 mb-2">Telefone</label>
-                                        <div className="relative">
-                                            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                                            <input
-                                                type="tel"
-                                                value={otpData.phone}
-                                                onChange={(e) => setOtpData({ ...otpData, phone: e.target.value })}
-                                                placeholder="(11) 99999-9999"
-                                                className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-10 pr-4 py-3 text-white focus:outline-none focus:border-primary-500"
-                                                required
-                                            />
-                                        </div>
-                                    </div>
-                                    <button
-                                        type="submit"
-                                        disabled={loading}
-                                        className="w-full py-3 rounded-lg font-bold text-dark-950 transition-all hover:scale-105 disabled:opacity-50"
-                                        style={{ backgroundColor: primaryColor }}
-                                    >
-                                        {loading ? 'Enviando...' : 'Receber Código'}
-                                    </button>
-                                </form>
-                            ) : (
-                                <form onSubmit={handleVerifyOTP} className="space-y-4">
-                                    <p className="text-sm text-gray-400 text-center mb-4">
-                                        Enviamos um código de 6 dígitos para <strong>{otpData.phone}</strong>.
-                                    </p>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-300 mb-2">Código de Segurança</label>
-                                        <div className="relative">
-                                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                                            <input
-                                                type="text"
-                                                value={otpData.code}
-                                                onChange={(e) => setOtpData({ ...otpData, code: e.target.value })}
-                                                placeholder="000 000"
-                                                maxLength={6}
-                                                className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-10 pr-4 py-3 text-white text-center tracking-widest text-xl font-bold focus:outline-none focus:border-primary-500"
-                                                required
-                                            />
-                                        </div>
-                                    </div>
-                                    <button
-                                        type="submit"
-                                        disabled={loading}
-                                        className="w-full py-3 rounded-lg font-bold text-dark-950 transition-all hover:scale-105 disabled:opacity-50"
-                                        style={{ backgroundColor: primaryColor }}
-                                    >
-                                        {loading ? 'Verificando...' : 'Confirmar e Entrar'}
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setOtpStep('phone')}
-                                        className="w-full text-sm text-gray-500 hover:text-white transition-colors"
-                                    >
-                                        Alterar telefone
-                                    </button>
-                                </form>
-                            )}
-                        </div>
-                    ) : mode === 'login' ? (
-                        <form onSubmit={handleLogin} className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-2">Telefone</label>
-                                <div className="relative">
-                                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                                    <input
-                                        type="tel"
-                                        value={loginData.phone}
-                                        onChange={(e) => setLoginData({ ...loginData, phone: e.target.value })}
-                                        placeholder="(11) 99999-9999"
-                                        className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-10 pr-4 py-3 text-white focus:outline-none focus:border-primary-500"
-                                        required
-                                    />
-                                </div>
+                    {step === 'phone' ? (
+                        <form onSubmit={handleNext} className="space-y-6 relative">
+                            <div className="text-center mb-4">
+                                <h2 className="text-xl font-bold text-white">Acesso Rápido</h2>
+                                <p className="text-gray-400 text-xs mt-1">Entre com seu WhatsApp para agendar</p>
                             </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-2">Senha</label>
-                                <div className="relative">
-                                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1">Seu Telefone</label>
+                                <div className="relative group">
+                                    <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary-500 transition-colors" size={20} />
                                     <input
-                                        type={showPassword ? 'text' : 'password'}
-                                        value={loginData.password}
-                                        onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
-                                        placeholder="••••••••"
-                                        className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-10 pr-12 py-3 text-white focus:outline-none focus:border-primary-500"
+                                        type="tel"
+                                        value={phone}
+                                        onChange={handlePhoneChange}
+                                        placeholder="(00) 00000-0000"
+                                        className="w-full bg-gray-950/50 border border-gray-800 rounded-2xl pl-12 pr-4 py-4 text-white text-lg font-bold focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all placeholder:text-gray-700"
                                         required
+                                        autoFocus
                                     />
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
-                                    >
-                                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                                    </button>
                                 </div>
                             </div>
 
                             <button
                                 type="submit"
-                                disabled={loading}
-                                className="w-full py-3 rounded-lg font-bold text-dark-950 transition-all hover:scale-105 disabled:opacity-50"
+                                disabled={loading || phone.length < 14}
+                                className="w-full py-4 rounded-2xl font-black text-dark-950 text-lg shadow-xl shadow-primary-500/20 transition-all hover:scale-[1.03] active:scale-[0.98] disabled:opacity-50 disabled:grayscale flex items-center justify-center gap-2"
                                 style={{ backgroundColor: primaryColor }}
                             >
-                                {loading ? 'Entrando...' : 'Entrar'}
+                                {loading ? 'Carregando...' : (
+                                    <>Acessar App <ArrowRight size={20} /></>
+                                )}
+                            </button>
+
+                            <div className="flex items-center gap-4 py-2">
+                                <div className="h-px flex-1 bg-gray-800"></div>
+                                <span className="text-[10px] font-bold text-gray-600 uppercase tracking-widest">ou</span>
+                                <div className="h-px flex-1 bg-gray-800"></div>
+                            </div>
+
+                            <button
+                                type="button"
+                                onClick={handleWhatsAppLogin}
+                                className="w-full py-4 bg-[#25D366]/10 hover:bg-[#25D366]/20 text-[#25D366] rounded-2xl font-bold flex items-center justify-center gap-2 transition-all border border-[#25D366]/20"
+                            >
+                                <MessageCircle size={20} /> Entrar via WhatsApp
                             </button>
                         </form>
                     ) : (
-                        <form onSubmit={handleRegister} className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-2">Nome Completo</label>
-                                <div className="relative">
-                                    <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                        <form onSubmit={handleRegister} className="space-y-6 relative">
+                            <div className="text-center mb-4">
+                                <h2 className="text-xl font-bold text-white">Quase lá!</h2>
+                                <p className="text-gray-400 text-xs mt-1">Como devemos te chamar?</p>
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1">Seu Nome</label>
+                                <div className="relative group">
+                                    <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary-500 transition-colors" size={20} />
                                     <input
                                         type="text"
-                                        value={registerData.name}
-                                        onChange={(e) => setRegisterData({ ...registerData, name: e.target.value })}
-                                        placeholder="Seu nome"
-                                        className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-10 pr-4 py-3 text-white focus:outline-none focus:border-primary-500"
+                                        value={name}
+                                        onChange={(e) => setName(e.target.value)}
+                                        placeholder="Seu nome completo"
+                                        className="w-full bg-gray-950/50 border border-gray-800 rounded-2xl pl-12 pr-4 py-4 text-white text-lg font-bold focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all"
                                         required
+                                        autoFocus
                                     />
                                 </div>
                             </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-2">Telefone</label>
-                                <div className="relative">
-                                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                                    <input
-                                        type="tel"
-                                        value={registerData.phone}
-                                        onChange={(e) => setRegisterData({ ...registerData, phone: e.target.value })}
-                                        placeholder="(11) 99999-9999"
-                                        className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-10 pr-4 py-3 text-white focus:outline-none focus:border-primary-500"
-                                        required
-                                    />
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-2">E-mail (opcional)</label>
-                                <div className="relative">
-                                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                                    <input
-                                        type="email"
-                                        value={registerData.email}
-                                        onChange={(e) => setRegisterData({ ...registerData, email: e.target.value })}
-                                        placeholder="seu@email.com"
-                                        className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-10 pr-4 py-3 text-white focus:outline-none focus:border-primary-500"
-                                    />
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-2">Data de Nascimento</label>
-                                <div className="relative">
-                                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                                    <input
-                                        type="date"
-                                        value={registerData.birthDate}
-                                        onChange={(e) => setRegisterData({ ...registerData, birthDate: e.target.value })}
-                                        className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-10 pr-4 py-3 text-white focus:outline-none focus:border-primary-500"
-                                    />
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-2">Senha</label>
-                                <div className="relative">
-                                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                                    <input
-                                        type={showPassword ? 'text' : 'password'}
-                                        value={registerData.password}
-                                        onChange={(e) => setRegisterData({ ...registerData, password: e.target.value })}
-                                        placeholder="••••••••"
-                                        className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-10 pr-12 py-3 text-white focus:outline-none focus:border-primary-500"
-                                        required
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
-                                    >
-                                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                                    </button>
-                                </div>
+                            <div className="bg-primary-500/5 p-4 rounded-2xl border border-primary-500/10 flex items-start gap-3">
+                                <ShieldCheck className="text-primary-500 shrink-0" size={18} />
+                                <p className="text-[10px] text-gray-400 leading-relaxed font-medium">
+                                    Seus dados estão seguros. Usamos seu telefone apenas para gerenciar seus agendamentos e pontos de fidelidade.
+                                </p>
                             </div>
 
                             <button
                                 type="submit"
-                                disabled={loading}
-                                className="w-full py-3 rounded-lg font-bold text-dark-950 transition-all hover:scale-105 disabled:opacity-50"
+                                disabled={loading || !name.trim()}
+                                className="w-full py-4 rounded-2xl font-black text-dark-950 text-lg shadow-xl shadow-primary-500/20 transition-all hover:scale-[1.03] active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
                                 style={{ backgroundColor: primaryColor }}
                             >
-                                {loading ? 'Criando conta...' : 'Criar Conta'}
+                                {loading ? 'Criando conta...' : (
+                                    <>Finalizar e Entrar <ArrowRight size={20} /></>
+                                )}
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => setStep('phone')}
+                                className="w-full text-xs font-bold text-gray-600 hover:text-gray-400 transition-colors"
+                            >
+                                Voltar e alterar telefone
                             </button>
                         </form>
                     )}
@@ -437,9 +225,11 @@ const ClientLogin: React.FC<ClientLoginProps> = ({ tenant, onLogin }) => {
             </div>
 
             {/* Footer */}
-            <p className="text-gray-500 text-xs mt-6 text-center">
-                Ao continuar, você concorda com nossos termos de serviço
-            </p>
+            <div className="mt-auto pt-10 text-center space-y-2 opacity-50">
+                <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest">
+                    Seguro • Rápido • Gratuito
+                </p>
+            </div>
         </div>
     );
 };

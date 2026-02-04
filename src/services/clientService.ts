@@ -129,6 +129,19 @@ export const clientService = {
         return client || { phone, isNew: true };
     },
 
+    // Buscar por telefone (Acesso rápido)
+    async getByPhone(tenantId: string, phone: string): Promise<Client | null> {
+        const { data, error } = await supabase
+            .from('clients')
+            .select('*')
+            .eq('tenant_id', tenantId)
+            .eq('phone', phone)
+            .maybeSingle();
+
+        if (error) throw error;
+        return data;
+    },
+
     // Login (Legado ou via senha se configurado)
     async login(tenantId: string, phone: string, password?: string): Promise<any> {
         const { data, error } = await supabase
