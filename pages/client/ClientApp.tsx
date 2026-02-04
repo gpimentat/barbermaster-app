@@ -242,6 +242,12 @@ const ClientApp: React.FC = () => {
         setIsAuthenticated(false);
     };
 
+    const handleUpdateProfile = (newData: any) => {
+        const updatedData = { ...clientData, ...newData };
+        setClientData(updatedData);
+        localStorage.setItem(`client_session_${resolvedSlug}`, JSON.stringify(updatedData));
+    };
+
     if (loading) {
         return (
             <div className="min-h-screen bg-gray-950 flex items-center justify-center">
@@ -272,7 +278,7 @@ const ClientApp: React.FC = () => {
                 <Route path="/booking" element={<ClientBooking tenant={tenant} clientData={clientData} />} />
                 <Route path="/rewards" element={<ClientRewards tenant={tenant} clientData={clientData} />} />
                 <Route path="/partners" element={<ClientPartners tenant={tenant} />} />
-                <Route path="/profile" element={<ClientProfile tenant={tenant} clientData={clientData} onLogout={handleLogout} />} />
+                <Route path="/profile" element={<ClientProfile tenant={tenant} clientData={clientData} onLogout={handleLogout} onUpdateProfile={handleUpdateProfile} />} />
                 <Route path="/plans" element={<ClientSubscriptionPlans tenant={tenant} clientData={clientData} />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

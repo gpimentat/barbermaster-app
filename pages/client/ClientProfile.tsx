@@ -7,11 +7,12 @@ interface ClientProfileProps {
     tenant: any;
     clientData: any;
     onLogout: () => void;
+    onUpdateProfile: (newData: any) => void;
 }
 
 type SubScreen = 'main' | 'history' | 'purchases' | 'rewards' | 'notifications';
 
-const ClientProfile: React.FC<ClientProfileProps> = ({ tenant, clientData, onLogout }) => {
+const ClientProfile: React.FC<ClientProfileProps> = ({ tenant, clientData, onLogout, onUpdateProfile }) => {
     const navigate = useNavigate();
     const [subScreen, setSubScreen] = useState<SubScreen>('main');
     const [client, setClient] = useState<any>(null);
@@ -108,6 +109,9 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ tenant, clientData, onLog
                 email: editData.email,
                 birth_date: editData.birthDate
             });
+
+            // Sincronizar com a sessão global e localstorage
+            onUpdateProfile({ name: editData.name });
 
             setClient({ ...client, ...editData });
             setEditing(false);
