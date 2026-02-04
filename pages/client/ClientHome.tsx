@@ -123,24 +123,24 @@ const ClientHome: React.FC<ClientHomeProps> = ({ tenant, clientData }) => {
             default:
                 return (
                     <div
-                        className="relative h-48 bg-gradient-to-br from-gray-800 to-gray-900 animate-in fade-in duration-500"
+                        className="relative h-56 bg-gradient-to-br from-gray-800 to-gray-900 animate-in fade-in duration-700"
                         style={{
-                            backgroundImage: general?.coverPreview ? `url(${general.coverPreview})` : undefined,
+                            backgroundImage: general?.coverPreview ? `linear-gradient(rgba(0,0,0,0.2), rgba(15,23,42,1)), url(${general.coverPreview})` : undefined,
                             backgroundSize: 'cover',
                             backgroundPosition: 'center'
                         }}
                     >
-                        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-gray-950"></div>
-                        <div className="relative pt-6 px-6">
-                            <div className="flex items-center gap-3">
+                        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-gray-950"></div>
+                        <div className="relative pt-12 px-6">
+                            <div className="flex flex-col items-center text-center gap-4">
                                 {general?.logoPreview && (
-                                    <div className="w-16 h-16 rounded-2xl overflow-hidden bg-white shadow-lg">
-                                        <img src={general.logoPreview} alt={general.name} className="w-full h-full object-cover" />
+                                    <div className="w-20 h-20 rounded-3xl overflow-hidden bg-white shadow-2xl p-1 border-4 border-gray-950">
+                                        <img src={general.logoPreview} alt={general.name} className="w-full h-full object-contain rounded-2xl" />
                                     </div>
                                 )}
                                 <div>
-                                    <h1 className="text-xl font-bold text-white">{general?.name || 'BarberMaster'}</h1>
-                                    <p className="text-sm text-gray-300">{general?.slogan || 'O melhor corte da cidade'}</p>
+                                    <h1 className="text-2xl font-black text-white tracking-tight leading-tight">{general?.name || 'BarberMaster'}</h1>
+                                    <p className="text-[10px] text-primary-500 font-bold uppercase tracking-[0.3em] mt-1">{general?.slogan || 'O melhor corte da cidade'}</p>
                                 </div>
                             </div>
                         </div>
@@ -155,10 +155,10 @@ const ClientHome: React.FC<ClientHomeProps> = ({ tenant, clientData }) => {
 
             <div className={`px-6 space-y-6 ${homeStyle === 'classic' ? '-mt-6' : 'mt-6'}`}>
                 {/* Saudação */}
-                <div className={`bg-gray-900/50 backdrop-blur-sm rounded-2xl p-4 border border-gray-800 flex items-center justify-between transition-all hover:border-gray-700`}>
+                <div className={`bg-gray-900/60 backdrop-blur-xl rounded-[2rem] p-6 border border-white/5 flex items-center justify-between transition-all hover:bg-gray-900/80 shadow-2xl`}>
                     <div>
-                        <p className="text-gray-400 text-xs">Acesso restrito para</p>
-                        <p className="text-white text-lg font-black">{clientData?.name || 'Cliente'}! 👋</p>
+                        <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest mb-1">Bem-vindo(a),</p>
+                        <p className="text-white text-xl font-black italic">{clientData?.name?.split(' ')[0] || 'Cliente'}! 👋</p>
                     </div>
                     {homeStyle === 'minimal' && (
                         <div className="text-right">
@@ -171,33 +171,38 @@ const ClientHome: React.FC<ClientHomeProps> = ({ tenant, clientData }) => {
                 {/* Próximo Agendamento */}
                 {nextAppointment ? (
                     <div
-                        className={`bg-gradient-to-br from-gray-900 to-gray-800 rounded-3xl p-6 border-2 shadow-2xl transition-transform active:scale-[0.98]`}
-                        style={{ borderColor: primaryColor }}
+                        className={`bg-gray-900/80 backdrop-blur-md rounded-[2.5rem] p-8 border-t-2 shadow-[0_20px_50px_rgba(0,0,0,0.5)] transition-transform active:scale-[0.98] relative overflow-hidden`}
+                        style={{ borderTopColor: primaryColor }}
                     >
-                        <div className="flex items-start justify-between mb-4">
-                            <div>
-                                <p className="text-[10px] uppercase tracking-[0.2em] font-black mb-1" style={{ color: primaryColor }}>Próximo Corte</p>
-                                <p className="text-2xl font-black text-white mt-1">
-                                    {formatDate(nextAppointment.date)}, {nextAppointment.time}
-                                </p>
+                        {/* Efeito de luz de fundo */}
+                        <div className="absolute -top-24 -right-24 w-48 h-48 rounded-full blur-[80px] opacity-20" style={{ backgroundColor: primaryColor }}></div>
+
+                        <div className="relative z-10">
+                            <div className="flex items-start justify-between mb-4">
+                                <div>
+                                    <p className="text-[10px] uppercase tracking-[0.2em] font-black mb-1" style={{ color: primaryColor }}>Próximo Corte</p>
+                                    <p className="text-2xl font-black text-white mt-1">
+                                        {formatDate(nextAppointment.date)}, {nextAppointment.time}
+                                    </p>
+                                </div>
+                                <div className="bg-white/5 p-3 rounded-2xl border border-white/5">
+                                    <Calendar className="text-white" size={24} />
+                                </div>
                             </div>
-                            <div className="bg-white/5 p-3 rounded-2xl border border-white/5">
-                                <Calendar className="text-white" size={24} />
+                            <div className="flex items-center gap-2 text-gray-400 mb-6 font-medium">
+                                <Clock size={16} />
+                                <span className="text-sm">
+                                    {nextAppointment.barber?.name} • {nextAppointment.service?.name}
+                                </span>
                             </div>
+                            <button
+                                onClick={() => navigate(`/app/${tenant.slug}/booking`)}
+                                className="w-full py-4 rounded-xl font-black text-dark-950 transition-all shadow-lg active:translate-y-1"
+                                style={{ backgroundColor: primaryColor }}
+                            >
+                                Ver Detalhes do Horário
+                            </button>
                         </div>
-                        <div className="flex items-center gap-2 text-gray-400 mb-6 font-medium">
-                            <Clock size={16} />
-                            <span className="text-sm">
-                                {nextAppointment.barber?.name} • {nextAppointment.service?.name}
-                            </span>
-                        </div>
-                        <button
-                            onClick={() => navigate(`/app/${tenant.slug}/booking`)}
-                            className="w-full py-4 rounded-xl font-black text-dark-950 transition-all shadow-lg active:translate-y-1"
-                            style={{ backgroundColor: primaryColor }}
-                        >
-                            Ver Detalhes do Horário
-                        </button>
                     </div>
                 ) : (
                     <div className="bg-gray-900/40 rounded-3xl p-8 border border-gray-800 text-center shadow-xl group hover:border-gray-700 transition-all">

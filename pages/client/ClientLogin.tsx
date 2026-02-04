@@ -93,9 +93,10 @@ const ClientLogin: React.FC<ClientLoginProps> = ({ tenant, onLogin }) => {
 
     return (
         <div
-            className="min-h-screen flex flex-col items-center justify-center p-6"
+            className="min-h-screen flex flex-col items-center justify-center p-6 transition-all duration-700"
             style={{
-                background: `radial-gradient(circle at top right, ${primaryColor}10, transparent), radial-gradient(circle at bottom left, #0f172a, #000000)`
+                backgroundColor: primaryColor,
+                backgroundImage: `linear-gradient(135deg, ${primaryColor} 0%, #000000 150%)`
             }}
         >
             {/* Header com Logo */}

@@ -1521,7 +1521,7 @@ const AppCustomizationPage: React.FC = () => {
                                                                 </div>
                                                                 <div>
                                                                     <span className="text-xs font-black text-white block">{s.name}</span>
-                                                                    <span className="text-[10px] text-gray-400">R$ {s.price} • {s.durationMinutes}m</span>
+                                                                    <span className="text-[10px] text-gray-400">R$ {s.price} • {s.duration}m</span>
                                                                 </div>
                                                             </div>
                                                             <button
@@ -1949,86 +1949,103 @@ const AppCustomizationPage: React.FC = () => {
                         {previewScreen === 'login' && (
                             <div
                                 className="flex-1 overflow-hidden relative font-sans flex flex-col items-center justify-center p-6 transition-all duration-500 animate-in fade-in"
-                                style={{ backgroundColor: settings.primaryColor }}
+                                style={{
+                                    backgroundColor: settings.primaryColor,
+                                    backgroundImage: `linear-gradient(135deg, ${settings.primaryColor} 0%, #000000 150%)`
+                                }}
                             >
-                                <div className="w-28 h-28 bg-white rounded-3xl shadow-2xl flex items-center justify-center mb-8 p-3 animate-in zoom-in duration-500">
+                                <div className="w-20 h-20 bg-white rounded-2xl shadow-2xl flex items-center justify-center mb-6 p-2 animate-in zoom-in duration-500">
                                     <img src={settings.logoPreview} className="w-full h-full object-contain rounded-xl" />
                                 </div>
 
-                                <div className="w-full max-w-xs space-y-4">
-                                    {previewLoginStep === 'phone' && (
-                                        <div className="space-y-4 animate-in slide-in-from-bottom duration-300">
-                                            <div>
-                                                <label className="block text-white/80 text-xs font-bold mb-2">Número de Telefone</label>
-                                                <input
-                                                    type="tel"
-                                                    placeholder="(11) 99999-9999"
-                                                    value={previewPhone}
-                                                    onChange={(e) => setPreviewPhone(e.target.value)}
-                                                    className="w-full px-4 py-3 rounded-xl bg-white/20 backdrop-blur-sm border-2 border-white/30 text-white placeholder-white/50 font-medium focus:outline-none focus:border-white/60 transition-all"
-                                                />
-                                            </div>
-                                            <button
-                                                onClick={() => {
-                                                    if (previewPhone.length >= 10) {
-                                                        setPreviewLoginStep('otp');
-                                                        setPreviewOTPSent(true);
-                                                    }
-                                                }}
-                                                disabled={previewPhone.length < 10}
-                                                className="w-full bg-white text-dark-950 px-8 py-4 rounded-xl font-bold shadow-xl hover:scale-105 transition-transform flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-                                            >
-                                                Enviar Código <Send size={18} />
-                                            </button>
-                                        </div>
-                                    )}
+                                <div className="w-full max-w-xs animate-in slide-in-from-bottom-8 duration-500">
+                                    <div className="bg-gray-900/40 backdrop-blur-xl rounded-[2rem] p-6 border border-white/5 shadow-2xl">
 
-                                    {previewLoginStep === 'otp' && (
-                                        <div className="space-y-4 animate-in slide-in-from-bottom duration-300">
-                                            <button
-                                                onClick={() => setPreviewLoginStep('phone')}
-                                                className="flex items-center gap-2 text-white/80 text-sm font-medium mb-2 hover:text-white transition-colors"
-                                            >
-                                                <ArrowLeft size={16} /> Voltar
-                                            </button>
-                                            <div>
-                                                <label className="block text-white/80 text-xs font-bold mb-2">
-                                                    Código enviado para {previewPhone}
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    placeholder="000000"
-                                                    maxLength={6}
-                                                    value={previewOTP}
-                                                    onChange={(e) => setPreviewOTP(e.target.value.replace(/\D/g, ''))}
-                                                    className="w-full px-4 py-3 rounded-xl bg-white/20 backdrop-blur-sm border-2 border-white/30 text-white text-center text-2xl font-bold tracking-widest placeholder-white/50 focus:outline-none focus:border-white/60 transition-all"
-                                                />
+                                        {previewLoginStep === 'phone' ? (
+                                            <div className="space-y-4">
+                                                <div className="text-center mb-2">
+                                                    <h2 className="text-base font-bold text-white leading-tight">Acesso Rápido</h2>
+                                                    <p className="text-gray-400 text-[10px] mt-0.5">Entre com seu WhatsApp</p>
+                                                </div>
+
+                                                <div className="space-y-1">
+                                                    <label className="text-[8px] font-black uppercase tracking-widest text-gray-500 ml-1">Seu Telefone</label>
+                                                    <div className="relative">
+                                                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                                                        <input
+                                                            type="tel"
+                                                            placeholder="(11) 99999-9999"
+                                                            value={previewPhone}
+                                                            onChange={(e) => setPreviewPhone(e.target.value)}
+                                                            className="w-full bg-gray-950/50 border border-gray-800 rounded-xl pl-10 pr-4 py-3 text-white text-sm font-bold focus:outline-none focus:border-primary-500 transition-all placeholder:text-gray-700"
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                <button
+                                                    onClick={() => {
+                                                        if (previewPhone.length >= 10) {
+                                                            setPreviewLoginStep('otp'); // Usando o estado existente para simular o segundo passo (Nome)
+                                                        }
+                                                    }}
+                                                    className="w-full py-3 rounded-xl font-black text-dark-950 text-sm shadow-xl transition-all"
+                                                    style={{ backgroundColor: settings.primaryColor }}
+                                                >
+                                                    Acessar App
+                                                </button>
+
+                                                <div className="flex items-center gap-2 py-1">
+                                                    <div className="h-px flex-1 bg-gray-800"></div>
+                                                    <span className="text-[8px] font-bold text-gray-600 uppercase">ou</span>
+                                                    <div className="h-px flex-1 bg-gray-800"></div>
+                                                </div>
+
+                                                <button className="w-full py-3 bg-[#25D366]/10 text-[#25D366] rounded-xl font-bold flex items-center justify-center gap-2 text-xs border border-[#25D366]/10">
+                                                    <MessageCircle size={14} /> WhatsApp
+                                                </button>
                                             </div>
-                                            <button
-                                                onClick={() => {
-                                                    if (previewOTP.length === 6) {
+                                        ) : (
+                                            <div className="space-y-4">
+                                                <div className="text-center mb-2">
+                                                    <h2 className="text-base font-bold text-white">Quase lá!</h2>
+                                                    <p className="text-gray-400 text-[10px] mt-0.5">Como devemos te chamar?</p>
+                                                </div>
+
+                                                <div className="space-y-1">
+                                                    <label className="text-[8px] font-black uppercase tracking-widest text-gray-500 ml-1">Seu Nome</label>
+                                                    <div className="relative">
+                                                        <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                                                        <input
+                                                            type="text"
+                                                            placeholder="João Silva"
+                                                            className="w-full bg-gray-950/50 border border-gray-800 rounded-xl pl-10 pr-4 py-3 text-white text-sm font-bold focus:outline-none focus:border-primary-500"
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                <button
+                                                    onClick={() => {
                                                         setPreviewScreen('app');
                                                         setPreviewLoginStep('phone');
-                                                        setPreviewPhone('');
-                                                        setPreviewOTP('');
-                                                    }
-                                                }}
-                                                disabled={previewOTP.length !== 6}
-                                                className="w-full bg-white text-dark-950 px-8 py-4 rounded-xl font-bold shadow-xl hover:scale-105 transition-transform flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-                                            >
-                                                Entrar no App <ArrowRight size={18} />
-                                            </button>
-                                            <button
-                                                onClick={() => setPreviewOTPSent(true)}
-                                                className="w-full text-white/60 text-sm font-medium hover:text-white transition-colors"
-                                            >
-                                                Reenviar código
-                                            </button>
-                                        </div>
-                                    )}
+                                                    }}
+                                                    className="w-full py-3 rounded-xl font-black text-dark-950 text-sm shadow-xl transition-all"
+                                                    style={{ backgroundColor: settings.primaryColor }}
+                                                >
+                                                    Finalizar e Entrar
+                                                </button>
+
+                                                <button
+                                                    onClick={() => setPreviewLoginStep('phone')}
+                                                    className="w-full text-[10px] font-bold text-gray-600"
+                                                >
+                                                    Voltar
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
 
-                                <p className="mt-6 text-white/60 text-xs font-medium">Preview do fluxo de login</p>
+                                <p className="mt-6 text-white/50 text-[10px] font-medium uppercase tracking-widest">Preview do fluxo de login</p>
                             </div>
                         )}
                     </div>
