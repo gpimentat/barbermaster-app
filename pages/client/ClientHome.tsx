@@ -3,6 +3,7 @@ import { Calendar, Clock, Gift, Star, TrendingUp, Phone, MapPin, Bell, X, Camera
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../src/supabaseClient';
 import clientService from '../../src/services/clientService';
+import PWAInstallPrompt from '../../components/client/PWAInstallPrompt';
 
 interface ClientHomeProps {
     tenant: any;
@@ -184,6 +185,7 @@ const ClientHome: React.FC<ClientHomeProps> = ({ tenant, clientData }) => {
 
     return (
         <div className="min-h-screen bg-gray-950 pb-6">
+            <PWAInstallPrompt primaryColor={primaryColor} />
             {renderHeader()}
 
             <div className={`px-6 space-y-6 ${homeStyle === 'classic' ? '-mt-6' : 'mt-6'}`}>
