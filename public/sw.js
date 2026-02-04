@@ -1,4 +1,4 @@
-const CACHE_NAME = 'barbermaster-v15';
+const CACHE_NAME = 'barbermaster-v16';
 const urlsToCache = [
     '/',
     '/index.html',
@@ -7,7 +7,7 @@ const urlsToCache = [
 
 // Install
 self.addEventListener('install', (event) => {
-    console.log('SW: Instalando v15...');
+    console.log('SW: Instalando v16...');
     self.skipWaiting();
     event.waitUntil(
         caches.open(CACHE_NAME)
@@ -37,7 +37,7 @@ self.addEventListener('fetch', (event) => {
 
 // Activate
 self.addEventListener('activate', (event) => {
-    console.log('SW: Ativando v15 e limpando caches antigos...');
+    console.log('SW: Ativando v16 e limpando caches antigos...');
     event.waitUntil(
         Promise.all([
             self.clients.claim(),
@@ -57,7 +57,7 @@ self.addEventListener('activate', (event) => {
 
 // Push Notifications Listener
 self.addEventListener('push', (event) => {
-    let data = { title: 'BarberMaster', body: 'Nova notificação!', icon: '/icon-192-v15.png' };
+    let data = { title: 'BarberMaster', body: 'Nova notificação!', icon: '/icon-192-v16.png' };
 
     if (event.data) {
         try {
@@ -69,8 +69,8 @@ self.addEventListener('push', (event) => {
 
     const options = {
         body: data.body,
-        icon: data.icon || '/icon-192-v15.png',
-        badge: '/icon-192-v15.png',
+        icon: data.icon || '/icon-192-v16.png',
+        badge: '/icon-192-v16.png',
         vibrate: [100, 50, 100],
         data: {
             url: data.url || '/'
