@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Calendar, Clock, Gift, Star, TrendingUp, Phone, MapPin } from 'lucide-react';
+import { Calendar, Clock, Gift, Star, TrendingUp, Phone, MapPin, Bell, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../src/supabaseClient';
 import clientService from '../../src/services/clientService';
@@ -15,6 +15,8 @@ const ClientHome: React.FC<ClientHomeProps> = ({ tenant, clientData }) => {
     const [loyaltyPoints, setLoyaltyPoints] = useState(0);
     const [services, setServices] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [showPushPrompt, setShowPushPrompt] = useState(false);
+    const [pushLoading, setPushLoading] = useState(false);
 
     const appConfig = tenant?.settings?.app_config;
     const general = appConfig?.general;
@@ -50,11 +52,42 @@ const ClientHome: React.FC<ClientHomeProps> = ({ tenant, clientData }) => {
                 .limit(3);
 
             if (servicesData) setServices(servicesData);
+
+            // Verificar se deve mostrar prompt de notificação
+            const isSubscribed = await clientService.checkPushSubscription();
+            const isDismissed = localStorage.getItem('push_prompt_dismissed');
+            if (!isSubscribed && !isDismissed) {
+                setShowPushPrompt(true);
+            }
         } catch (error) {
             console.error('Error loading data:', error);
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleEnablePush = async () => {
+        if (!clientData?.clientId) return;
+        setPushLoading(true);
+        try {
+            await clientService.subscribeToPush(clientData.clientId, tenant.id);
+            setShowPushPrompt(false);
+            alert('✅ Notificações ativadas! Agora você não perde nenhum horário.');
+        } catch (error: any) {
+            console.error('Push subscription error:', error);
+            // Se for negado, não mostramos erro invasivo, apenas logamos
+            if (error.message === 'Permissão negada') {
+                setShowPushPrompt(false);
+                localStorage.setItem('push_prompt_dismissed', 'true');
+            }
+        } finally {
+            setPushLoading(false);
+        }
+    };
+
+    const handleDismissPush = () => {
+        setShowPushPrompt(false);
+        localStorage.setItem('push_prompt_dismissed', 'true');
     };
 
     const formatDate = (dateString: string) => {
@@ -154,6 +187,39 @@ const ClientHome: React.FC<ClientHomeProps> = ({ tenant, clientData }) => {
             {renderHeader()}
 
             <div className={`px-6 space-y-6 ${homeStyle === 'classic' ? '-mt-6' : 'mt-6'}`}>
+                {/* Prompt de Notificação Persistente */}
+                {showPushPrompt && (
+                    <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-3xl p-5 border border-primary-500/20 shadow-2xl animate-in slide-in-from-top-4 duration-500 relative overflow-hidden group">
+                        {/* Botão X Discreto */}
+                        <button
+                            onClick={handleDismissPush}
+                            className="absolute top-3 right-3 p-1 text-gray-700 hover:text-gray-400 transition-colors z-20"
+                        >
+                            <X size={14} />
+                        </button>
+
+                        <div className="absolute -right-8 -top-8 w-24 h-24 bg-primary-500/10 rounded-full blur-2xl group-hover:bg-primary-500/20 transition-all"></div>
+
+                        <div className="flex items-start gap-4 relative z-10">
+                            <div className="w-12 h-12 rounded-2xl bg-primary-500/10 flex items-center justify-center shrink-0 border border-primary-500/20">
+                                <Bell className="text-primary-500 animate-bounce" size={24} />
+                            </div>
+                            <div className="flex-1">
+                                <h3 className="text-white font-black text-sm uppercase tracking-wider mb-1">Ativar Avisos? 🔔</h3>
+                                <p className="text-gray-400 text-xs leading-relaxed mb-4">
+                                    Receba lembretes automáticos dos seus agendamentos e promoções exclusivas.
+                                </p>
+                                <button
+                                    onClick={handleEnablePush}
+                                    disabled={pushLoading}
+                                    className="w-full py-2.5 bg-primary-500 hover:bg-primary-600 text-dark-950 font-black text-xs uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-primary-500/20 disabled:opacity-50"
+                                >
+                                    {pushLoading ? 'Ativando...' : 'Ativar Agora'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
                 {/* Saudação */}
                 <div className={`bg-gray-900/60 backdrop-blur-xl rounded-[2rem] p-6 border border-white/5 flex items-center justify-between transition-all hover:bg-gray-900/80 shadow-2xl`}>
                     <div>

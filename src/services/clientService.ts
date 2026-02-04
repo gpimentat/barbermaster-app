@@ -450,7 +450,6 @@ export const clientService = {
 
     // Buscar notificações
     async getNotifications(clientId: string): Promise<any[]> {
-        // Tenta buscar de uma tabela de notificações (caso exista)
         const { data, error } = await supabase
             .from('client_notifications')
             .select('*')
@@ -458,10 +457,31 @@ export const clientService = {
             .order('created_at', { ascending: false });
 
         if (error) {
-            // Se a tabela não existir, retorna array vazio sem choro (feature flag implícita)
+            console.error('Error fetching notifications:', error);
             return [];
         }
         return data || [];
+    },
+
+    // Marcar notificação como lida
+    async markAsRead(notificationId: string): Promise<void> {
+        const { error } = await supabase
+            .from('client_notifications')
+            .update({ is_read: true })
+            .eq('id', notificationId);
+
+        if (error) throw error;
+    },
+
+    // Marcar todas como lidas
+    async markAllAsRead(clientId: string): Promise<void> {
+        const { error } = await supabase
+            .from('client_notifications')
+            .update({ is_read: true })
+            .eq('client_id', clientId)
+            .eq('is_read', false);
+
+        if (error) throw error;
     },
 
     // --- ASSINATURAS E PACOTES ---
@@ -501,6 +521,51 @@ export const clientService = {
 
         if (error) throw error;
         return data || [];
+    },
+    // --- NOTIFICAÇÕES PUSH ---
+
+    // Verificar se o navegador suporta e se já está inscrito
+    async checkPushSubscription(): Promise<boolean> {
+        if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+            return false;
+        }
+        const registration = await navigator.serviceWorker.ready;
+        const subscription = await registration.pushManager.getSubscription();
+        return !!subscription;
+    },
+
+    // Inscrever para Push
+    async subscribeToPush(clientId: string, tenantId: string): Promise<void> {
+        if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+            throw new Error('Push não suportado neste navegador');
+        }
+
+        const registration = await navigator.serviceWorker.ready;
+
+        // Solicitar permissão
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') {
+            throw new Error('Permissão negada');
+        }
+
+        // Chave VAPID Pública (BJ9... é o padrão do projeto)
+        const VAPID_PUBLIC_KEY = 'BJ9Jyw8XiQOfr87AbjKHvwFTNYOMg-hUu4UBpc_Pd1SVBYXpfE6rG-rJLqGeaUChNV6CRKBW2jYBzjlTbfJOUow';
+
+        const subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: VAPID_PUBLIC_KEY
+        });
+
+        // Salvar no banco
+        const { error } = await supabase
+            .from('push_subscriptions')
+            .upsert({
+                user_id: clientId,
+                subscription: subscription.toJSON(),
+                tenant_id: tenantId
+            }, { onConflict: 'user_id' }); // Garantir uma subscrição por cliente
+
+        if (error) throw error;
     }
 };
 

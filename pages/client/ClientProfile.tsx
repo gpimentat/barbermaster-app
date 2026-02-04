@@ -70,6 +70,16 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ tenant, clientData, onLog
         }
     };
 
+    const handleMarkAllAsRead = async () => {
+        if (!clientData?.clientId || notifications.length === 0) return;
+        try {
+            await clientService.markAllAsRead(clientData.clientId);
+            setNotifications(notifications.map(n => ({ ...n, is_read: true })));
+        } catch (error) {
+            console.error('Error marking all as read:', error);
+        }
+    };
+
     const handleSaveProfile = async () => {
         try {
             await clientService.updateProfile(clientData.clientId, {
@@ -260,8 +270,8 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ tenant, clientData, onLog
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    {notifications.length > 0 && (
-                                        <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                                    {notifications.some(n => !n.is_read) && (
+                                        <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
                                     )}
                                     <ChevronRight size={20} className="text-gray-600" />
                                 </div>
@@ -465,22 +475,64 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ tenant, clientData, onLog
 
                         {/* Notifications Subscreen */}
                         {subScreen === 'notifications' && (
-                            notifications.length > 0 ? (
-                                <div className="space-y-3">
-                                    {notifications.map(notif => (
-                                        <div key={notif.id} className={`p-4 rounded-xl border ${notif.read ? 'bg-gray-900 border-gray-800' : 'bg-gray-800 border-gray-700'}`}>
-                                            <h4 className="text-white font-bold mb-1">{notif.title}</h4>
-                                            <p className="text-gray-400 text-sm">{notif.message}</p>
-                                            <p className="text-gray-600 text-xs mt-2 text-right">{formatDate(notif.created_at)}</p>
+                            <div className="space-y-4">
+                                {notifications.length > 0 && notifications.some(n => !n.is_read) && (
+                                    <div className="flex justify-end px-2">
+                                        <button
+                                            onClick={handleMarkAllAsRead}
+                                            className="text-[10px] font-black uppercase tracking-widest opacity-60 hover:opacity-100 transition-opacity"
+                                            style={{ color: primaryColor }}
+                                        >
+                                            Marcar todas como lidas
+                                        </button>
+                                    </div>
+                                )}
+
+                                {notifications.length > 0 ? (
+                                    <div className="space-y-3">
+                                        {notifications.map(notif => (
+                                            <div
+                                                key={notif.id}
+                                                className={`p-5 rounded-2xl border transition-all relative overflow-hidden group
+                                                    ${notif.is_read ? 'bg-gray-900/50 border-gray-800/50' : 'bg-gray-900 border-gray-800'}`}
+                                                onClick={async () => {
+                                                    if (!notif.is_read) {
+                                                        await clientService.markAsRead(notif.id);
+                                                        setNotifications(notifications.map(n => n.id === notif.id ? { ...n, is_read: true } : n));
+                                                    }
+                                                }}
+                                            >
+                                                {!notif.is_read && (
+                                                    <div className="absolute top-0 left-0 w-1 h-full" style={{ backgroundColor: primaryColor }}></div>
+                                                )}
+                                                <div className="flex justify-between items-start gap-4">
+                                                    <div>
+                                                        <h4 className={`font-bold mb-1 transition-colors ${notif.is_read ? 'text-gray-400' : 'text-white'}`}>
+                                                            {notif.title}
+                                                        </h4>
+                                                        <p className={`text-sm leading-relaxed ${notif.is_read ? 'text-gray-500' : 'text-gray-400'}`}>
+                                                            {notif.message}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center justify-between mt-4">
+                                                    <span className="text-[10px] font-black text-gray-700 uppercase tracking-widest">{formatDate(notif.created_at)}</span>
+                                                    {!notif.is_read && (
+                                                        <div className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]"></div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-20">
+                                        <div className="w-20 h-20 bg-gray-900 rounded-full flex items-center justify-center mx-auto mb-6 border border-gray-800/50">
+                                            <Bell size={32} className="text-gray-800" />
                                         </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="text-center py-12 text-gray-500">
-                                    <Bell size={48} className="mx-auto mb-4 opacity-20" />
-                                    Nenhuma notificação nova
-                                </div>
-                            )
+                                        <p className="text-gray-600 font-bold text-xs uppercase tracking-[0.2em]">Nenhuma notificação nova</p>
+                                    </div>
+                                )}
+                            </div>
                         )}
                     </div>
                 </div>
