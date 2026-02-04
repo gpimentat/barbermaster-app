@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Mail, Phone, Calendar, LogOut, Clock, Star, Edit2, ShoppingBag, Gift, Bell, ChevronRight, ArrowLeft, Package, Check, Crown, CreditCard } from 'lucide-react';
+import { User, Mail, Phone, Calendar, LogOut, Clock, Star, Edit2, ShoppingBag, Gift, Bell, ChevronRight, ArrowLeft, Package, Check, Crown, CreditCard, Smartphone } from 'lucide-react';
 import clientService from '../../src/services/clientService';
 
 interface ClientProfileProps {
@@ -21,6 +21,8 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ tenant, clientData, onLog
     const [purchases, setPurchases] = useState<any[]>([]);
     const [rewards, setRewards] = useState<any[]>([]);
     const [notifications, setNotifications] = useState<any[]>([]);
+    const [pushEnabled, setPushEnabled] = useState(false);
+    const [pushLoading, setPushLoading] = useState(false);
 
     const [loading, setLoading] = useState(true);
     const [editing, setEditing] = useState(false);
@@ -62,11 +64,30 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ tenant, clientData, onLog
                 setPurchases(purds);
                 setRewards(rwrds);
                 setNotifications(notifs);
+
+                // Verificar status do Push
+                const isSubscribed = await clientService.checkPushSubscription();
+                setPushEnabled(isSubscribed);
             }
         } catch (error) {
             console.error('Error loading client data:', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleEnablePush = async () => {
+        if (!clientData?.clientId) return;
+        setPushLoading(true);
+        try {
+            await clientService.subscribeToPush(clientData.clientId, tenant.id);
+            setPushEnabled(true);
+            alert('✅ Notificações ativadas com sucesso!');
+        } catch (error: any) {
+            console.error('Push error:', error);
+            alert('Erro ao ativar notificações. Verifique as permissões do seu navegador.');
+        } finally {
+            setPushLoading(false);
         }
     };
 
@@ -476,6 +497,29 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ tenant, clientData, onLog
                         {/* Notifications Subscreen */}
                         {subScreen === 'notifications' && (
                             <div className="space-y-4">
+                                {/* Push Activation Header */}
+                                <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-5 border border-gray-800 relative overflow-hidden group">
+                                    <div className="flex items-center justify-between gap-4 relative z-10">
+                                        <div className="flex items-center gap-3">
+                                            <div className={`p-2 rounded-lg ${pushEnabled ? 'bg-green-500/10 text-green-500' : 'bg-primary-500/10 text-primary-500'}`}>
+                                                <Smartphone size={18} />
+                                            </div>
+                                            <div>
+                                                <h3 className="text-white font-bold text-sm">Alertas no Celular</h3>
+                                                <p className="text-gray-500 text-[10px]">{pushEnabled ? 'Você já está recebendo lembretes' : 'Receba avisos de agendamentos'}</p>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={handleEnablePush}
+                                            disabled={pushEnabled || pushLoading}
+                                            className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all
+                                                ${pushEnabled ? 'bg-green-500/10 text-green-500 border border-green-500/20' : 'bg-primary-500 text-dark-950 hover:scale-105 active:scale-95'}`}
+                                        >
+                                            {pushLoading ? '...' : (pushEnabled ? 'Ativado ✓' : 'Ativar')}
+                                        </button>
+                                    </div>
+                                </div>
+
                                 {notifications.length > 0 && notifications.some(n => !n.is_read) && (
                                     <div className="flex justify-end px-2">
                                         <button
