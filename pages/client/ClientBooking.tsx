@@ -129,28 +129,49 @@ const ClientBooking: React.FC<ClientBookingProps> = ({ tenant, clientData }) => 
     };
 
     return (
-        <div className="min-h-screen bg-gray-950 pb-24">
-            {/* Header */}
-            <div className="bg-gray-900 border-b border-gray-800 px-6 py-4 sticky top-0 z-10">
-                <h1 className="text-xl font-bold text-white">Agendar Horário</h1>
-                <div className="flex items-center gap-2 mt-3">
+        <div className="min-h-screen bg-gray-950 pb-32">
+            {/* Header Fixo */}
+            <div className="fixed top-0 left-0 right-0 bg-gray-900/80 backdrop-blur-xl border-b border-white/5 px-6 py-4 z-50">
+                <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                        {step > 1 && (
+                            <button
+                                onClick={() => setStep(step - 1)}
+                                className="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-white"
+                            >
+                                <ChevronRight className="rotate-180" size={18} />
+                            </button>
+                        )}
+                        <h1 className="text-lg font-bold text-white">
+                            {step === 1 ? 'Agendar Horário' :
+                                step === 2 ? 'Selecionar Barbeiro' :
+                                    step === 3 ? 'Escolher Data' : 'Escolher Horário'}
+                        </h1>
+                    </div>
+                </div>
+
+                {/* Progress Bar */}
+                <div className="flex items-center gap-2 mt-4">
                     {[1, 2, 3, 4].map(s => (
                         <div
                             key={s}
-                            className="flex-1 h-1 rounded-full transition-all"
+                            className="flex-1 h-1 rounded-full transition-all duration-500"
                             style={{
-                                backgroundColor: step >= s ? primaryColor : '#374151'
+                                backgroundColor: step >= s ? primaryColor : '#374151',
+                                boxShadow: step === s ? `0 0 10px ${primaryColor}40` : 'none'
                             }}
                         />
                     ))}
                 </div>
             </div>
 
-            <div className="p-6 space-y-6">
+            {/* Espaçador para o Header Fixo */}
+            <div className="h-[120px]" />
+
+            <div className="px-6 space-y-6">
                 {/* Step 1: Serviço */}
                 {step === 1 && (
-                    <div>
-                        <h2 className="text-lg font-bold text-white mb-4">Escolha o serviço</h2>
+                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                         <div className="space-y-3">
                             {services.map(service => (
                                 <button
@@ -189,15 +210,7 @@ const ClientBooking: React.FC<ClientBookingProps> = ({ tenant, clientData }) => 
 
                 {/* Step 2: Barbeiro */}
                 {step === 2 && (
-                    <div>
-                        <button
-                            onClick={() => setStep(1)}
-                            className="text-sm mb-4"
-                            style={{ color: primaryColor }}
-                        >
-                            ← Voltar
-                        </button>
-                        <h2 className="text-lg font-bold text-white mb-4">Escolha o profissional</h2>
+                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                         <div className="space-y-3">
                             {barbers.map(barber => (
                                 <button
@@ -232,15 +245,7 @@ const ClientBooking: React.FC<ClientBookingProps> = ({ tenant, clientData }) => 
 
                 {/* Step 3: Data */}
                 {step === 3 && (
-                    <div>
-                        <button
-                            onClick={() => setStep(2)}
-                            className="text-sm mb-4"
-                            style={{ color: primaryColor }}
-                        >
-                            ← Voltar
-                        </button>
-                        <h2 className="text-lg font-bold text-white mb-4">Escolha a data</h2>
+                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                         <div className="grid grid-cols-2 gap-3">
                             {availableDates.map(date => {
                                 const dateObj = new Date(date + 'T12:00:00');
@@ -274,16 +279,7 @@ const ClientBooking: React.FC<ClientBookingProps> = ({ tenant, clientData }) => 
 
                 {/* Step 4: Horário */}
                 {step === 4 && (
-                    <div>
-                        <button
-                            onClick={() => setStep(3)}
-                            className="text-sm mb-4"
-                            style={{ color: primaryColor }}
-                        >
-                            ← Voltar
-                        </button>
-                        <h2 className="text-lg font-bold text-white mb-4">Escolha o horário</h2>
-
+                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                         {availableTimes.length === 0 ? (
                             <div className="text-center py-8">
                                 <Clock className="mx-auto text-gray-600 mb-2" size={48} />
@@ -304,7 +300,8 @@ const ClientBooking: React.FC<ClientBookingProps> = ({ tenant, clientData }) => 
                                     </button>
                                 ))}
                             </div>
-                        )}
+                        )
+                        }
 
                         {selectedTime && (
                             <div className="mt-6 bg-gray-900 rounded-xl p-5 border border-gray-800">
