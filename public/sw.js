@@ -1,4 +1,4 @@
-const CACHE_NAME = 'barbermaster-v13';
+const CACHE_NAME = 'barbermaster-v14';
 const urlsToCache = [
     '/',
     '/index.html',
@@ -7,6 +7,7 @@ const urlsToCache = [
 
 // Install
 self.addEventListener('install', (event) => {
+    console.log('SW: Instalando v14...');
     self.skipWaiting();
     event.waitUntil(
         caches.open(CACHE_NAME)
@@ -16,8 +17,10 @@ self.addEventListener('install', (event) => {
 
 // Fetch - Estratégia: Network First para evitar arquivos zumbis (MIME Error)
 self.addEventListener('fetch', (event) => {
-    // Para navegação e HTML, priorizamos a rede
-    if (event.request.mode === 'navigate' || (event.request.method === 'GET' && event.request.headers.get('accept').includes('text/html'))) {
+    // FORÇAR REDE para HTML e Manifest para garantir atualização
+    if (event.request.mode === 'navigate' ||
+        event.request.url.includes('index.html') ||
+        event.request.url.includes('manifest.json')) {
         event.respondWith(
             fetch(event.request)
                 .catch(() => caches.match(event.request))
@@ -34,6 +37,7 @@ self.addEventListener('fetch', (event) => {
 
 // Activate
 self.addEventListener('activate', (event) => {
+    console.log('SW: Ativando v14 e limpando caches antigos...');
     event.waitUntil(
         Promise.all([
             self.clients.claim(),
@@ -41,6 +45,7 @@ self.addEventListener('activate', (event) => {
                 return Promise.all(
                     cacheNames.map((cacheName) => {
                         if (cacheName !== CACHE_NAME) {
+                            console.log('SW: Deletando cache antigo:', cacheName);
                             return caches.delete(cacheName);
                         }
                     })
@@ -49,9 +54,10 @@ self.addEventListener('activate', (event) => {
         ])
     );
 });
+
 // Push Notifications Listener
 self.addEventListener('push', (event) => {
-    let data = { title: 'BarberMaster', body: 'Nova notificação!', icon: '/icon-192-v12.png' };
+    let data = { title: 'BarberMaster', body: 'Nova notificação!', icon: '/icon-192-v14.png' };
 
     if (event.data) {
         try {
@@ -63,8 +69,8 @@ self.addEventListener('push', (event) => {
 
     const options = {
         body: data.body,
-        icon: data.icon || '/icon-192-v12.png',
-        badge: '/icon-192-v12.png',
+        icon: data.icon || '/icon-192-v14.png',
+        badge: '/icon-192-v14.png',
         vibrate: [100, 50, 100],
         data: {
             url: data.url || '/'

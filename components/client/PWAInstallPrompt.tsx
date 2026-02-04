@@ -73,7 +73,10 @@ const PWAInstallPrompt: React.FC<PWAInstallPromptProps> = ({ primaryColor }) => 
                         <Download size={20} className="text-dark-950" />
                     </div>
                     <div className="flex-1 min-w-0">
-                        <h4 className="text-white font-black text-[13px] uppercase tracking-tighter">Instalar Aplicativo</h4>
+                        <div className="flex items-center gap-2">
+                            <h4 className="text-white font-black text-[13px] uppercase tracking-tighter">Instalar Aplicativo</h4>
+                            <span className="text-[8px] bg-white/10 px-1 rounded text-gray-500 font-mono">v14</span>
+                        </div>
                         <p className="text-gray-500 text-[10px] truncate uppercase font-bold tracking-widest">Acesso VIP na tela inicial</p>
                     </div>
                     <div className="flex items-center gap-2">
