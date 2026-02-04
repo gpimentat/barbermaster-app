@@ -53,7 +53,7 @@ const ClientBooking: React.FC<ClientBookingProps> = ({ tenant, clientData }) => 
             .from('profiles')
             .select('id, name, avatar, role')
             .eq('tenant_id', tenant.id)
-            .in('role', ['admin', 'barber']);
+            .in('role', ['admin', 'barber', 'Barbeiro', 'super_admin', 'Gerente']);
 
         if (data) setBarbers(data);
     };
