@@ -13,12 +13,18 @@ interface BeforeInstallPromptEvent extends Event {
 export const usePWAInstall = () => {
     const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
     const [isIOS, setIsIOS] = useState(false);
+    const [isSafari, setIsSafari] = useState(false);
     const [isStandalone, setIsStandalone] = useState(false);
 
     useEffect(() => {
+        const ua = navigator.userAgent;
         // Detect iOS
-        const isIosDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+        const isIosDevice = /iPad|iPhone|iPod/.test(ua) && !(window as any).MSStream;
         setIsIOS(isIosDevice);
+
+        // Detect Safari on iOS (Safari contains "Safari" and doesn't contain "CriOS", "FxiOS", etc.)
+        const isSafariBrowser = isIosDevice && ua.includes('Safari') && !ua.includes('CriOS') && !ua.includes('FxiOS') && !ua.includes('EdgiOS');
+        setIsSafari(isSafariBrowser);
 
         // Detect if already installed/standalone
         const isStandaloneMode = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone;
@@ -54,6 +60,7 @@ export const usePWAInstall = () => {
     return {
         isInstallAvailable: !!installPrompt,
         isIOS,
+        isSafari,
         isStandalone,
         handleInstallClick
     };
