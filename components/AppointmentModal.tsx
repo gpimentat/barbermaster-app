@@ -220,6 +220,30 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ isOpen, onClose, on
                 window.open(link, '_blank');
             }
 
+            // 7. Instant Push Notification for Barber
+            try {
+                // Determine if barber has notifications enabled
+                const { data: barberNotif } = await supabase
+                    .from('notification_settings')
+                    .select('enabled')
+                    .eq('user_id', selectedBarberId)
+                    .eq('type', 'new_appointment')
+                    .maybeSingle();
+
+                if (barberNotif?.enabled !== false) { // Default to true if not set
+                    await supabase.functions.invoke('send-push', {
+                        body: {
+                            user_id: selectedBarberId,
+                            title: 'Novo Horário Agendado! ✂️',
+                            message: `${service.name} com ${finalClientName} em ${new Date(selectedDate).toLocaleDateString('pt-BR')} às ${selectedTime}`,
+                            url: '/schedule'
+                        }
+                    });
+                }
+            } catch (pushErr) {
+                console.error('Error sending push to barber:', pushErr);
+            }
+
             alert('Agendamento criado com sucesso!');
             onSuccess();
             onClose();

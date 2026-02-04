@@ -311,6 +311,36 @@ export const clientService = {
             .single();
 
         if (error) throw error;
+
+        // 7. Instant Push Notification for Barber
+        try {
+            const { data: barberNotif } = await supabase
+                .from('notification_settings')
+                .select('enabled')
+                .eq('user_id', data.barberId)
+                .eq('type', 'new_appointment')
+                .maybeSingle();
+
+            if (barberNotif?.enabled !== false) {
+                // Fetch service name and client name for better notification message
+                const [{ data: serviceInfo }, { data: clientInfo }] = await Promise.all([
+                    supabase.from('services').select('name').eq('id', data.serviceId).single(),
+                    supabase.from('clients').select('name').eq('id', data.clientId).single()
+                ]);
+
+                await supabase.functions.invoke('send-push', {
+                    body: {
+                        user_id: data.barberId,
+                        title: 'Novo Horário Agendado! ✂️',
+                        message: `${serviceInfo?.name || 'Serviço'} com ${clientInfo?.name || 'Cliente'} em ${new Date(data.date).toLocaleDateString('pt-BR')} às ${data.time}`,
+                        url: '/schedule'
+                    }
+                });
+            }
+        } catch (pushErr) {
+            console.error('Error sending push to barber:', pushErr);
+        }
+
         return appointment;
     },
 

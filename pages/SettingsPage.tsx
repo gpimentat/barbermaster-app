@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Shield, Bell, Save, Camera, Mail, Lock, CheckCircle, Smartphone } from 'lucide-react';
+import { User, Shield, Bell, Save, Camera, Mail, Lock, CheckCircle, Smartphone, Calendar, TrendingUp } from 'lucide-react';
 import { useAuth } from '../AuthContext';
 import { supabase } from '../src/supabaseClient';
 
@@ -415,6 +415,42 @@ const SettingsPage: React.FC = () => {
                                                 className={`w-12 h-6 rounded-full relative transition-colors ${notifSettings.find(s => s.type === 'full_schedule')?.enabled ? 'bg-primary-500' : 'bg-gray-700'}`}
                                             >
                                                 <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${notifSettings.find(s => s.type === 'full_schedule')?.enabled ? 'left-7' : 'left-1'}`} />
+                                            </button>
+                                        </div>
+
+                                        <div className="flex items-center justify-between p-4 bg-dark-950 rounded-lg border border-gray-800">
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-2 bg-purple-500/10 rounded-lg text-purple-500">
+                                                    <Calendar size={20} />
+                                                </div>
+                                                <div>
+                                                    <h4 className="font-bold text-white">Novo Agendamento</h4>
+                                                    <p className="text-xs text-gray-500">Aviso imediato quando um cliente marca com você.</p>
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={() => handleToggleNotif('new_appointment', notifSettings.find(s => s.type === 'new_appointment')?.enabled || false)}
+                                                className={`w-12 h-6 rounded-full relative transition-colors ${notifSettings.find(s => s.type === 'new_appointment')?.enabled ? 'bg-primary-500' : 'bg-gray-700'}`}
+                                            >
+                                                <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${notifSettings.find(s => s.type === 'new_appointment')?.enabled ? 'left-7' : 'left-1'}`} />
+                                            </button>
+                                        </div>
+
+                                        <div className="flex items-center justify-between p-4 bg-dark-950 rounded-lg border border-gray-800">
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-2 bg-yellow-500/10 rounded-lg text-yellow-500">
+                                                    <TrendingUp size={20} />
+                                                </div>
+                                                <div>
+                                                    <h4 className="font-bold text-white">Progresso da Meta</h4>
+                                                    <p className="text-xs text-gray-500">Resumo do seu desempenho ao final do expediente.</p>
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={() => handleToggleNotif('goal_progress', notifSettings.find(s => s.type === 'goal_progress')?.enabled || false)}
+                                                className={`w-12 h-6 rounded-full relative transition-colors ${notifSettings.find(s => s.type === 'goal_progress')?.enabled ? 'bg-primary-500' : 'bg-gray-700'}`}
+                                            >
+                                                <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${notifSettings.find(s => s.type === 'goal_progress')?.enabled ? 'left-7' : 'left-1'}`} />
                                             </button>
                                         </div>
                                     </>
