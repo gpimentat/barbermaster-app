@@ -17,12 +17,23 @@ root.render(
 // Registrar Service Worker para Notificações Push e PWA
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js')
-      .then(registration => {
-        console.log('SW registrado com sucesso:', registration.scope);
-      })
-      .catch(error => {
-        console.error('Erro ao registrar SW:', error);
+    navigator.serviceWorker.register('/sw.js').then(reg => {
+      reg.addEventListener('updatefound', () => {
+        const nw = reg.installing;
+        nw?.addEventListener('statechange', () => {
+          if (nw.state === 'installed' && navigator.serviceWorker.controller) {
+            window.location.reload();
+          }
+        });
       });
+    });
+  });
+
+  let refr = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!refr) {
+      refr = true;
+      window.location.reload();
+    }
   });
 }
