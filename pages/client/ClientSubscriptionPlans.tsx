@@ -23,6 +23,8 @@ const ClientSubscriptionPlans: React.FC<ClientSubscriptionPlansProps> = ({ tenan
     const [loading, setLoading] = useState(true);
     const [subscribingId, setSubscribingId] = useState<string | null>(null);
 
+    const primaryColor = tenant?.settings?.app_config?.general?.primaryColor || '#eab308';
+
     useEffect(() => {
         loadPlans();
     }, [tenant.id]);
@@ -31,7 +33,8 @@ const ClientSubscriptionPlans: React.FC<ClientSubscriptionPlansProps> = ({ tenan
         try {
             setLoading(true);
             const data = await clientService.getSubscriptionPlans(tenant.id);
-            setPlans(data);
+            // Ordenar por preço para melhor exibição
+            setPlans(data.sort((a, b) => a.price - b.price));
         } catch (err) {
             console.error('Error loading plans:', err);
         } finally {
@@ -44,7 +47,6 @@ const ClientSubscriptionPlans: React.FC<ClientSubscriptionPlansProps> = ({ tenan
             setSubscribingId(planId);
             const response = await clientService.subscribeToPlan(tenant.id, clientData.id, planId);
 
-            // Redirecionar para o Checkout do Mercado Pago
             if (response.init_point) {
                 window.location.href = response.init_point;
             } else {
@@ -60,120 +62,125 @@ const ClientSubscriptionPlans: React.FC<ClientSubscriptionPlansProps> = ({ tenan
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center p-6">
-                <Loader2 className="animate-spin text-primary-500 mb-4" size={40} />
-                <p className="text-gray-400">Carregando planos exclusivos...</p>
+            <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center p-6 text-center">
+                <Loader2 className="animate-spin text-primary-500 mb-4" size={40} style={{ color: primaryColor }} />
+                <p className="text-gray-400 font-medium">Preparando experiências exclusivas...</p>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gray-950 text-white pb-24">
-            {/* Header */}
-            <div className="p-6 flex items-center gap-4 border-b border-gray-900 bg-gray-950/50 backdrop-blur-md sticky top-0 z-50">
+        <div className="min-h-screen bg-gray-950 text-white pb-32">
+            {/* Header Moderno */}
+            <div className="fixed top-0 left-0 right-0 bg-gray-950/80 backdrop-blur-xl border-b border-white/5 px-6 py-4 z-50 flex items-center gap-4">
                 <button
-                    onClick={() => navigate('/profile')}
-                    className="p-2 hover:bg-gray-900 rounded-full transition-colors"
+                    onClick={() => navigate('/')}
+                    className="w-10 h-10 rounded-full bg-gray-900 border border-gray-800 flex items-center justify-center text-gray-400 active:scale-95 transition-all"
                 >
-                    <ChevronLeft size={24} />
+                    <ChevronLeft size={20} />
                 </button>
                 <div>
-                    <h1 className="text-xl font-bold">Assinaturas VIP</h1>
-                    <p className="text-xs text-gray-500">Escolha o plano ideal para você</p>
+                    <h1 className="text-lg font-black uppercase tracking-tighter italic">Clube VIP</h1>
+                    <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest leading-none">Vantagens Exclusivas</p>
                 </div>
             </div>
 
-            <div className="p-6 space-y-8 animate-in slide-in-from-bottom-4 duration-500">
-                {/* Hero / Intro */}
-                <div className="bg-gradient-to-br from-primary-950/50 to-dark-900 rounded-3xl p-8 border border-primary-500/20 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-20 bg-primary-500/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
+            <div className="pt-24 px-6 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                {/* Hero Branding */}
+                <div className="relative rounded-[2.5rem] p-8 overflow-hidden group">
+                    <div className="absolute inset-0 bg-gradient-to-br from-gray-900 to-black z-0"></div>
+                    <div className="absolute -right-10 -top-10 w-40 h-40 rounded-full blur-[80px] opacity-30 z-0" style={{ backgroundColor: primaryColor }}></div>
 
                     <div className="relative z-10 flex flex-col items-center text-center">
-                        <div className="p-4 bg-primary-500/20 rounded-2xl mb-4">
-                            <Crown className="text-primary-500" size={32} />
+                        <div className="w-16 h-16 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 flex items-center justify-center mb-6 shadow-2xl group-hover:scale-110 transition-transform duration-500">
+                            <Crown className="text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]" size={32} style={{ color: primaryColor }} />
                         </div>
-                        <h2 className="text-2xl font-bold mb-2">Seja Membro VIP</h2>
-                        <p className="text-gray-400 text-sm max-w-xs">
-                            Economize no mês, garanta sua agenda preferencial e aproveite benefícios exclusivos em cada visita.
+                        <h2 className="text-3xl font-black italic uppercase tracking-tighter mb-4 leading-none">Sua experiência<br /><span style={{ color: primaryColor }}>Elevada ao máximo</span></h2>
+                        <p className="text-gray-400 text-xs font-medium leading-relaxed max-w-[240px]">
+                            Garanta preços fixos, horários prioritários e mimos que só membros do clube possuem.
                         </p>
                     </div>
                 </div>
 
-                {/* Plans List */}
-                <div className="space-y-6">
+                {/* Seção de Planos */}
+                <div className="grid grid-cols-1 gap-6">
                     {plans.length === 0 ? (
-                        <div className="text-center py-12">
-                            <p className="text-gray-500">Nenhum plano disponível no momento.</p>
+                        <div className="bg-gray-900/50 rounded-3xl p-12 text-center border border-dashed border-gray-800">
+                            <Zap className="mx-auto text-gray-700 mb-4" size={40} />
+                            <p className="text-gray-500 font-bold text-sm">Novos planos em breve.</p>
                         </div>
                     ) : (
                         plans.map((plan) => (
                             <div
                                 key={plan.id}
-                                className="bg-dark-900 border border-gray-800 rounded-2xl overflow-hidden hover:border-primary-500/30 transition-all flex flex-col"
+                                className="relative rounded-[2rem] bg-gray-900/50 border border-gray-800 p-8 flex flex-col transition-all active:scale-[0.98] hover:border-white/10"
                             >
-                                <div className="p-6 border-b border-gray-800 bg-gray-900/30">
-                                    <div className="flex justify-between items-start mb-4">
-                                        <h3 className="text-lg font-bold text-white">{plan.name}</h3>
-                                        {plan.name.toLowerCase().includes('vip') && (
-                                            <span className="bg-primary-500 text-dark-950 text-[10px] uppercase font-bold px-2 py-0.5 rounded flex items-center gap-1">
-                                                <Zap size={10} /> Popular
-                                            </span>
-                                        )}
+                                <div className="flex justify-between items-start mb-6">
+                                    <div className="space-y-1">
+                                        <h3 className="text-xl font-black uppercase tracking-tight italic" style={{ color: primaryColor }}>{plan.name}</h3>
+                                        <div className="flex items-baseline gap-1">
+                                            <span className="text-3xl font-black tracking-tighter">R$ {plan.price.toFixed(0)}</span>
+                                            <span className="text-xs text-gray-500 font-bold">/mês</span>
+                                        </div>
                                     </div>
-                                    <div className="flex items-baseline gap-1">
-                                        <span className="text-3xl font-bold text-primary-500">R$ {plan.price.toFixed(2)}</span>
-                                        <span className="text-sm text-gray-500">/{plan.frequency === 'monthly' ? 'mês' : 'ano'}</span>
-                                    </div>
+                                    <Zap className="text-gray-800" size={24} />
                                 </div>
 
-                                <div className="p-6 space-y-4 flex-1">
-                                    <ul className="space-y-3">
-                                        {plan.features.map((feature: string, idx: number) => (
-                                            <li key={idx} className="flex items-start gap-3 text-sm text-gray-300">
-                                                <div className="mt-1 p-0.5 bg-green-500/10 rounded-full">
-                                                    <Check size={12} className="text-green-500" />
-                                                </div>
-                                                <span>{feature}</span>
-                                            </li>
-                                        ))}
-                                    </ul>
+                                <div className="space-y-4 mb-8">
+                                    {plan.features?.map((feature: string, idx: number) => (
+                                        <div key={idx} className="flex items-center gap-3">
+                                            <div className="w-5 h-5 rounded-full bg-white/5 flex items-center justify-center border border-white/5 shrink-0">
+                                                <Check size={12} style={{ color: primaryColor }} />
+                                            </div>
+                                            <span className="text-xs font-bold text-gray-300">{feature}</span>
+                                        </div>
+                                    ))}
                                 </div>
 
-                                <div className="p-6 pt-0">
-                                    <button
-                                        onClick={() => handleSubscribe(plan.id)}
-                                        disabled={subscribingId !== null}
-                                        className="w-full py-4 bg-primary-500 hover:bg-primary-600 disabled:bg-gray-800 disabled:text-gray-500 text-dark-950 font-bold rounded-xl transition-all shadow-lg shadow-primary-500/10 flex items-center justify-center gap-2"
-                                    >
-                                        {subscribingId === plan.id ? (
-                                            <Loader2 className="animate-spin" size={20} />
-                                        ) : (
-                                            <>
-                                                <CreditCard size={20} />
-                                                Assinar Agora
-                                            </>
-                                        )}
-                                    </button>
-                                    <p className="text-[10px] text-gray-500 text-center mt-3 flex items-center justify-center gap-1">
-                                        <ShieldCheck size={12} /> Pagamento 100% seguro via Mercado Pago
-                                    </p>
+                                <button
+                                    onClick={() => handleSubscribe(plan.id)}
+                                    disabled={subscribingId !== null}
+                                    className="w-full py-4 rounded-2xl font-black uppercase tracking-widest text-dark-950 flex items-center justify-center gap-3 transition-all shadow-xl active:translate-y-1"
+                                    style={{
+                                        backgroundColor: primaryColor,
+                                        boxShadow: `0 10px 20px ${primaryColor}40`
+                                    }}
+                                >
+                                    {subscribingId === plan.id ? (
+                                        <Loader2 className="animate-spin" size={20} />
+                                    ) : (
+                                        <>
+                                            Assinar Plano
+                                            <ArrowRight size={18} />
+                                        </>
+                                    )}
+                                </button>
+
+                                <div className="mt-4 flex items-center justify-center gap-2 opacity-50">
+                                    <ShieldCheck size={12} />
+                                    <span className="text-[10px] font-bold uppercase tracking-widest">Garantia BarberMaster</span>
                                 </div>
                             </div>
                         ))
                     )}
                 </div>
 
-                {/* FAQ / Info Section */}
-                <div className="bg-gray-900/30 rounded-2xl p-6 border border-gray-800">
-                    <h4 className="font-bold mb-4 flex items-center gap-2">
-                        <Zap size={18} className="text-primary-500" /> Como funciona?
-                    </h4>
-                    <div className="space-y-4 text-xs text-gray-400">
-                        <p>1. Escolha o plano que melhor se adapta à sua frequência.</p>
-                        <p>2. Complete o pagamento seguro via cartão ou PIX recorrente.</p>
-                        <p>3. Seus benefícios são liberados instantaneamente no app!</p>
-                        <p>4. Você pode cancelar a renovação a qualquer momento pelo seu perfil.</p>
+                {/* Footer de Segurança */}
+                <div className="flex flex-col items-center justify-center text-center space-y-4 pt-4">
+                    <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-xl bg-gray-900 flex items-center justify-center text-gray-500">
+                            <CreditCard size={20} />
+                        </div>
+                        <div className="w-10 h-10 rounded-xl bg-gray-900 flex items-center justify-center text-gray-500">
+                            <Zap size={20} />
+                        </div>
+                        <div className="w-10 h-10 rounded-xl bg-gray-900 flex items-center justify-center text-gray-500">
+                            <ShieldCheck size={20} />
+                        </div>
                     </div>
+                    <p className="text-[10px] text-gray-600 font-bold uppercase tracking-widest max-w-[200px] leading-relaxed">
+                        Pagamento processado de forma segura via Mercado Pago. Cancele quando quiser.
+                    </p>
                 </div>
             </div>
         </div>

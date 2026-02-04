@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, Calendar, Gift, TicketPercent, User } from 'lucide-react';
+import { Home, Calendar, Gift, TicketPercent, User, Crown } from 'lucide-react';
 
 interface BottomNavProps {
     tenant: any;
@@ -15,6 +15,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ tenant }) => {
     const tabs = [
         { id: 'home', path: `/app/${tenant.slug}`, icon: Home, label: 'Início' },
         { id: 'booking', path: `/app/${tenant.slug}/booking`, icon: Calendar, label: 'Agendar' },
+        { id: 'plans', path: `/app/${tenant.slug}/plans`, icon: Crown, label: 'Assinar' },
         ...(features?.loyaltyProgram ? [{ id: 'rewards', path: `/app/${tenant.slug}/rewards`, icon: Gift, label: 'Clube' }] : []),
         ...(features?.partnersClub ? [{ id: 'partners', path: `/app/${tenant.slug}/partners`, icon: TicketPercent, label: 'Cupons' }] : []),
         { id: 'profile', path: `/app/${tenant.slug}/profile`, icon: User, label: 'Perfil' }
