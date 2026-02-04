@@ -1,4 +1,4 @@
-const CACHE_NAME = 'barbermaster-v11';
+const CACHE_NAME = 'barbermaster-v12';
 const urlsToCache = [
     '/',
     '/index.html',
@@ -51,7 +51,7 @@ self.addEventListener('activate', (event) => {
 });
 // Push Notifications Listener
 self.addEventListener('push', (event) => {
-    let data = { title: 'BarberMaster', body: 'Nova notificação!', icon: '/icon-192-v5.png' };
+    let data = { title: 'BarberMaster', body: 'Nova notificação!', icon: '/icon-192-v12.png' };
 
     if (event.data) {
         try {
@@ -63,8 +63,8 @@ self.addEventListener('push', (event) => {
 
     const options = {
         body: data.body,
-        icon: data.icon || '/icon-192-v5.png',
-        badge: '/icon-192-v5.png',
+        icon: data.icon || '/icon-192-v12.png',
+        badge: '/icon-192-v12.png',
         vibrate: [100, 50, 100],
         data: {
             url: data.url || '/'
