@@ -328,7 +328,7 @@ export const clientService = {
                     supabase.from('clients').select('name').eq('id', data.clientId).single()
                 ]);
 
-                await supabase.functions.invoke('send-push-secured-v1', {
+                await supabase.functions.invoke('send-push', {
                     body: {
                         user_id: data.barberId,
                         title: 'Novo Horário Agendado! ✂️',

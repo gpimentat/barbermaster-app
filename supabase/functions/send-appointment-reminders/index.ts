@@ -28,17 +28,8 @@ Deno.serve(async (req) => {
 
         const { data: appointments, error: appError } = await supabase
             .from('appointments')
-            .select(`
-                id, 
-                start_time, 
-                date,
-                tenant_id,
-                client_id,
-                services(name),
-                tenants(slug, name)
-            `)
             .eq('date', todayStr)
-            .eq('status', 'scheduled')
+            .eq('status', 'Agendado')
             .eq('reminder_sent', false);
 
         if (appError) throw appError;

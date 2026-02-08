@@ -293,7 +293,7 @@ const ComandasPage: React.FC = () => {
           await supabase.from('notifications').insert(notifications);
 
           // Invoke real push notification
-          await supabase.functions.invoke('send-push-secured-v1', {
+          await supabase.functions.invoke('send-push', {
             body: {
               user_ids: admins.map(a => a.id),
               title: 'Desconto Aplicado',

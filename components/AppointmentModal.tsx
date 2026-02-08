@@ -231,7 +231,7 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ isOpen, onClose, on
                     .maybeSingle();
 
                 if (barberNotif?.enabled !== false) { // Default to true if not set
-                    await supabase.functions.invoke('send-push-secured-v1', {
+                    await supabase.functions.invoke('send-push', {
                         body: {
                             user_id: selectedBarberId,
                             title: 'Novo Horário Agendado! ✂️',
