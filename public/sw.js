@@ -1,4 +1,4 @@
-const CACHE_NAME = 'barbermaster-v16';
+const CACHE_NAME = 'barbermaster-v17';
 const urlsToCache = [
     '/',
     '/index.html',
@@ -7,7 +7,7 @@ const urlsToCache = [
 
 // Install
 self.addEventListener('install', (event) => {
-    console.log('SW: Instalando v16...');
+    console.log('SW: Instalando v17...');
     self.skipWaiting();
     event.waitUntil(
         caches.open(CACHE_NAME)
@@ -37,7 +37,7 @@ self.addEventListener('fetch', (event) => {
 
 // Activate
 self.addEventListener('activate', (event) => {
-    console.log('SW: Ativando v16 e limpando caches antigos...');
+    console.log('SW: Ativando v17 e limpando caches antigos...');
     event.waitUntil(
         Promise.all([
             self.clients.claim(),
