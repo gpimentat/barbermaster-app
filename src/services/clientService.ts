@@ -549,7 +549,7 @@ export const clientService = {
         }
 
         // Chave VAPID Pública (BJ9... é o padrão do projeto)
-        const VAPID_PUBLIC_KEY = 'BJ9Jyw8XiQOfr87AbjKHvwFTNYOMg-hUu4UBpc_Pd1SVBYXpfE6rG-rJLqGeaUChNV6CRKBW2jYBzjlTbfJOUow';
+        const VAPID_PUBLIC_KEY = 'BNqc8pq8BmuX53io0S4Bg9D1XUhkGZvRQCvHzG_FaH3hPV1bauVC7Z0tbrw9rRcO91AKmWFccANx9uKiYxps9f8';
 
         const subscription = await registration.pushManager.subscribe({
             userVisibleOnly: true,
