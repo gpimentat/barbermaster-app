@@ -570,9 +570,9 @@ const Dashboard: React.FC = () => {
             color="text-purple-500"
           />
           <StatsCard
-            title="Ticket Médio"
+            title="Ticket Médio (90 dias)"
             value={`R$ ${stats.ticketMedio.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
-            change="Receita / Quantidade"
+            change="Média trimestral"
             positive={true}
             icon={TrendingUp}
             color="text-green-500"

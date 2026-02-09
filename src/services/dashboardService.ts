@@ -118,6 +118,7 @@ export const dashboardService = {
         const todayApptCount = activeAppts.length;
 
         // 2. Revenue from CLOSED COMANDAS (Today)
+        // 2. Revenue from CLOSED COMANDAS (Today)
         const { data: dailyComandas, error: comandaError } = await supabase
             .from('comandas')
             .select('total')
@@ -129,6 +130,22 @@ export const dashboardService = {
         if (comandaError) console.error('Error fetching comandas:', comandaError);
 
         const todayRevenue = dailyComandas?.reduce((acc, c) => acc + (Number(c.total) || 0), 0) || 0;
+
+        // 2.1 Ticket Médio TRIMESTRAL (Last 90 days)
+        const ninetyDaysAgo = new Date();
+        ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+        const ninetyDaysAgoStr = ninetyDaysAgo.toISOString().split('T')[0];
+
+        const { data: quarterlyComandas } = await supabase
+            .from('comandas')
+            .select('total')
+            .eq('tenant_id', tenantId)
+            .eq('status', 'paid')
+            .gte('close_date', ninetyDaysAgoStr + ' 00:00:00');
+
+        const quarterlyTotalRevenue = quarterlyComandas?.reduce((acc: number, c: any) => acc + (Number(c.total) || 0), 0) || 0;
+        const quarterlyCount = quarterlyComandas?.length || 0;
+        const ticketMedioTrimestral = quarterlyCount > 0 ? quarterlyTotalRevenue / quarterlyCount : 0;
 
         // 3. Total Clients
         const { count: totalClients } = await supabase
@@ -186,7 +203,7 @@ export const dashboardService = {
             totalRevenue: todayRevenue,
             totalAppointments: todayApptCount,
             newClients: totalClients || 0,
-            ticketMedio: todayApptCount > 0 ? todayRevenue / todayApptCount : 0,
+            ticketMedio: ticketMedioTrimestral,
             mrr,
             commissions: todayRevenue * 0.4, // Simplified estimated commission
             todayAppointments: appts || [],
