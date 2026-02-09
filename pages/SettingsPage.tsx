@@ -3,6 +3,22 @@ import { User, Shield, Bell, Save, Camera, Mail, Lock, CheckCircle, Smartphone, 
 import { useAuth } from '../AuthContext';
 import { supabase } from '../src/supabaseClient';
 
+// Helper to convert VAPID key
+function urlBase64ToUint8Array(base64String: string) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding)
+        .replace(/\-/g, '+')
+        .replace(/_/g, '/');
+
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+
+    for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+}
+
 const SettingsPage: React.FC = () => {
     const { currentUser } = useAuth();
     const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'notifications'>('profile');
@@ -97,8 +113,13 @@ const SettingsPage: React.FC = () => {
             // In a real app, you'd get the public VAPID key from the server
             // For now, I'll use a placeholder or assume the user will set it up.
             // But to make it work, we need a real subscription.
+            // Chave VAPID Pública (Nova chave gerada)
+            const VAPID_PUBLIC_KEY = 'BNqc8pq8BmuX53io0S4Bg9D1XUhkGZvRQCvHzG_FaH3hPV1bauVC7Z0tbrw9rRcO91AKmWFccANx9uKiYxps9f8';
+            const convertedVapidKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
+
             const subscription = await registration.pushManager.subscribe({
-                applicationServerKey: 'BJ9Jyw8XiQOfr87AbjKHvwFTNYOMg-hUu4UBpc_Pd1SVBYXpfE6rG-rJLqGeaUChNV6CRKBW2jYBzjlTbfJOUow'
+                userVisibleOnly: true,
+                applicationServerKey: convertedVapidKey
             });
 
             const { error } = await supabase
