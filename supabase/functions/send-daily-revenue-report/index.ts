@@ -1,7 +1,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import webpush from 'npm:web-push';
 
-const VAPID_PUBLIC_KEY = Deno.env.get('VAPID_PUBLIC_KEY') || 'BJ9Jyw8XiQOfr87AbjKHvwFTNYOMg-hUu4UBpc_Pd1SVBYXpfE6rG-rJLqGeaUChNV6CRKBW2jYBzjlTbfJOUow';
+const VAPID_PUBLIC_KEY = Deno.env.get('VAPID_PUBLIC_KEY') || 'BNqc8pq8BmuX53io0S4Bg9D1XUhkGZvRQCvHzG_FaH3hPV1bauVC7Z0tbrw9rRcO91AKmWFccANx9uKiYxps9f8';
 const VAPID_PRIVATE_KEY = Deno.env.get('VAPID_PRIVATE_KEY');
 const VAPID_EMAIL = 'mailto:admin@barbermaster.com.br';
 
@@ -107,7 +107,7 @@ Deno.serve(async (req) => {
             // 6. Get Push Subscriptions
             const { data: subs } = await supabase
                 .from('push_subscriptions')
-                .select('subscription')
+                .select('id, subscription')
                 .in('user_id', userIds);
 
             if (subs && subs.length > 0) {
@@ -122,6 +122,10 @@ Deno.serve(async (req) => {
                         await webpush.sendNotification(sub.subscription, payload);
                     } catch (e) {
                         console.error('Push error:', e);
+                        // If subscription is expired or invalid, remove it
+                        if (e.statusCode === 410 || e.statusCode === 404) {
+                            await supabase.from('push_subscriptions').delete().eq('id', sub.id);
+                        }
                     }
                 }
             }

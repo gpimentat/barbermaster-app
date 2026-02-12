@@ -1,7 +1,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import webpush from 'npm:web-push';
 
-const VAPID_PUBLIC_KEY = Deno.env.get('VAPID_PUBLIC_KEY') || 'BJ9Jyw8XiQOfr87AbjKHvwFTNYOMg-hUu4UBpc_Pd1SVBYXpfE6rG-rJLqGeaUChNV6CRKBW2jYBzjlTbfJOUow';
+const VAPID_PUBLIC_KEY = Deno.env.get('VAPID_PUBLIC_KEY') || 'BNqc8pq8BmuX53io0S4Bg9D1XUhkGZvRQCvHzG_FaH3hPV1bauVC7Z0tbrw9rRcO91AKmWFccANx9uKiYxps9f8';
 const VAPID_PRIVATE_KEY = Deno.env.get('VAPID_PRIVATE_KEY');
 const VAPID_EMAIL = 'mailto:admin@barbermaster.com.br';
 
@@ -28,6 +28,16 @@ Deno.serve(async (req) => {
 
         const { data: appointments, error: appError } = await supabase
             .from('appointments')
+            .select(`
+                id, 
+                date,
+                status,
+                reminder_sent,
+                client_id,
+                tenant_id,
+                services(name),
+                tenants(slug, name)
+            `)
             .eq('date', todayStr)
             .eq('status', 'Agendado')
             .eq('reminder_sent', false);
@@ -40,7 +50,16 @@ Deno.serve(async (req) => {
             // Lógica simples de janela de tempo (ex: lembrete 30min a 2h antes)
             // Aqui vamos apenas disparar se for no dia de hoje e ainda não enviado
 
-            // Buscar subscriptions do cliente
+            // 1. In-App Notification
+            await supabase.from('client_notifications').insert({
+                client_id: app.client_id,
+                tenant_id: app.tenant_id,
+                title: 'Lembrete de Agendamento 💈',
+                message: `Seu horário para ${app.services?.name || 'seu serviço'} está chegando em breve na ${app.tenants?.name || 'Barbearia'}!`,
+                type: 'info'
+            });
+
+            // 2. Push Notification
             const { data: subs } = await supabase
                 .from('push_subscriptions')
                 .select('id, subscription')
@@ -60,6 +79,11 @@ Deno.serve(async (req) => {
                     results.push({ app_id: app.id, status: 'sent' });
                 } catch (error) {
                     console.error('Push error:', error);
+                    // If subscription is expired or invalid, remove it
+                    if (error.statusCode === 410 || error.statusCode === 404) {
+                        await supabase.from('push_subscriptions').delete().eq('id', sub.id);
+                        results.push({ app_id: app.id, status: 'removed' });
+                    }
                 }
             }
 
