@@ -12,7 +12,8 @@ interface AuthContextType {
   isAdmin: boolean;
   isAuthenticated: boolean;
   role: UserRole;
-  barbers: Barber[]; // Still kept for listing staff, but now fetches from DB
+  barbers: Barber[];
+  fetchBarbers: (tenantId?: string) => Promise<void>;
   login: (email: string, pass: string) => Promise<boolean>;
   signUp: (email: string, pass: string, name: string) => Promise<boolean>;
   logout: () => void;
@@ -29,6 +30,7 @@ const AuthContext = createContext<AuthContextType>({
   isAuthenticated: false,
   role: 'admin',
   barbers: [],
+  fetchBarbers: async () => { },
   login: async () => false,
   signUp: async () => false,
   logout: () => { },
@@ -65,7 +67,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
     });
 
-    // 3. Fetch all barbers (public info)
+    // 3. Initial fetch (will be empty if no session, but good for public info if any)
     fetchBarbers();
 
     return () => subscription.unsubscribe();
@@ -103,6 +105,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         weeklyGoal: data.weekly_goal || 0
       };
       setCurrentUser(barber);
+      // Fetch barbers for this specific tenant
+      if (data.tenant_id) {
+        fetchBarbers(data.tenant_id);
+      }
     } else {
       // FALLBACK: User exists in Auth but not in Profiles. 
       // Recover using Session data to prevent lockout.
@@ -133,8 +139,27 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const fetchBarbers = async () => {
-    const { data } = await supabase.from('profiles').select('*');
+  const fetchBarbers = async (tenantId?: string) => {
+    // If no tenantId is provided, try to use the one from currentUser
+    const idToUse = tenantId || currentUser?.tenantId;
+
+    let query = supabase.from('profiles').select('*');
+
+    if (idToUse) {
+      query = query.eq('tenant_id', idToUse);
+    }
+
+    // Filter by staff roles to avoid showing "clients" or "users" without roles in the agenda
+    // Valid roles: admin, super_admin, barber, receptionist (others are treated as clients)
+    query = query.in('role', ['admin', 'super_admin', 'barber', 'receptionist', 'Barbeiro', 'Recepcionista', 'Administrador']);
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('Error fetching staff (barbers):', error);
+      return;
+    }
+
     if (data) {
       const mapped = data.map((d: any) => ({
         id: d.id,
@@ -145,7 +170,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         active: d.active,
         commissionRate: d.commission_rate,
         permissions: d.permissions,
-        loginEnabled: d.login_enabled
+        loginEnabled: d.login_enabled,
+        tenantId: d.tenant_id
       }));
       setBarbers(mapped);
     }
@@ -259,6 +285,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       isAuthenticated,
       role,
       barbers,
+      fetchBarbers,
       login,
       signUp,
       logout,
