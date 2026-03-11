@@ -38,12 +38,18 @@ interface BarberStandardStats extends Barber {
 }
 
 const CommissionsPage: React.FC = () => {
-    const { role, currentUser } = useAuth();
+    const { role, currentUser, barbers } = useAuth();
     const [activeTab, setActiveTab] = useState<'standard' | 'chips'>('standard');
     const [selectedBarber, setSelectedBarber] = useState<BarberStandardStats | null>(null);
     const [mrrAllocationPercentage, setMrrAllocationPercentage] = useState(40);
     const [loading, setLoading] = useState(true);
-    const [dbBarbers, setDbBarbers] = useState<Barber[]>([]);
+
+    // Date Range Filters
+    const [dateRange, setDateRange] = useState({
+        start: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
+        end: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().split('T')[0]
+    });
+
     const [dbComandas, setDbComandas] = useState<any[]>([]);
     const [dbClients, setDbClients] = useState<Client[]>([]);
     const [dbServices, setDbServices] = useState<Service[]>([]);
@@ -52,35 +58,19 @@ const CommissionsPage: React.FC = () => {
         try {
             setLoading(true);
 
-            // 1. Fetch Barbers/Staff
-            const { data: barbersData } = await supabase.from('profiles').select('*');
-
-            // 2. Fetch Paid Comandas and their items
+            // 1. Fetch Paid Comandas and their items within date range
             const { data: comandasData } = await supabase
                 .from('comandas')
-                .select(`
-          *,
-          comanda_items (*)
-        `)
-                .eq('status', 'paid');
+                .select('*, comanda_items (*)')
+                .eq('status', 'paid')
+                .gte('close_date', `${dateRange.start}T00:00:00`)
+                .lte('close_date', `${dateRange.end}T23:59:59`);
 
-            // 3. Fetch Clients (to check subscription)
+            // 2. Fetch Clients (to check subscription)
             const { data: clientsData } = await supabase.from('clients').select('*');
 
-            // 4. Fetch Services (for chips)
+            // 3. Fetch Services (for chips)
             const { data: servicesData } = await supabase.from('services').select('*');
-
-            setDbBarbers(barbersData?.filter(b =>
-                b.role?.toLowerCase().includes('barber') ||
-                b.role?.toLowerCase().includes('barbeiro')
-            ).map(b => ({
-                id: b.id,
-                name: b.name,
-                role: b.role,
-                avatar: b.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(b.name)}&background=random`,
-                commissionRate: Number(b.commission_rate) || 0,
-                active: b.active
-            })) || []);
 
             setDbComandas(comandasData || []);
             setDbClients(clientsData || []);
@@ -101,11 +91,35 @@ const CommissionsPage: React.FC = () => {
 
     useEffect(() => {
         fetchData();
-    }, []);
+    }, [dateRange]);
+
+    // Helpers for quick ranges
+    const setQuickRange = (range: 'thisMonth' | 'lastFortnight' | 'firstFortnight') => {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = today.getMonth();
+
+        if (range === 'thisMonth') {
+            setDateRange({
+                start: new Date(year, month, 1).toISOString().split('T')[0],
+                end: new Date(year, month + 1, 0).toISOString().split('T')[0]
+            });
+        } else if (range === 'firstFortnight') {
+            setDateRange({
+                start: new Date(year, month, 1).toISOString().split('T')[0],
+                end: new Date(year, month, 15).toISOString().split('T')[0]
+            });
+        } else if (range === 'lastFortnight') {
+            setDateRange({
+                start: new Date(year, month, 16).toISOString().split('T')[0],
+                end: new Date(year, month + 1, 0).toISOString().split('T')[0]
+            });
+        }
+    };
 
     // --- LÓGICA DE DADOS ---
     const standardStats = useMemo(() => {
-        return dbBarbers.map(barber => {
+        return barbers.map(barber => {
             const barberServices = dbComandas.flatMap(comanda => {
                 const client = dbClients.find(c => c.id === comanda.client_id);
                 // Ignore if client has active subscription (those go to chips allocation)
@@ -135,7 +149,7 @@ const CommissionsPage: React.FC = () => {
                 servicesList: barberServices as any
             };
         }).sort((a, b) => b.commissionValue - a.commissionValue);
-    }, [dbBarbers, dbComandas, dbClients]);
+    }, [barbers, dbComandas, dbClients]);
 
     // --- LÓGICA RATEIO ---
     const chipStatsData = useMemo(() => {
@@ -149,7 +163,7 @@ const CommissionsPage: React.FC = () => {
         const distributionPot = totalMRR * (mrrAllocationPercentage / 100);
 
         let globalTotalChips = 0;
-        const barberChipData = dbBarbers.map(barber => {
+        const barberChipData = barbers.map(barber => {
             let barberChips = 0;
             let servicesCount = 0;
             dbComandas.forEach(comanda => {
@@ -180,7 +194,7 @@ const CommissionsPage: React.FC = () => {
         }).sort((a, b) => b.payoutValue - a.payoutValue);
 
         return { totalMRR, distributionPot, globalTotalChips, stats: finalStats };
-    }, [dbBarbers, dbComandas, dbClients, dbServices, mrrAllocationPercentage]);
+    }, [barbers, dbComandas, dbClients, dbServices, mrrAllocationPercentage]);
 
 
     // ========================================================
@@ -224,12 +238,47 @@ const CommissionsPage: React.FC = () => {
                     <h1 className="text-3xl font-bold text-white">Gestão de Comissões</h1>
                     <p className="text-gray-400">Controle total de pagamentos e rateios.</p>
                 </div>
-                <div className="flex gap-2">
-                    <button className="flex items-center gap-2 px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors">
-                        <Filter size={18} /> Mês Atual
-                    </button>
-                    <button className="flex items-center gap-2 px-4 py-2 bg-primary-500 text-dark-950 font-bold rounded-lg hover:bg-primary-600 transition-colors">
-                        <Download size={18} /> Relatório
+                <div className="flex flex-col md:flex-row gap-2">
+                    <div className="flex bg-dark-900 border border-gray-800 rounded-xl overflow-hidden p-1 shadow-inner h-12">
+                        <button
+                            onClick={() => setQuickRange('firstFortnight')}
+                            className={`px-3 text-[10px] font-black uppercase tracking-tighter transition-all rounded-lg ${dateRange.start.endsWith('-01') && dateRange.end.endsWith('-15') ? 'bg-primary-500 text-dark-950' : 'text-gray-500 hover:text-white'}`}
+                        >
+                            1ª Quinz
+                        </button>
+                        <button
+                            onClick={() => setQuickRange('lastFortnight')}
+                            className={`px-3 text-[10px] font-black uppercase tracking-tighter transition-all rounded-lg ${dateRange.start.endsWith('-16') ? 'bg-primary-500 text-dark-950' : 'text-gray-500 hover:text-white'}`}
+                        >
+                            2ª Quinz
+                        </button>
+                        <button
+                            onClick={() => setQuickRange('thisMonth')}
+                            className={`px-3 text-[10px] font-black uppercase tracking-tighter transition-all rounded-lg ${dateRange.start.endsWith('-01') && !dateRange.end.endsWith('-15') ? 'bg-primary-500 text-dark-950' : 'text-gray-500 hover:text-white'}`}
+                        >
+                            Mês
+                        </button>
+                    </div>
+
+                    <div className="flex items-center gap-2 bg-dark-900 border border-gray-800 rounded-xl px-3 h-12">
+                        <Calendar size={14} className="text-primary-500" />
+                        <input
+                            type="date"
+                            className="bg-transparent text-white text-[10px] font-black outline-none w-24"
+                            value={dateRange.start}
+                            onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
+                        />
+                        <span className="text-gray-600 text-[10px] font-black">ATÉ</span>
+                        <input
+                            type="date"
+                            className="bg-transparent text-white text-[10px] font-black outline-none w-24"
+                            value={dateRange.end}
+                            onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
+                        />
+                    </div>
+
+                    <button className="flex items-center justify-center gap-2 px-6 bg-primary-500 text-dark-950 font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-primary-400 transition-all h-12 shadow-xl shadow-primary-500/10">
+                        <Download size={16} strokeWidth={3} /> Exportar
                     </button>
                 </div>
             </div>
