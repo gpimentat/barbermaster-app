@@ -1126,7 +1126,7 @@ const ComandasPage: React.FC = () => {
 
                         {!isSplitPayments ? (
                           <div className="grid grid-cols-4 gap-3">
-                            {Object.values(PaymentMethod).map(method => (
+                            {Object.values(PaymentMethod).filter(m => m !== PaymentMethod.MULTIPLE).map(method => (
                               <button
                                 key={method}
                                 onClick={() => setPaymentMethod(method)}
