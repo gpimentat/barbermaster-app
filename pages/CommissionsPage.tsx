@@ -119,36 +119,38 @@ const CommissionsPage: React.FC = () => {
 
     // --- LÓGICA DE DADOS ---
     const standardStats = useMemo(() => {
-        return barbers.map(barber => {
-            const barberServices = dbComandas.flatMap(comanda => {
-                const client = dbClients.find(c => c.id === comanda.client_id);
-                // Ignore if client has active subscription (those go to chips allocation)
-                if (client?.subscriptionStatus === 'active') return [];
+        return barbers
+            .filter(b => b.role?.toLowerCase().includes('barber') || b.role?.toLowerCase().includes('barbeiro'))
+            .map(barber => {
+                const barberServices = dbComandas.flatMap(comanda => {
+                    const client = dbClients.find(c => c.id === comanda.client_id);
+                    // Ignore if client has active subscription (those go to chips allocation)
+                    if (client?.subscriptionStatus === 'active') return [];
 
-                return (comanda.comanda_items || [])
-                    .filter((item: any) => item.type === 'service' && item.barber_id === barber.id)
-                    .map((item: any) => ({
-                        date: comanda.close_date || comanda.open_date,
-                        clientName: comanda.client_name,
-                        serviceName: item.name,
-                        price: Number(item.price) * (item.quantity || 1),
-                        commission: (Number(item.price) * (item.quantity || 1)) * (barber.commissionRate / 100)
-                    }));
-            });
+                    return (comanda.comanda_items || [])
+                        .filter((item: any) => item.type === 'service' && item.barber_id === barber.id)
+                        .map((item: any) => ({
+                            date: comanda.close_date || comanda.open_date,
+                            clientName: comanda.client_name,
+                            serviceName: item.name,
+                            price: Number(item.price) * (item.quantity || 1),
+                            commission: (Number(item.price) * (item.quantity || 1)) * (barber.commissionRate / 100)
+                        }));
+                });
 
-            const totalGenerated = barberServices.reduce((acc, s) => acc + s.price, 0);
-            const commissionValue = barberServices.reduce((acc, s) => acc + s.commission, 0);
-            const serviceCount = barberServices.length;
+                const totalGenerated = barberServices.reduce((acc, s) => acc + s.price, 0);
+                const commissionValue = barberServices.reduce((acc, s) => acc + s.commission, 0);
+                const serviceCount = barberServices.length;
 
-            return {
-                ...barber,
-                totalGenerated,
-                serviceCount,
-                averageTicket: serviceCount > 0 ? totalGenerated / serviceCount : 0,
-                commissionValue,
-                servicesList: barberServices as any
-            };
-        }).sort((a, b) => b.commissionValue - a.commissionValue);
+                return {
+                    ...barber,
+                    totalGenerated,
+                    serviceCount,
+                    averageTicket: serviceCount > 0 ? totalGenerated / serviceCount : 0,
+                    commissionValue,
+                    servicesList: barberServices as any
+                };
+            }).sort((a, b) => b.commissionValue - a.commissionValue);
     }, [barbers, dbComandas, dbClients]);
 
     // --- LÓGICA RATEIO ---
@@ -163,30 +165,32 @@ const CommissionsPage: React.FC = () => {
         const distributionPot = totalMRR * (mrrAllocationPercentage / 100);
 
         let globalTotalChips = 0;
-        const barberChipData = barbers.map(barber => {
-            let barberChips = 0;
-            let servicesCount = 0;
-            dbComandas.forEach(comanda => {
-                const client = dbClients.find(c => c.id === comanda.client_id);
-                if (client?.subscriptionStatus === 'active') {
-                    (comanda.comanda_items || []).forEach((item: any) => {
-                        if (item.type === 'service' && item.barber_id === barber.id) {
-                            const serviceDef = dbServices.find(s => s.id === item.item_id);
-                            barberChips += ((serviceDef?.chips || 0) * (item.quantity || 1));
-                            servicesCount++;
-                        }
-                    });
-                }
+        const barberChipData = barbers
+            .filter(b => b.role?.toLowerCase().includes('barber') || b.role?.toLowerCase().includes('barbeiro'))
+            .map(barber => {
+                let barberChips = 0;
+                let servicesCount = 0;
+                dbComandas.forEach(comanda => {
+                    const client = dbClients.find(c => c.id === comanda.client_id);
+                    if (client?.subscriptionStatus === 'active') {
+                        (comanda.comanda_items || []).forEach((item: any) => {
+                            if (item.type === 'service' && item.barber_id === barber.id) {
+                                const serviceDef = dbServices.find(s => s.id === item.item_id);
+                                barberChips += ((serviceDef?.chips || 0) * (item.quantity || 1));
+                                servicesCount++;
+                            }
+                        });
+                    }
+                });
+                globalTotalChips += barberChips;
+                return {
+                    ...barber,
+                    totalChips: barberChips,
+                    serviceCount: servicesCount,
+                    sharePercentage: 0,
+                    payoutValue: 0
+                };
             });
-            globalTotalChips += barberChips;
-            return {
-                ...barber,
-                totalChips: barberChips,
-                serviceCount: servicesCount,
-                sharePercentage: 0,
-                payoutValue: 0
-            };
-        });
 
         const finalStats = barberChipData.map(b => {
             const share = globalTotalChips > 0 ? b.totalChips / globalTotalChips : 0;
