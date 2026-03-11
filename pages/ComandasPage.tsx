@@ -25,14 +25,13 @@ import { supabase } from '../src/supabaseClient';
 import { useAuth } from '../AuthContext';
 
 const ComandasPage: React.FC = () => {
-  const { currentUser, role } = useAuth();
+  const { currentUser, role, barbers } = useAuth();
   const [comandas, setComandas] = useState<Comanda[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Database Data States
   const [dbClients, setDbClients] = useState<Client[]>([]);
-  const [dbBarbers, setDbBarbers] = useState<Barber[]>([]);
   const [dbServices, setDbServices] = useState<Service[]>([]);
   const [dbProducts, setDbProducts] = useState<Product[]>([]);
 
@@ -72,15 +71,12 @@ const ComandasPage: React.FC = () => {
         .select('*, comanda_items (*)')
         .order('open_date', { ascending: false });
 
-      // 2. Fetch Supporting Data
       const [
         { data: clientsData },
-        { data: profilesData },
         { data: servicesData },
         { data: productsData }
       ] = await Promise.all([
         supabase.from('clients').select('*'),
-        supabase.from('profiles').select('*').in('role', ['admin', 'super_admin', 'barber', 'receptionist', 'Barbeiro', 'Recepcionista', 'Administrador']),
         supabase.from('services').select('*'),
         supabase.from('products').select('*')
       ]);
@@ -111,15 +107,6 @@ const ComandasPage: React.FC = () => {
 
       setComandas(mappedComandas);
       setDbClients(clientsData || []);
-      setDbBarbers((profilesData || []).map(b => ({
-        id: b.id,
-        name: b.name,
-        email: b.email,
-        role: b.role,
-        avatar: b.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(b.name)}&background=random`,
-        active: b.active,
-        commissionRate: Number(b.commission_rate) || 0
-      })));
       setDbServices((servicesData || []).map(s => ({
         id: s.id,
         name: s.name,
@@ -517,7 +504,7 @@ const ComandasPage: React.FC = () => {
         }
 
         if (item.type === 'service' && item.barberId) {
-          const barber = dbBarbers.find(b => b.id === item.barberId);
+          const barber = barbers.find(b => b.id === item.barberId);
           if (barber && barber.commissionRate > 0) {
             commissionTransactions.push({
               date: new Date().toISOString().split('T')[0],
@@ -642,7 +629,7 @@ const ComandasPage: React.FC = () => {
     }
   };
 
-  const getBarberName = (id?: string) => dbBarbers.find(b => b.id === id)?.name || 'N/A';
+  const getBarberName = (id?: string) => barbers.find(b => b.id === id)?.name || 'N/A';
 
   return (
     <div className="space-y-6 relative pb-10">
@@ -955,7 +942,7 @@ const ComandasPage: React.FC = () => {
                               <div className="space-y-4">
                                 <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Quem vai atender?</label>
                                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                                  {dbBarbers.filter(b => b.active).map(b => (
+                                  {barbers.filter(b => b.active).map(b => (
                                     <button
                                       key={b.id}
                                       type="button"
