@@ -13,6 +13,7 @@ import { useAuth } from '../AuthContext';
 import { supabase } from '../src/supabaseClient'; // Adjusted path
 import AppointmentModal from '../components/AppointmentModal';
 import AppointmentDetailsModal from '../components/AppointmentDetailsModal';
+import BlockModal from '../components/BlockModal';
 import { MOCK_BARBERS, MOCK_SERVICES, MOCK_CLIENTS } from '../constants';
 
 const Schedule: React.FC = () => {
@@ -37,6 +38,8 @@ const Schedule: React.FC = () => {
   const [selectedAppointment, setSelectedAppointment] = useState<any>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [appointments, setAppointments] = useState<any[]>([]);
+  const [scheduleBlocks, setScheduleBlocks] = useState<any[]>([]);
+  const [isBlockModalOpen, setIsBlockModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const fetchAppointments = async () => {
@@ -74,6 +77,17 @@ const Schedule: React.FC = () => {
       }));
       setAppointments(mapped);
     }
+
+    // Fetch schedule blocks
+    const { data: blocksData, error: blocksError } = await supabase
+      .from('schedule_blocks')
+      .select('*')
+      .eq('date', dateStr);
+
+    if (blocksData) {
+      setScheduleBlocks(blocksData);
+    }
+
     setLoading(false);
   };
 
@@ -99,6 +113,7 @@ const Schedule: React.FC = () => {
 
   // Função auxiliar para checar permissão localmente se não estiver no context
   const canViewAll = role === 'admin' || role === 'super_admin' || role === 'receptionist' || (currentUser?.permissions?.includes('view_full_schedule'));
+  const canManageBlocks = role === 'admin' || role === 'super_admin' || currentUser?.permissions?.includes('manage_schedule_blocks');
 
   if (role === 'barber' && currentUser && !canViewAll) {
     displayAppointments = displayAppointments.filter(appt => appt.barberId === currentUser.id);
@@ -114,16 +129,28 @@ const Schedule: React.FC = () => {
           )}
         </div>
 
-        {/* Botão de Novo Agendamento - Mobile Optimized */}
-        {(role === 'admin' || role === 'super_admin' || role === 'receptionist' || currentUser?.permissions?.includes('manage_schedule')) && (
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="flex items-center justify-center gap-3 bg-primary-500 hover:bg-primary-600 text-dark-950 px-8 py-4 md:py-3 rounded-2xl font-black uppercase tracking-widest transition-all shadow-xl shadow-primary-500/20 active:scale-95 text-[11px]"
-          >
-            <Plus size={20} strokeWidth={3} />
-            Novo Agendamento
-          </button>
-        )}
+        {/* Botões - Mobile Optimized */}
+        <div className="flex flex-col sm:flex-row gap-3 mt-4 md:mt-0 w-full md:w-auto">
+          {canManageBlocks && (
+            <button
+              onClick={() => setIsBlockModalOpen(true)}
+              className="flex items-center justify-center gap-2 bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700 px-6 py-4 md:py-3 rounded-2xl font-black uppercase tracking-widest transition-all active:scale-95 text-[10px]"
+            >
+              <Clock size={16} strokeWidth={3} />
+              Bloquear Horário
+            </button>
+          )}
+
+          {(role === 'admin' || role === 'super_admin' || role === 'receptionist' || currentUser?.permissions?.includes('manage_schedule')) && (
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="flex items-center justify-center gap-3 bg-primary-500 hover:bg-primary-600 text-dark-950 px-8 py-4 md:py-3 rounded-2xl font-black uppercase tracking-widest transition-all shadow-xl shadow-primary-500/20 active:scale-95 text-[11px]"
+            >
+              <Plus size={20} strokeWidth={3} />
+              Novo Agendamento
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Date Picker - Premium Selector */}
@@ -198,58 +225,110 @@ const Schedule: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Lista de Agendamentos - Card Based */}
-                    <div className="p-4 space-y-4 flex-1 overflow-y-auto hide-scrollbar scroll-smooth">
-                      {barberAppts.length === 0 ? (
-                        <div className="h-full flex flex-col items-center justify-center py-32 opacity-10">
-                          <User size={48} className="text-gray-600 mb-4" />
-                          <span className="text-[10px] font-black uppercase tracking-[0.5em]">Livre</span>
-                        </div>
-                      ) : (
-                        barberAppts.map((appt) => (
-                          <div
-                            key={appt.id}
-                            onClick={() => {
-                              setSelectedAppointment(appt);
-                              setIsDetailsModalOpen(true);
-                            }}
-                            className={`p-5 rounded-[2rem] border border-gray-800/50 cursor-pointer transition-all active:scale-[0.96] shadow-2xl group relative overflow-hidden bg-dark-900/20 hover:border-primary-500/30`}
-                          >
-                            {/* Status Strip */}
-                            <div className={`absolute left-0 top-0 bottom-0 w-1 ${appt.status === 'Concluído' ? 'bg-green-500' :
-                              appt.status === 'Agendado' ? 'bg-blue-500' : 'bg-gray-700'
-                              }`} />
-
-                            <div className="flex justify-between items-start mb-4">
-                              <div className="py-1 px-3 bg-dark-950 rounded-xl border border-gray-800 text-[11px] font-black text-white">
-                                {appt.startTime}
-                              </div>
-                              <span className={`text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full border ${getStatusColor(appt.status)}`}>
-                                {appt.status}
-                              </span>
-                            </div>
-
-                            <h4 className="text-base font-black text-white truncate mb-1 uppercase tracking-tight group-hover:text-primary-500 transition-colors">
-                              {appt.client?.name || 'Cliente Particular'}
-                            </h4>
-
-                            <div className="flex items-center gap-2 text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-6">
-                              <ScissorsIcon size={12} />
-                              <span className="truncate">{appt.service?.name}</span>
-                            </div>
-
-                            <div className="flex items-center justify-between pt-4 border-t border-gray-800/50">
-                              <div className="flex items-center gap-1.5">
-                                <Clock size={12} className="text-gray-600" />
-                                <span className="text-[10px] font-black text-gray-400 uppercase">{appt.service?.durationMinutes} min</span>
-                              </div>
-                              <div className="text-[11px] font-black text-primary-500">
-                                R$ {Number(appt.price || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                              </div>
-                            </div>
+                    {/* Lista de Agendamentos - Grid Based */}
+                    <div className="relative flex-1 overflow-y-auto custom-scrollbar bg-dark-950/30">
+                      {/* Background Time Slots */}
+                      <div className="absolute inset-0 min-h-[1680px]"> {/* 14 hours * 120px */}
+                        {Array.from({ length: 15 }, (_, i) => i + 7).map((hour) => (
+                          <div key={hour} className="h-[120px] border-b border-gray-800/30 w-full flex items-start p-2 relative">
+                            <span className="text-[10px] font-black text-gray-500 w-10 text-right pr-2 select-none">
+                              {hour.toString().padStart(2, '0')}:00
+                            </span>
+                            <div className="absolute left-10 top-0 bottom-0 w-px bg-gray-800/30" />
                           </div>
-                        ))
-                      )}
+                        ))}
+                      </div>
+
+                      {/* Appointments */}
+                      <div className="absolute inset-0 left-10 pointer-events-none pb-4">
+                        {barberAppts.map((appt) => {
+                          const [h, m] = appt.startTime.split(':').map(Number);
+                          const startMins = (h - 7) * 60 + m; // Starts at 07:00
+                          const top = (startMins / 60) * 120;
+                          const height = (Math.max(appt.service?.durationMinutes || 60, 15) / 60) * 120;
+
+                          return (
+                            <div
+                              key={appt.id}
+                              style={{ top: `${top}px`, height: `${height - 4}px` }}
+                              onClick={() => {
+                                setSelectedAppointment(appt);
+                                setIsDetailsModalOpen(true);
+                              }}
+                              className="absolute left-2 right-2 rounded-xl border border-gray-700/50 cursor-pointer pointer-events-auto transition-all hover:scale-[1.02] shadow-lg group overflow-hidden bg-dark-900 z-10 hover:border-primary-500/50 flex flex-col p-3"
+                            >
+                              <div className={`absolute left-0 top-0 bottom-0 w-1 ${appt.status === 'Concluído' ? 'bg-green-500' :
+                                appt.status === 'Agendado' ? 'bg-blue-500' : 'bg-gray-700'
+                                }`} />
+
+                              <div className="flex justify-between items-start mb-1">
+                                <div className="text-[10px] font-black text-gray-400">
+                                  {appt.startTime} - {appt.endTime}
+                                </div>
+                                <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border ${getStatusColor(appt.status)}`}>
+                                  {appt.status}
+                                </span>
+                              </div>
+
+                              <h4 className="text-sm font-black text-white truncate uppercase tracking-tight group-hover:text-primary-500 transition-colors">
+                                {appt.client?.name || 'Cliente Particular'}
+                              </h4>
+
+                              <div className="flex items-center gap-1.5 text-[9px] text-gray-500 font-bold uppercase tracking-widest mt-auto">
+                                <ScissorsIcon size={10} />
+                                <span className="truncate">{appt.service?.name}</span>
+                              </div>
+                            </div>
+                          );
+                        })}
+
+                        {/* Render Schedule Blocks */}
+                        {scheduleBlocks.filter(b => b.barber_id === barber.id).map((block) => {
+                          const [startH, startM] = block.start_time.split(':').map(Number);
+                          const [endH, endM] = block.end_time.split(':').map(Number);
+
+                          const startMins = (startH - 7) * 60 + startM;
+                          const durationMins = (endH * 60 + endM) - (startH * 60 + startM);
+
+                          const top = (startMins / 60) * 120;
+                          const height = (Math.max(durationMins, 15) / 60) * 120;
+
+                          return (
+                            <div
+                              key={block.id}
+                              style={{ top: `${top}px`, height: `${height - 4}px` }}
+                              className="absolute left-2 right-2 rounded-xl border border-gray-700/50 cursor-pointer pointer-events-auto transition-all shadow-lg group overflow-hidden bg-gray-900/80 z-20 flex flex-col p-3 backdrop-blur-sm"
+                              title="Clique para excluir bloqueio (Administradores)"
+                              onClick={async () => {
+                                if (canManageBlocks && window.confirm(`Deseja excluir o bloqueio "${block.reason}"?`)) {
+                                  await supabase.from('schedule_blocks').delete().eq('id', block.id);
+                                  fetchAppointments();
+                                }
+                              }}
+                            >
+                              {/* Striping pattern for visual distinction */}
+                              <div className="absolute inset-0 opacity-10"
+                                style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, #ffffff 10px, #ffffff 20px)' }}
+                              />
+
+                              <div className="absolute left-0 top-0 bottom-0 w-1 bg-gray-600" />
+
+                              <div className="relative z-10 flex flex-col h-full">
+                                <div className="text-[10px] font-black text-gray-400 mb-1">
+                                  {block.start_time.slice(0, 5)} - {block.end_time.slice(0, 5)}
+                                </div>
+                                <h4 className="text-sm font-black text-gray-300 truncate uppercase tracking-tight">
+                                  {block.reason}
+                                </h4>
+                                <div className="mt-auto flex items-center gap-1">
+                                  <Clock size={10} className="text-gray-500" />
+                                  <span className="text-[8px] font-black uppercase text-gray-500 tracking-widest">Bloqueio Interno</span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
                 );
@@ -270,6 +349,13 @@ const Schedule: React.FC = () => {
         onClose={() => setIsDetailsModalOpen(false)}
         appointment={selectedAppointment}
         onUpdate={fetchAppointments}
+      />
+
+      <BlockModal
+        isOpen={isBlockModalOpen}
+        onClose={() => setIsBlockModalOpen(false)}
+        onSuccess={fetchAppointments}
+        selectedDate={selectedDate}
       />
     </div>
   );

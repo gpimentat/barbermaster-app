@@ -47,7 +47,8 @@ const ClientsPage: React.FC = () => {
                     avatar: c.avatar || `https://ui-avatars.com/api/?name=${c.name}&background=random`,
                     subscriptionStatus: c.subscription_status,
                     subscriptionPlanId: c.subscription_plan_id,
-                    subscriptionRenewsAt: c.subscription_renews_at
+                    subscriptionRenewsAt: c.subscription_renews_at,
+                    tenant_id: c.tenant_id
                 }));
                 setClients(mappedClients);
             }

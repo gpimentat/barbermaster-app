@@ -11,6 +11,7 @@ const SYSTEM_PERMISSIONS = [
   { id: 'view_full_schedule', label: 'Ver Agenda Completa (Todos)' },
   { id: 'manage_schedule', label: 'Criar/Editar Agendamentos' },
   { id: 'manage_waitlist', label: 'Gerenciar Fila de Espera' }, // Nova Permissão
+  { id: 'manage_schedule_blocks', label: 'Gerenciar Bloqueios na Agenda' },
   { id: 'manage_clients', label: 'Gerenciar Base de Clientes' },
   { id: 'manage_products', label: 'Gerenciar Estoque/Produtos' },
   { id: 'manage_comandas', label: 'Abrir e Fechar Comandas' },

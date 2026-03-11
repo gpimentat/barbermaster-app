@@ -213,3 +213,14 @@ export interface WaitlistEntry {
   notificationSentAt?: string;
   notes?: string;
 }
+
+export interface ScheduleBlock {
+  id: string;
+  tenant_id: string;
+  barber_id: string;
+  date: string; // YYYY-MM-DD
+  start_time: string; // HH:MM
+  end_time: string; // HH:MM
+  reason: string;
+  created_at?: string;
+}
