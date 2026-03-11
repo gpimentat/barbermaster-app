@@ -10,7 +10,13 @@ export enum PaymentMethod {
   CREDIT_CARD = 'Cartão de Crédito',
   DEBIT_CARD = 'Cartão de Débito',
   PIX = 'Pix',
-  CASH = 'Dinheiro'
+  CASH = 'Dinheiro',
+  MULTIPLE = 'Múltiplo'
+}
+
+export interface PaymentSplit {
+  method: PaymentMethod;
+  amount: number;
 }
 
 export interface Barber {
@@ -167,6 +173,7 @@ export interface Comanda {
   openDate: string; // ISO string
   closeDate?: string; // ISO string
   paymentMethod?: PaymentMethod; // Persist how it was paid
+  splitPayments?: PaymentSplit[]; // Details for MULTIPLE payment method
   discountAmount?: number; // Valor do desconto em R$
   discountReason?: string; // Justificativa do desconto
   discountAppliedBy?: string; // ID do usuário que aplicou

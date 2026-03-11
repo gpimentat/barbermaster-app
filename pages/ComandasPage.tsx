@@ -20,7 +20,7 @@ import {
   Ban,
   Save
 } from 'lucide-react';
-import { Comanda, ComandaItem, Client, Service, Product, Barber, PaymentMethod, Transaction } from '../types';
+import { Comanda, ComandaItem, Client, Service, Product, Barber, PaymentMethod, PaymentSplit, Transaction } from '../types';
 import { supabase } from '../src/supabaseClient';
 import { useAuth } from '../AuthContext';
 
@@ -52,6 +52,8 @@ const ComandasPage: React.FC = () => {
   const [productQty, setProductQty] = useState(1);
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(PaymentMethod.PIX);
+  const [isSplitPayments, setIsSplitPayments] = useState(false);
+  const [splitPayments, setSplitPayments] = useState<PaymentSplit[]>([]);
 
   // Discount Modal States
   const [showDiscountModal, setShowDiscountModal] = useState(false);
@@ -92,6 +94,7 @@ const ComandasPage: React.FC = () => {
         closeDate: c.close_date,
         total: Number(c.total),
         paymentMethod: c.payment_method as any,
+        splitPayments: c.split_payments,
         discountAmount: Number(c.discount_amount) || 0,
         discountReason: c.discount_reason,
         discountAppliedBy: c.discount_applied_by,
@@ -178,6 +181,8 @@ const ComandasPage: React.FC = () => {
     });
     setSearchClient('');
     setPaymentMethod(PaymentMethod.PIX);
+    setIsSplitPayments(false);
+    setSplitPayments([]);
     setSelectedProductCategory('');
   };
 
@@ -428,7 +433,8 @@ const ComandasPage: React.FC = () => {
         total: selectedComanda.total,
         status: 'paid',
         close_date: new Date().toISOString(),
-        payment_method: paymentMethod,
+        payment_method: isSplitPayments ? PaymentMethod.MULTIPLE : paymentMethod,
+        split_payments: isSplitPayments ? splitPayments : null,
         discount_amount: selectedComanda.discountAmount || 0,
         discount_reason: selectedComanda.discountReason,
         discount_applied_by: selectedComanda.discountAppliedBy,
@@ -473,35 +479,53 @@ const ComandasPage: React.FC = () => {
             .eq('id', item.itemId);
         });
 
-      // Financial Transactions (Income)
-      const incomeTransactions = selectedComanda.items.map(item => ({
-        date: new Date().toISOString().split('T')[0],
-        description: `${item.type === 'service' ? 'Serviço' : 'Venda'}: ${item.name} (${selectedComanda.clientName})`,
-        amount: item.price * item.quantity,
-        type: 'income',
-        category: item.type === 'service' ? 'Serviços' : 'Venda de Produtos',
-        method: paymentMethod,
-        tenant_id: currentUser?.tenantId
-      }));
-
-      // Commission Transactions (Expense) - Apply discount proportionally
+      // Financial Transactions (Income) & Commission
+      const incomeTransactions: any[] = [];
       const commissionTransactions: any[] = [];
       const itemsTotal = selectedComanda.items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
       const discountRatio = itemsTotal > 0 ? (selectedComanda.total / itemsTotal) : 1;
 
       selectedComanda.items.forEach(item => {
+        const itemValue = item.price * item.quantity;
+        const discountedItemValue = itemValue * discountRatio;
+
+        if (isSplitPayments && selectedComanda.total > 0) {
+          splitPayments.forEach(split => {
+            const splitFraction = split.amount / selectedComanda.total;
+            if (splitFraction > 0) {
+              incomeTransactions.push({
+                date: new Date().toISOString().split('T')[0],
+                description: `${split.method} - ${item.type === 'service' ? 'Serviço' : 'Venda'}: ${item.name} (${selectedComanda.clientName})`,
+                amount: discountedItemValue * splitFraction,
+                type: 'income',
+                category: item.type === 'service' ? 'Serviços' : 'Venda de Produtos',
+                method: split.method,
+                tenant_id: currentUser?.tenantId
+              });
+            }
+          });
+        } else {
+          incomeTransactions.push({
+            date: new Date().toISOString().split('T')[0],
+            description: `${item.type === 'service' ? 'Serviço' : 'Venda'}: ${item.name} (${selectedComanda.clientName})`,
+            amount: discountedItemValue, // Atualizado para usar valor pós desconto
+            type: 'income',
+            category: item.type === 'service' ? 'Serviços' : 'Venda de Produtos',
+            method: paymentMethod,
+            tenant_id: currentUser?.tenantId
+          });
+        }
+
         if (item.type === 'service' && item.barberId) {
           const barber = dbBarbers.find(b => b.id === item.barberId);
           if (barber && barber.commissionRate > 0) {
-            const itemValue = item.price * item.quantity;
-            const discountedItemValue = itemValue * discountRatio;
             commissionTransactions.push({
               date: new Date().toISOString().split('T')[0],
               description: `Comissão: ${barber.name} - ${item.name}`,
               amount: discountedItemValue * (barber.commissionRate / 100),
               type: 'expense',
               category: 'Comissões',
-              method: paymentMethod,
+              method: isSplitPayments ? PaymentMethod.MULTIPLE : paymentMethod,
               tenant_id: currentUser?.tenantId
             });
           }
@@ -1096,32 +1120,106 @@ const ComandasPage: React.FC = () => {
 
                   {!isReadOnly ? (
                     <div className="space-y-8">
-                      {/* Seletor de Pagamento Profissional */}
+                      {/* Seletor de Pagamento */}
                       <div className="space-y-4">
-                        <label className="block text-[10px] font-black text-gray-500 uppercase tracking-[0.3em] ml-1">Modalidade de Pagamento</label>
-                        <div className="grid grid-cols-4 gap-3">
-                          {Object.values(PaymentMethod).map(method => (
-                            <button
-                              key={method}
-                              onClick={() => setPaymentMethod(method)}
-                              className={`p-4 rounded-3xl border transition-all flex flex-col items-center gap-2 relative group overflow-hidden ${paymentMethod === method
-                                ? 'bg-primary-500 border-primary-500 text-dark-950 shadow-2xl shadow-primary-500/20'
-                                : 'bg-dark-900 border-gray-800 text-gray-600 hover:border-gray-600'
-                                }`}
-                            >
-                              <div className="relative z-10">
-                                {method === PaymentMethod.PIX && <span className="font-black text-xs leading-none">PIX</span>}
-                                {method === PaymentMethod.CREDIT_CARD && <CreditCard size={20} />}
-                                {method === PaymentMethod.DEBIT_CARD && <CreditCard size={20} className="opacity-70" />}
-                                {method === PaymentMethod.CASH && <DollarSign size={20} />}
-                              </div>
-                              <span className="text-[9px] font-black uppercase tracking-widest relative z-10">{method}</span>
-                              {paymentMethod === method && (
-                                <div className="absolute inset-0 bg-white/10 opacity-50 group-hover:opacity-100 transition-opacity"></div>
-                              )}
-                            </button>
-                          ))}
+                        <div className="flex justify-between items-center mb-2">
+                          <label className="block text-[10px] font-black text-gray-500 uppercase tracking-[0.3em] ml-1">Modalidade de Pagamento</label>
+                          <button
+                            onClick={() => {
+                              setIsSplitPayments(!isSplitPayments);
+                              if (!isSplitPayments && splitPayments.length === 0) {
+                                setSplitPayments([{ method: PaymentMethod.PIX, amount: selectedComanda.total }]);
+                              }
+                            }}
+                            className={`text-[10px] uppercase font-black tracking-widest px-3 py-1.5 rounded-full border transition-all ${isSplitPayments ? 'bg-primary-500/10 text-primary-500 border-primary-500/20' : 'bg-gray-800 text-gray-500 border-gray-700 hover:text-white'}`}
+                          >
+                            Pagamento Múltiplo
+                          </button>
                         </div>
+
+                        {!isSplitPayments ? (
+                          <div className="grid grid-cols-4 gap-3">
+                            {Object.values(PaymentMethod).map(method => (
+                              <button
+                                key={method}
+                                onClick={() => setPaymentMethod(method)}
+                                className={`p-4 rounded-3xl border transition-all flex flex-col items-center gap-2 relative group overflow-hidden ${paymentMethod === method
+                                  ? 'bg-primary-500 border-primary-500 text-dark-950 shadow-2xl shadow-primary-500/20'
+                                  : 'bg-dark-900 border-gray-800 text-gray-600 hover:border-gray-600'
+                                  }`}
+                              >
+                                <div className="relative z-10">
+                                  {method === PaymentMethod.PIX && <span className="font-black text-xs leading-none">PIX</span>}
+                                  {method === PaymentMethod.CREDIT_CARD && <CreditCard size={20} />}
+                                  {method === PaymentMethod.DEBIT_CARD && <CreditCard size={20} className="opacity-70" />}
+                                  {method === PaymentMethod.CASH && <DollarSign size={20} />}
+                                </div>
+                                <span className="text-[9px] font-black uppercase tracking-widest relative z-10">{method}</span>
+                                {paymentMethod === method && (
+                                  <div className="absolute inset-0 bg-white/10 opacity-50 group-hover:opacity-100 transition-opacity"></div>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="space-y-3">
+                            {splitPayments.map((split, index) => (
+                              <div key={index} className="flex items-center gap-3 animate-in slide-in-from-top-2">
+                                <select
+                                  value={split.method}
+                                  onChange={(e) => {
+                                    const newSplits = [...splitPayments];
+                                    newSplits[index].method = e.target.value as PaymentMethod;
+                                    setSplitPayments(newSplits);
+                                  }}
+                                  className="bg-dark-900 border border-gray-800 rounded-xl px-4 py-3 text-white font-black text-xs focus:border-primary-500 transition-all outline-none"
+                                >
+                                  {Object.values(PaymentMethod).filter(m => m !== PaymentMethod.MULTIPLE).map(method => (
+                                    <option key={method} value={method}>{method}</option>
+                                  ))}
+                                </select>
+                                <div className="relative flex-1">
+                                  <span className="absolute left-4 top-1/2 -translate-y-1/2 font-black text-gray-500 text-xs">R$</span>
+                                  <input
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    value={split.amount || ''}
+                                    onChange={(e) => {
+                                      const newSplits = [...splitPayments];
+                                      newSplits[index].amount = parseFloat(e.target.value) || 0;
+                                      setSplitPayments(newSplits);
+                                    }}
+                                    className="w-full bg-dark-900 border border-gray-800 rounded-xl pl-10 pr-4 py-3 text-white font-black text-sm focus:border-primary-500 outline-none"
+                                  />
+                                </div>
+                                <button
+                                  onClick={() => setSplitPayments(splitPayments.filter((_, i) => i !== index))}
+                                  className="w-10 h-10 flex items-center justify-center shrink-0 rounded-xl bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-all border border-red-500/10"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </div>
+                            ))}
+                            <button
+                              onClick={() => setSplitPayments([...splitPayments, { method: PaymentMethod.PIX, amount: 0 }])}
+                              className="w-full py-3 border border-dashed border-gray-700 rounded-xl text-xs font-black text-gray-500 uppercase tracking-widest hover:border-gray-500 hover:text-white transition-all flex items-center justify-center gap-2"
+                            >
+                              <Plus size={14} /> Adicionar Pagamento
+                            </button>
+
+                            {/* Validation check */}
+                            {(() => {
+                              const totalSplit = splitPayments.reduce((acc, split) => acc + split.amount, 0);
+                              const remaining = selectedComanda.total - totalSplit;
+                              return remaining !== 0 ? (
+                                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest mt-2 px-2 py-1.5 rounded-lg bg-orange-500/10 text-orange-500 border border-orange-500/20">
+                                  Atenção: Diferença de R$ {Math.abs(remaining).toFixed(2)} {remaining > 0 ? "faltando" : "passando"}
+                                </div>
+                              ) : null;
+                            })()}
+                          </div>
+                        )}
                       </div>
 
                       <div className="flex flex-col gap-2 pt-6 border-t border-gray-800/50">
@@ -1151,7 +1249,7 @@ const ComandasPage: React.FC = () => {
                         </button>
                         <button
                           onClick={handleFinalize}
-                          disabled={selectedComanda.items.length === 0 || isSubmitting}
+                          disabled={selectedComanda.items.length === 0 || isSubmitting || (isSplitPayments && Math.abs(splitPayments.reduce((acc, split) => acc + split.amount, 0) - selectedComanda.total) > 0.01)}
                           className="px-6 py-5 bg-green-500 hover:bg-green-600 active:scale-95 disabled:opacity-20 disabled:grayscale text-dark-950 font-black text-[10px] uppercase tracking-[0.2em] rounded-3xl transition-all shadow-2xl shadow-green-500/20 flex justify-center items-center gap-3"
                         >
                           {isSubmitting ? <Loader2 size={20} className="animate-spin" /> : <Check size={20} strokeWidth={3} />}
@@ -1165,6 +1263,7 @@ const ComandasPage: React.FC = () => {
                         <div className="flex justify-between items-center">
                           <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest font-black">Pagamento realizado via</span>
                           <div className="flex items-center gap-2 bg-primary-500/10 text-primary-500 px-3 py-1.5 rounded-full border border-primary-500/20">
+                            {selectedComanda.paymentMethod === PaymentMethod.MULTIPLE && <span className="font-black text-[10px] mr-1">SPLIT</span>}
                             {selectedComanda.paymentMethod === PaymentMethod.PIX && <span className="font-black text-[10px]">PIX</span>}
                             {selectedComanda.paymentMethod === PaymentMethod.CREDIT_CARD && <CreditCard size={14} />}
                             {selectedComanda.paymentMethod === PaymentMethod.DEBIT_CARD && <CreditCard size={14} />}
@@ -1172,6 +1271,18 @@ const ComandasPage: React.FC = () => {
                             <span className="font-black text-xs uppercase tracking-widest">{selectedComanda.paymentMethod || 'Manual'}</span>
                           </div>
                         </div>
+
+                        {selectedComanda.splitPayments && selectedComanda.splitPayments.length > 0 && (
+                          <div className="flex flex-col gap-2 mt-4 pt-4 border-t border-gray-800/50">
+                            {selectedComanda.splitPayments.map((split, i) => (
+                              <div key={i} className="flex justify-between items-center text-xs">
+                                <span className="font-black text-gray-500 uppercase tracking-widest">{split.method}:</span>
+                                <span className="font-black text-white">R$ {split.amount.toFixed(2)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
                         <div className="flex justify-between items-center pt-4 border-t border-gray-800 mt-2">
                           <span className="text-sm font-black text-white uppercase tracking-widest">Recebido em conta</span>
                           <span className="text-3xl font-black text-green-500 tracking-tighter">R$ {selectedComanda.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
