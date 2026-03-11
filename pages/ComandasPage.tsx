@@ -80,7 +80,7 @@ const ComandasPage: React.FC = () => {
         { data: productsData }
       ] = await Promise.all([
         supabase.from('clients').select('*'),
-        supabase.from('profiles').select('*'),
+        supabase.from('profiles').select('*').in('role', ['admin', 'super_admin', 'barber', 'receptionist', 'Barbeiro', 'Recepcionista', 'Administrador']),
         supabase.from('services').select('*'),
         supabase.from('products').select('*')
       ]);
