@@ -345,7 +345,15 @@ const CommissionsPage: React.FC = () => {
                                         <tr key={barber.id} className="hover:bg-gray-800/30 transition-colors">
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-3">
-                                                    <img src={barber.avatar} className="w-10 h-10 rounded-full object-cover" />
+                                                    <div className="w-10 h-10 rounded-full border border-gray-700 overflow-hidden">
+                                                        {barber.avatar ? (
+                                                            <img src={barber.avatar} className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            <div className="w-full h-full bg-primary-500 text-dark-950 flex items-center justify-center font-bold">
+                                                                {barber.name.charAt(0).toUpperCase()}
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                     <div><p className="font-bold text-white">{barber.name}</p><p className="text-xs text-gray-500">{barber.role}</p></div>
                                                 </div>
                                             </td>
@@ -416,7 +424,18 @@ const CommissionsPage: React.FC = () => {
                                 <tbody className="divide-y divide-gray-800">
                                     {chipStatsData.stats.map(barber => (
                                         <tr key={barber.id} className="hover:bg-gray-800/30 transition-colors">
-                                            <td className="px-6 py-4 font-bold text-white flex items-center gap-2"><img src={barber.avatar} className="w-8 h-8 rounded-full" /> {barber.name}</td>
+                                            <td className="px-6 py-4 font-bold text-white flex items-center gap-2">
+                                                <div className="w-8 h-8 rounded-full border border-gray-700 overflow-hidden">
+                                                    {barber.avatar ? (
+                                                        <img src={barber.avatar} className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        <div className="w-full h-full bg-primary-500 text-dark-950 flex items-center justify-center font-bold text-xs">
+                                                            {barber.name.charAt(0).toUpperCase()}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                {barber.name}
+                                            </td>
                                             <td className="px-6 py-4 text-center"><span className="bg-gray-800 px-3 py-1 rounded-full text-sm font-bold text-white">{barber.totalChips}</span></td>
                                             <td className="px-6 py-4 text-center text-sm font-bold">{barber.sharePercentage.toFixed(1)}%</td>
                                             <td className="px-6 py-4 text-right"><span className="text-xl font-bold text-green-500">R$ {barber.payoutValue.toFixed(2)}</span></td>
@@ -435,7 +454,15 @@ const CommissionsPage: React.FC = () => {
                     <div className="bg-dark-900 rounded-xl border border-gray-800 shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh]">
                         <div className="flex items-center justify-between p-6 border-b border-gray-800 bg-gray-900/50">
                             <div className="flex items-center gap-3">
-                                <img src={selectedBarber.avatar} className="w-12 h-12 rounded-full border border-gray-700" />
+                                <div className="w-12 h-12 rounded-full border border-gray-700 overflow-hidden">
+                                    {selectedBarber.avatar ? (
+                                        <img src={selectedBarber.avatar} className="w-full h-full object-cover" />
+                                    ) : (
+                                        <div className="w-full h-full bg-primary-500 text-dark-950 flex items-center justify-center font-bold text-lg">
+                                            {selectedBarber.name.charAt(0).toUpperCase()}
+                                        </div>
+                                    )}
+                                </div>
                                 <div>
                                     <h2 className="text-xl font-bold text-white">{selectedBarber.name}</h2>
                                     <p className="text-sm text-gray-400">Visão Detalhada</p>

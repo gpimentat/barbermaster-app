@@ -10,7 +10,7 @@ export const MOCK_BARBERS: Barber[] = [
     password: 'securepassword',
     mustChangePassword: false,
     role: 'Master Barber',
-    avatar: 'https://picsum.photos/150/150?random=1',
+    avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent('Carlos+Silva')}&background=random&color=fff`,
     active: true,
     commissionRate: 50,
     loginEnabled: true,
@@ -24,7 +24,7 @@ export const MOCK_BARBERS: Barber[] = [
     password: '1234', // Simula um usuário que acabou de ser criado
     mustChangePassword: true, // Vai pedir troca de senha ao logar
     role: 'Barbeiro Pleno',
-    avatar: 'https://picsum.photos/150/150?random=2',
+    avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent('Andre+Santos')}&background=random&color=fff`,
     active: true,
     commissionRate: 40,
     loginEnabled: true,
@@ -123,7 +123,7 @@ export const MOCK_CLIENTS: Client[] = [
     phone: '(11) 99999-1111',
     totalVisits: 12,
     lastVisit: '2023-10-25',
-    avatar: 'https://picsum.photos/100/100?random=10',
+    avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent('Joao+Pereira')}&background=random&color=fff`,
     loyaltyPoints: 350,
     subscriptionPlanId: 'sub3',
     subscriptionStatus: 'active',
@@ -136,7 +136,7 @@ export const MOCK_CLIENTS: Client[] = [
     phone: '(11) 98888-2222',
     totalVisits: 5,
     lastVisit: '2023-10-20',
-    avatar: 'https://picsum.photos/100/100?random=11',
+    avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent('Lucas+Oliveira')}&background=random&color=fff`,
     loyaltyPoints: 120,
     subscriptionPlanId: 'sub1',
     subscriptionStatus: 'active',
@@ -149,7 +149,7 @@ export const MOCK_CLIENTS: Client[] = [
     phone: '(11) 97777-3333',
     totalVisits: 1,
     lastVisit: '2023-10-01',
-    avatar: 'https://picsum.photos/100/100?random=12',
+    avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent('Mateus+Souza')}&background=random&color=fff`,
     loyaltyPoints: 45
   },
   {
@@ -158,7 +158,7 @@ export const MOCK_CLIENTS: Client[] = [
     email: 'roberto@email.com',
     phone: '(11) 96666-4444',
     totalVisits: 8,
-    avatar: 'https://picsum.photos/100/100?random=13',
+    avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent('Roberto+Costa')}&background=random&color=fff`,
     loyaltyPoints: 80
   },
   {
@@ -167,7 +167,7 @@ export const MOCK_CLIENTS: Client[] = [
     email: 'fernando@email.com',
     phone: '(11) 95555-5555',
     totalVisits: 3,
-    avatar: 'https://picsum.photos/100/100?random=14',
+    avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent('Fernando+Lima')}&background=random&color=fff`,
     loyaltyPoints: 30
   }
 ];
@@ -177,7 +177,7 @@ export const MOCK_CHATS: ChatSession[] = [
     id: 'chat1',
     clientId: 'c1',
     clientName: 'João Pereira',
-    clientAvatar: 'https://picsum.photos/100/100?random=10',
+    clientAvatar: `https://ui-avatars.com/api/?name=${encodeURIComponent('Joao+Pereira')}&background=random&color=fff`,
     lastMessage: 'Combinado, obrigado!',
     lastMessageAt: '2023-10-27T10:30:00Z',
     unreadCount: 0,
@@ -192,7 +192,7 @@ export const MOCK_CHATS: ChatSession[] = [
     id: 'chat2',
     clientId: 'c2',
     clientName: 'Lucas Oliveira',
-    clientAvatar: 'https://picsum.photos/100/100?random=11',
+    clientAvatar: `https://ui-avatars.com/api/?name=${encodeURIComponent('Lucas+Oliveira')}&background=random&color=fff`,
     lastMessage: 'Tem horário para hoje?',
     lastMessageAt: '2023-10-28T08:00:00Z',
     unreadCount: 1,

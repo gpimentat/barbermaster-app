@@ -220,10 +220,10 @@ const AppCustomizationPage: React.FC = () => {
 
     // Estado da Galeria
     const [galleryPhotos, setGalleryPhotos] = useState<GalleryPhoto[]>([
-        { id: '1', url: 'https://picsum.photos/200/200?random=21', status: 'approved', uploader: 'Admin', date: '2023-10-01' },
-        { id: '2', url: 'https://picsum.photos/200/200?random=22', status: 'approved', uploader: 'Admin', date: '2023-10-02' },
-        { id: '3', url: 'https://picsum.photos/200/200?random=23', status: 'approved', uploader: 'Admin', date: '2023-10-03' },
-        { id: '4', url: 'https://picsum.photos/200/200?random=24', status: 'pending', uploader: 'Você (Cliente)', date: 'Hoje' },
+        { id: '1', url: '', status: 'approved', uploader: 'Admin', date: '2023-10-01' },
+        { id: '2', url: '', status: 'approved', uploader: 'Admin', date: '2023-10-02' },
+        { id: '3', url: '', status: 'approved', uploader: 'Admin', date: '2023-10-03' },
+        { id: '4', url: '', status: 'pending', uploader: 'Você (Cliente)', date: 'Hoje' },
     ]);
 
     // Estado de Cupons/Parcerias
@@ -259,9 +259,9 @@ const AppCustomizationPage: React.FC = () => {
         slogan: 'O melhor corte da cidade',
         description: 'Especialistas em cortes clássicos e modernos. Ambiente climatizado e cerveja gelada.',
         primaryColor: '#eab308',
-        logoPreview: 'https://picsum.photos/200/200?random=logo',
-        coverPreview: 'https://picsum.photos/800/400?random=cover',
-        pwaIconPreview: 'https://picsum.photos/192/192?random=pwa',
+        logoPreview: '',
+        coverPreview: '',
+        pwaIconPreview: '',
         address: 'Rua das Flores, 123 - Centro',
         phone: '(11) 99999-9999',
         instagram: '@barbermaster',
