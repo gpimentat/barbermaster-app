@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { X, Calendar, Clock, User, Scissors, AlertTriangle, CheckCircle, ClipboardList, Plus } from 'lucide-react';
+import { X, Calendar, Clock, User, Scissors, AlertTriangle, CheckCircle2, ClipboardList, Plus } from 'lucide-react';
 import { appointmentService } from '../src/services/appointmentService';
 import { supabase } from '../src/supabaseClient';
 
@@ -282,12 +282,12 @@ const AppointmentDetailsModal: React.FC<AppointmentDetailsModalProps> = ({ isOpe
                                             disabled={loading}
                                             className="w-full flex items-center justify-center gap-3 bg-green-600 hover:bg-green-500 active:scale-[0.98] text-white p-4 rounded-xl font-black transition-all shadow-lg shadow-green-600/10 disabled:opacity-50"
                                         >
-                                            <CheckCircle size={20} /> Ativar/Confirmar Agenda
+                                            <CheckCircle2 size={20} /> Ativar/Confirmar Agenda
                                         </button>
                                     ) : (
                                         <div className="space-y-3">
                                             <div className="bg-green-500/10 border border-green-500/20 text-green-500 p-4 rounded-xl font-black flex items-center justify-center gap-2">
-                                                <CheckCircle size={20} /> Agendamento Confirmado
+                                                <CheckCircle2 size={20} /> Agendamento Confirmado
                                             </div>
 
                                             {!appointment.comanda_id ? (
@@ -457,7 +457,7 @@ const AppointmentDetailsModal: React.FC<AppointmentDetailsModalProps> = ({ isOpe
                     // Result View
                     <div className="p-8 text-center animate-in zoom-in duration-300">
                         <div className="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-green-500/20">
-                            <CheckCircle size={32} className="text-green-500" />
+                            <CheckCircle2 size={32} className="text-green-500" />
                         </div>
                         <h3 className="text-xl font-black text-white mb-2">Ação Realizada!</h3>
                         <p className="text-gray-400 text-sm mb-8 leading-relaxed px-4">{resultMsg.message}</p>

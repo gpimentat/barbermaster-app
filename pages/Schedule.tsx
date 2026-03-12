@@ -72,11 +72,11 @@ const Schedule: React.FC = () => {
           additional_services: appt.additional_services,
           duration_override: appt.duration_override,
           service: {
-            name: appt.services?.name,
-            durationMinutes: appt.services?.duration_minutes,
-            price: appt.services?.price
+            name: Array.isArray(appt.services) ? appt.services[0]?.name : appt.services?.name,
+            durationMinutes: Array.isArray(appt.services) ? appt.services[0]?.duration_minutes : appt.services?.duration_minutes,
+            price: Array.isArray(appt.services) ? appt.services[0]?.price : appt.services?.price
           },
-          client: { name: appt.clients?.name },
+          client: { name: Array.isArray(appt.clients) ? appt.clients[0]?.name : appt.clients?.name },
         }));
         setAppointments(mapped);
       }
@@ -217,12 +217,12 @@ const Schedule: React.FC = () => {
                         {barber.avatar ? (
                           <img src={barber.avatar} alt={barber.name} className="w-full h-full object-cover" />
                         ) : (
-                          <span className="text-xl">{barber.name.charAt(0).toUpperCase()}</span>
+                          <span className="text-xl">{(barber.name || 'P').charAt(0).toUpperCase()}</span>
                         )}
                         <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
                       </div>
                       <div className="min-w-0 flex-1">
-                        <h3 className="text-sm font-black text-white truncate uppercase tracking-tight leading-none mb-1">{barber.name.split(' ')[0]}</h3>
+                        <h3 className="text-sm font-black text-white truncate uppercase tracking-tight leading-none mb-1">{(barber.name || 'Profissional').split(' ')[0]}</h3>
                         <p className="text-[10px] text-gray-500 font-bold uppercase tracking-[0.1em]">{barber.role}</p>
                       </div>
                       <div className="text-[10px] px-3 py-1 bg-dark-950 rounded-xl text-primary-500 font-black border border-gray-800/50 shadow-inner">
