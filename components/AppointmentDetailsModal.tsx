@@ -20,8 +20,8 @@ const AppointmentDetailsModal: React.FC<AppointmentDetailsModalProps> = ({ isOpe
     const [resultMsg, setResultMsg] = useState<any>(null);
 
     // Additional Services states
-    const [extraServices, setExtraServices] = useState<any[]>(appointment.additional_services || []);
-    const [durationOverride, setDurationOverride] = useState<number>(appointment.duration_override || 0);
+    const [extraServices, setExtraServices] = useState<any[]>(appointment?.additional_services || []);
+    const [durationOverride, setDurationOverride] = useState<number>(appointment?.duration_override || 0);
     const [showDurationPrompt, setShowDurationPrompt] = useState(false);
     const [pendingExtraService, setPendingExtraService] = useState<any>(null);
     const [isSavingExtras, setIsSavingExtras] = useState(false);
