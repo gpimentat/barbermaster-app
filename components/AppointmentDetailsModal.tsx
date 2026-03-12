@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { X, Calendar, Clock, User, Scissors, AlertTriangle, CheckCircle, ClipboardList } from 'lucide-react';
+import { X, Calendar, Clock, User, Scissors, AlertTriangle, CheckCircle, ClipboardList, Plus } from 'lucide-react';
 import { appointmentService } from '../src/services/appointmentService';
 import { supabase } from '../src/supabaseClient';
 
@@ -19,6 +19,13 @@ const AppointmentDetailsModal: React.FC<AppointmentDetailsModalProps> = ({ isOpe
     const [loading, setLoading] = useState(false);
     const [resultMsg, setResultMsg] = useState<any>(null);
 
+    // Additional Services states
+    const [extraServices, setExtraServices] = useState<any[]>(appointment.additional_services || []);
+    const [durationOverride, setDurationOverride] = useState<number>(appointment.duration_override || 0);
+    const [showDurationPrompt, setShowDurationPrompt] = useState(false);
+    const [pendingExtraService, setPendingExtraService] = useState<any>(null);
+    const [isSavingExtras, setIsSavingExtras] = useState(false);
+
     // Fetch services when modal opens
     React.useEffect(() => {
         if (isOpen) {
@@ -30,6 +37,14 @@ const AppointmentDetailsModal: React.FC<AppointmentDetailsModalProps> = ({ isOpe
         const { data } = await supabase.from('services').select('*');
         if (data) setServices(data);
     };
+
+    // Sync local states with prop when it changes or modal opens
+    React.useEffect(() => {
+        if (appointment) {
+            setExtraServices(appointment.additional_services || []);
+            setDurationOverride(appointment.duration_override || 0);
+        }
+    }, [appointment?.id, appointment?.additional_services, appointment?.duration_override]);
 
     if (!isOpen || !appointment) return null;
 
@@ -89,6 +104,37 @@ const AppointmentDetailsModal: React.FC<AppointmentDetailsModalProps> = ({ isOpe
             onClose(); // Close to refresh the object prop
         } else {
             alert(result.message);
+        }
+    };
+
+    const handleSaveExtras = async (updatedExtras: any[], updatedDuration: number) => {
+        setIsSavingExtras(true);
+        // Calculate new end time based on original start time + (original service duration + new override)
+        // This is a bit complex since we don't have the original service duration directly in the appointment object here (it's in appointment.service.durationMinutes)
+        const [h, m] = appointment.startTime.split(':').map(Number);
+        const totalDuration = (appointment.service?.durationMinutes || 0) + updatedDuration;
+
+        const dateObj = new Date();
+        dateObj.setHours(h, m + totalDuration);
+        const newEndTime = dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+        const { error } = await supabase
+            .from('appointments')
+            .update({
+                additional_services: updatedExtras,
+                duration_override: updatedDuration,
+                end_time: newEndTime,
+                price: (appointment.service?.price || appointment.price) + updatedExtras.reduce((sum, s) => sum + s.price, 0)
+            })
+            .eq('id', appointment.id);
+
+        setIsSavingExtras(false);
+        if (error) {
+            alert('Erro ao salvar serviços extras: ' + error.message);
+        } else {
+            setExtraServices(updatedExtras);
+            setDurationOverride(updatedDuration);
+            onUpdate();
         }
     };
 
@@ -162,6 +208,67 @@ const AppointmentDetailsModal: React.FC<AppointmentDetailsModalProps> = ({ isOpe
                                     <div>
                                         <p className="text-[10px] font-bold text-gray-500 uppercase">Status do Agendamento</p>
                                         <p className={`text-sm font-black uppercase tracking-wider ${appointment.status === 'Cancelado' ? 'text-red-400' : 'text-green-400'}`}>{appointment.status}</p>
+                                    </div>
+                                </div>
+
+                                {/* Additional Services Section */}
+                                <div className="space-y-3">
+                                    <div className="flex justify-between items-center px-1">
+                                        <p className="text-[10px] font-bold text-gray-500 uppercase">Serviços Adicionais (+)</p>
+                                        <p className="text-[10px] font-mono text-primary-500">+{durationOverride} min</p>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        {extraServices.map((s, idx) => (
+                                            <div key={idx} className="flex justify-between items-center bg-gray-800/20 border border-gray-800 p-3 rounded-xl group transition-all">
+                                                <div className="flex items-center gap-2">
+                                                    <Scissors size={14} className="text-primary-500" />
+                                                    <span className="text-sm font-bold text-white">{s.name}</span>
+                                                </div>
+                                                <div className="flex items-center gap-3">
+                                                    <span className="text-xs font-mono text-gray-400">R$ {s.price}</span>
+                                                    <button
+                                                        disabled={isSavingExtras || loading}
+                                                        onClick={() => {
+                                                            const updated = extraServices.filter((_, i) => i !== idx);
+                                                            // We subtract the specific duration of the removed item if we had it
+                                                            // For simplicity here, we just keep the current durationOverride unless user explicitly asked to reduce it
+                                                            // But let's just save the new list
+                                                            handleSaveExtras(updated, durationOverride);
+                                                        }}
+                                                        className="text-red-500 hover:text-red-400 p-1 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity"
+                                                    >
+                                                        <X size={14} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+
+                                        <div className="relative">
+                                            <button
+                                                disabled={isSavingExtras || loading}
+                                                className="w-full flex items-center justify-center gap-2 py-3 border border-dashed border-gray-800 rounded-xl text-gray-500 hover:text-primary-500 hover:border-primary-500 transition-all text-xs font-bold bg-dark-950/20"
+                                            >
+                                                <Plus size={16} /> Adicionar Extra
+                                                <select
+                                                    className="absolute inset-0 opacity-0 cursor-pointer disabled:cursor-not-allowed"
+                                                    disabled={isSavingExtras || loading}
+                                                    value=""
+                                                    onChange={(e) => {
+                                                        const service = services.find(s => s.id === e.target.value);
+                                                        if (service) {
+                                                            setPendingExtraService(service);
+                                                            setShowDurationPrompt(true);
+                                                        }
+                                                    }}
+                                                >
+                                                    <option value="">+</option>
+                                                    {services.map(s => (
+                                                        <option key={s.id} value={s.id}>{s.name} (R$ {s.price})</option>
+                                                    ))}
+                                                </select>
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -283,6 +390,68 @@ const AppointmentDetailsModal: React.FC<AppointmentDetailsModalProps> = ({ isOpe
                                 </div>
                             )}
                         </div>
+
+                        {/* Duration Prompt for Details Modal */}
+                        {showDurationPrompt && (
+                            <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+                                <div className="bg-dark-900 border border-gray-800 rounded-2xl p-6 w-full max-w-sm shadow-2xl animate-in zoom-in-95 duration-200">
+                                    <h3 className="text-lg font-bold text-white mb-2">Aumentar o tempo?</h3>
+                                    <p className="text-gray-400 text-sm mb-6 leading-relaxed">
+                                        Deseja aumentar o tempo para <strong>{pendingExtraService?.name}</strong>?
+                                    </p>
+
+                                    <div className="space-y-4">
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={() => {
+                                                    const updated = [...extraServices, {
+                                                        service_id: pendingExtraService.id,
+                                                        name: pendingExtraService.name,
+                                                        price: pendingExtraService.price,
+                                                        duration: 0
+                                                    }];
+                                                    handleSaveExtras(updated, durationOverride);
+                                                    setShowDurationPrompt(false);
+                                                    setPendingExtraService(null);
+                                                }}
+                                                className="flex-1 bg-gray-800 hover:bg-gray-700 text-white py-3 rounded-xl font-bold text-sm"
+                                            >
+                                                Não, manter
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    const mins = prompt('Quantos minutos extras?', (pendingExtraService.duration_minutes || 15).toString());
+                                                    if (mins !== null) {
+                                                        const extraMins = parseInt(mins) || 0;
+                                                        const updated = [...extraServices, {
+                                                            service_id: pendingExtraService.id,
+                                                            name: pendingExtraService.name,
+                                                            price: pendingExtraService.price,
+                                                            duration: extraMins
+                                                        }];
+                                                        handleSaveExtras(updated, durationOverride + extraMins);
+                                                        setShowDurationPrompt(false);
+                                                        setPendingExtraService(null);
+                                                    }
+                                                }}
+                                                className="flex-1 bg-primary-500 hover:bg-primary-600 text-dark-950 py-3 rounded-xl font-bold text-sm"
+                                            >
+                                                Sim, aumentar
+                                            </button>
+                                        </div>
+                                        <button
+                                            onClick={() => {
+                                                setShowDurationPrompt(false);
+                                                setPendingExtraService(null);
+                                            }}
+                                            className="w-full text-gray-500 hover:text-white text-xs py-2"
+                                        >
+                                            Cancelar
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </>
                 ) : (
                     // Result View

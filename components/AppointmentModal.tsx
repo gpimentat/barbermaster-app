@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, Clock, User, Scissors, Save, AlertCircle } from 'lucide-react';
+import { X, Calendar, Clock, User, Scissors, Save, AlertCircle, Plus } from 'lucide-react';
 import { supabase } from '../src/supabaseClient'; // Corrected path
 import { useAuth } from '../AuthContext';
 import { Client, Barber, Service } from '../types';
@@ -24,6 +24,10 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ isOpen, onClose, on
     const [selectedTime, setSelectedTime] = useState('09:00');
     const [selectedBarberId, setSelectedBarberId] = useState(currentUser?.id || '');
     const [selectedServiceId, setSelectedServiceId] = useState('');
+    const [additionalServices, setAdditionalServices] = useState<{ service_id: string; name: string; price: number; duration: number }[]>([]);
+    const [durationOverride, setDurationOverride] = useState<number>(0);
+    const [showDurationPrompt, setShowDurationPrompt] = useState(false);
+    const [pendingExtraService, setPendingExtraService] = useState<any>(null);
 
     // Client States
     const [clientMode, setClientMode] = useState<'existing' | 'new'>('existing');
@@ -154,14 +158,18 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ isOpen, onClose, on
             const service = services.find(s => s.id === selectedServiceId);
             if (!service) throw new Error("Selecione um serviço.");
 
+            const totalAdditionalPrice = additionalServices.reduce((sum, s) => sum + s.price, 0);
+            const totalDuration = service.durationMinutes + durationOverride;
+
             // 3. Calc End Time
             const [h, m] = selectedTime.split(':').map(Number);
             const dateObj = new Date();
-            dateObj.setHours(h, m + service.durationMinutes);
+            // Using totalDuration instead of just service.durationMinutes
+            dateObj.setHours(h, m + totalDuration);
             const endTime = dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
             // 4. Validate Conflict
-            const isAvailable = await checkAvailability(selectedBarberId, selectedDate, selectedTime, service.durationMinutes);
+            const isAvailable = await checkAvailability(selectedBarberId, selectedDate, selectedTime, totalDuration);
             if (!isAvailable) {
                 alert('❌ Horário indisponível! Já existe um agendamento neste intervalo.');
                 setLoading(false);
@@ -176,9 +184,11 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ isOpen, onClose, on
                 date: selectedDate,
                 start_time: selectedTime,
                 end_time: endTime,
-                price: service.price,
+                price: service.price + totalAdditionalPrice,
                 status: 'Agendado',
-                tenant_id: currentUser?.tenantId
+                tenant_id: currentUser?.tenantId,
+                additional_services: additionalServices,
+                duration_override: durationOverride
             }]).select();
 
             if (apptError) throw apptError;
@@ -385,12 +395,71 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ isOpen, onClose, on
                                     onChange={e => setSelectedServiceId(e.target.value)}
                                     required
                                 >
-                                    <option value="">Selecione...</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        {/* Additional Services List */}
+                        {additionalServices.length > 0 && (
+                            <div className="md:col-span-2 space-y-2">
+                                <label className="block text-[10px] font-bold text-gray-500 uppercase ml-1">Serviços Adicionais</label>
+                                {additionalServices.map((s, idx) => (
+                                    <div key={idx} className="flex justify-between items-center bg-primary-500/5 border border-primary-500/20 p-3 rounded-xl">
+                                        <div className="flex items-center gap-2">
+                                            <Scissors size={14} className="text-primary-500" />
+                                            <span className="text-sm font-bold text-white">{s.name}</span>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-xs font-mono text-gray-400">R$ {s.price}</span>
+                                            <button
+                                                type="button"
+                                                onClick={() => setAdditionalServices(prev => prev.filter((_, i) => i !== idx))}
+                                                className="text-red-500 hover:text-red-400 p-1"
+                                            >
+                                                <X size={14} />
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Add Extra Service Button */}
+                        <div className="md:col-span-2">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    const select = document.getElementById('extra-service-select') as HTMLSelectElement;
+                                    const serviceId = select.value;
+                                    if (!serviceId) return;
+                                    const service = services.find(s => s.id === serviceId);
+                                    if (service) {
+                                        setPendingExtraService(service);
+                                        setShowDurationPrompt(true);
+                                    }
+                                    select.value = '';
+                                }}
+                                className="w-full flex items-center justify-center gap-2 py-2 border border-dashed border-gray-700 rounded-xl text-gray-500 hover:text-primary-500 hover:border-primary-500 transition-all text-xs font-bold"
+                            >
+                                <Plus size={14} /> Adicionar Serviço Extra
+                                <select
+                                    id="extra-service-select"
+                                    className="bg-transparent border-none outline-none text-transparent w-4 h-4 absolute opacity-0 cursor-pointer"
+                                    onChange={(e) => {
+                                        const service = services.find(s => s.id === e.target.value);
+                                        if (service) {
+                                            setPendingExtraService(service);
+                                            setShowDurationPrompt(true);
+                                        }
+                                        e.target.value = '';
+                                    }}
+                                >
+                                    <option value="">+</option>
                                     {services.map(s => (
                                         <option key={s.id} value={s.id}>{s.name} (R$ {s.price})</option>
                                     ))}
                                 </select>
-                            </div>
+                            </button>
                         </div>
                         <div className="space-y-1.5">
                             <label className="block text-[10px] font-bold text-gray-500 uppercase ml-1">Profissional</label>
@@ -434,6 +503,67 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ isOpen, onClose, on
                         </div>
                     </div>
                 </form>
+
+                {/* Duration Prompt Modal */}
+                {showDurationPrompt && (
+                    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+                        <div className="bg-dark-900 border border-gray-800 rounded-2xl p-6 w-full max-w-sm shadow-2xl animate-in zoom-in-95 duration-200">
+                            <h3 className="text-lg font-bold text-white mb-2">Aumentar o tempo?</h3>
+                            <p className="text-gray-400 text-sm mb-6">
+                                Você adicionou <strong>{pendingExtraService?.name}</strong>. Deseja aumentar o tempo do agendamento?
+                            </p>
+
+                            <div className="space-y-4">
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => {
+                                            setAdditionalServices(prev => [...prev, {
+                                                service_id: pendingExtraService.id,
+                                                name: pendingExtraService.name,
+                                                price: pendingExtraService.price,
+                                                duration: pendingExtraService.durationMinutes
+                                            }]);
+                                            setShowDurationPrompt(false);
+                                            setPendingExtraService(null);
+                                        }}
+                                        className="flex-1 bg-gray-800 hover:bg-gray-700 text-white py-3 rounded-xl font-bold text-sm"
+                                    >
+                                        Não, manter tempo
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            const mins = prompt('Quantos minutos extras?', pendingExtraService.durationMinutes.toString());
+                                            if (mins !== null) {
+                                                const extraMins = parseInt(mins) || 0;
+                                                setDurationOverride(prev => prev + extraMins);
+                                                setAdditionalServices(prev => [...prev, {
+                                                    service_id: pendingExtraService.id,
+                                                    name: pendingExtraService.name,
+                                                    price: pendingExtraService.price,
+                                                    duration: extraMins
+                                                }]);
+                                                setShowDurationPrompt(false);
+                                                setPendingExtraService(null);
+                                            }
+                                        }}
+                                        className="flex-1 bg-primary-500 hover:bg-primary-600 text-dark-950 py-3 rounded-xl font-bold text-sm"
+                                    >
+                                        Sim, aumentar
+                                    </button>
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        setShowDurationPrompt(false);
+                                        setPendingExtraService(null);
+                                    }}
+                                    className="w-full text-gray-500 hover:text-white text-xs py-2"
+                                >
+                                    Cancelar adição
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

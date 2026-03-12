@@ -138,6 +138,8 @@ export interface Appointment {
   endTime: string; // HH:mm
   status: AppointmentStatus;
   price: number;
+  additional_services?: { service_id: string; name: string; price: number; duration: number }[];
+  durationOverride?: number;
 }
 
 export interface Transaction {

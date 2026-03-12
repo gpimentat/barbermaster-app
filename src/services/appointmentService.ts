@@ -154,6 +154,26 @@ export const appointmentService = {
 
             if (itemError) throw itemError;
 
+            // 3.5 Add additional services as comanda_items
+            if (appt.additional_services && Array.isArray(appt.additional_services)) {
+                for (const extra of appt.additional_services) {
+                    const extraItemData = {
+                        comanda_id: newComanda.id,
+                        type: 'service',
+                        item_id: extra.service_id,
+                        name: extra.name,
+                        price: extra.price,
+                        quantity: 1,
+                        barber_id: appt.barber_id,
+                        tenant_id: appt.tenant_id
+                    };
+                    const { error: extraError } = await supabase
+                        .from('comanda_items')
+                        .insert([extraItemData]);
+                    if (extraError) throw extraError;
+                }
+            }
+
             // 4. Link comanda back to appointment
             const { error: linkError } = await supabase
                 .from('appointments')

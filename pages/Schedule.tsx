@@ -56,8 +56,9 @@ const Schedule: React.FC = () => {
       .select(`
             id, date, start_time, end_time, status, price,
             barber_id, client_id, service_id, comanda_id,
+            additional_services, duration_override,
             clients (name),
-            services (name, duration_minutes) -- Assuming services table exists
+            services (name, duration_minutes, price) -- Assuming services table exists
         `) // removed barbers join for now to avoid complexity if RLS issues, using context
       .eq('date', dateStr)
       .order('start_time');
@@ -72,7 +73,13 @@ const Schedule: React.FC = () => {
         price: appt.price,
         barberId: appt.barber_id,
         comanda_id: appt.comanda_id,
-        service: { name: appt.services?.name, durationMinutes: appt.services?.duration_minutes },
+        additional_services: appt.additional_services,
+        duration_override: appt.duration_override,
+        service: {
+          name: appt.services?.name,
+          durationMinutes: appt.services?.duration_minutes,
+          price: appt.services?.price
+        },
         client: { name: appt.clients?.name },
         // Fallback for barber name from mock or context if needed, but we can verify role logic
       }));
