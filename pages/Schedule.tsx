@@ -43,60 +43,57 @@ const Schedule: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   const fetchAppointments = async () => {
-    setLoading(true);
-    // Fetch appointments for the selected date
-    // Note: In a real app we would join tables, here we might fetch and map manually for simplicity like ClientsPage
-    // But let's try a join for cleaner code
-    // Fix Timezone Issue: Use local date instead of UTC
-    const offset = selectedDate.getTimezoneOffset() * 60000;
-    const dateStr = new Date(selectedDate.getTime() - offset).toISOString().split('T')[0];
+    try {
+      setLoading(true);
+      const offset = selectedDate.getTimezoneOffset() * 60000;
+      const dateStr = new Date(selectedDate.getTime() - offset).toISOString().split('T')[0];
 
-    const { data, error } = await supabase
-      .from('appointments')
-      .select(`
-            id, date, start_time, end_time, status, price,
-            barber_id, client_id, service_id, comanda_id,
-            additional_services, duration_override,
-            clients (name),
-            services (name, duration_minutes, price) -- Assuming services table exists
-        `) // removed barbers join for now to avoid complexity if RLS issues, using context
-      .eq('date', dateStr)
-      .order('start_time');
+      const { data, error } = await supabase
+        .from('appointments')
+        .select(`
+              id, date, start_time, end_time, status, price,
+              barber_id, client_id, service_id, comanda_id,
+              additional_services, duration_override,
+              clients (name),
+              services (name, duration_minutes, price)
+          `)
+        .eq('date', dateStr)
+        .order('start_time');
 
-    if (data) {
-      // Map to enriched format
-      const mapped = data.map((appt: any) => ({
-        id: appt.id,
-        startTime: appt.start_time.slice(0, 5),
-        endTime: appt.end_time.slice(0, 5),
-        status: appt.status,
-        price: appt.price,
-        barberId: appt.barber_id,
-        comanda_id: appt.comanda_id,
-        additional_services: appt.additional_services,
-        duration_override: appt.duration_override,
-        service: {
-          name: appt.services?.name,
-          durationMinutes: appt.services?.duration_minutes,
-          price: appt.services?.price
-        },
-        client: { name: appt.clients?.name },
-        // Fallback for barber name from mock or context if needed, but we can verify role logic
-      }));
-      setAppointments(mapped);
+      if (data) {
+        const mapped = data.map((appt: any) => ({
+          id: appt.id,
+          startTime: appt.start_time?.slice(0, 5) || '00:00',
+          endTime: appt.end_time?.slice(0, 5) || '00:00',
+          status: appt.status,
+          price: appt.price,
+          barberId: appt.barber_id,
+          comanda_id: appt.comanda_id,
+          additional_services: appt.additional_services,
+          duration_override: appt.duration_override,
+          service: {
+            name: appt.services?.name,
+            durationMinutes: appt.services?.duration_minutes,
+            price: appt.services?.price
+          },
+          client: { name: appt.clients?.name },
+        }));
+        setAppointments(mapped);
+      }
+
+      const { data: blocksData } = await supabase
+        .from('schedule_blocks')
+        .select('*')
+        .eq('date', dateStr);
+
+      if (blocksData) {
+        setScheduleBlocks(blocksData);
+      }
+    } catch (err) {
+      console.error('Error fetching appointments:', err);
+    } finally {
+      setLoading(false);
     }
-
-    // Fetch schedule blocks
-    const { data: blocksData, error: blocksError } = await supabase
-      .from('schedule_blocks')
-      .select('*')
-      .eq('date', dateStr);
-
-    if (blocksData) {
-      setScheduleBlocks(blocksData);
-    }
-
-    setLoading(false);
   };
 
   useEffect(() => {
@@ -250,7 +247,7 @@ const Schedule: React.FC = () => {
                       {/* Appointments */}
                       <div className="absolute inset-0 left-10 pointer-events-none pb-4">
                         {barberAppts.map((appt) => {
-                          const [h, m] = appt.startTime.split(':').map(Number);
+                          const [h, m] = (appt.startTime || '07:00').split(':').map(Number);
                           const startMins = (h - 7) * 60 + m; // Starts at 07:00
                           const top = (startMins / 60) * 120;
                           const height = (Math.max(appt.service?.durationMinutes || 60, 15) / 60) * 120;
@@ -292,8 +289,8 @@ const Schedule: React.FC = () => {
 
                         {/* Render Schedule Blocks */}
                         {scheduleBlocks.filter(b => b.barber_id === barber.id).map((block) => {
-                          const [startH, startM] = block.start_time.split(':').map(Number);
-                          const [endH, endM] = block.end_time.split(':').map(Number);
+                          const [startH, startM] = (block.start_time || '00:00').split(':').map(Number);
+                          const [endH, endM] = (block.end_time || '00:00').split(':').map(Number);
 
                           const startMins = (startH - 7) * 60 + startM;
                           const durationMins = (endH * 60 + endM) - (startH * 60 + startM);
@@ -323,7 +320,7 @@ const Schedule: React.FC = () => {
 
                               <div className="relative z-10 flex flex-col h-full">
                                 <div className="text-[10px] font-black text-gray-400 mb-1">
-                                  {block.start_time.slice(0, 5)} - {block.end_time.slice(0, 5)}
+                                  {(block.start_time || '00:00').slice(0, 5)} - {(block.end_time || '00:00').slice(0, 5)}
                                 </div>
                                 <h4 className="text-sm font-black text-gray-300 truncate uppercase tracking-tight">
                                   {block.reason}
