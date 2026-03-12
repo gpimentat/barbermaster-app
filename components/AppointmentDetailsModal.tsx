@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { X, Calendar, Clock, User, Scissors, AlertTriangle, CheckCircle } from 'lucide-react';
+import { X, Calendar, Clock, User, Scissors, AlertTriangle, CheckCircle, ClipboardList } from 'lucide-react';
 import { appointmentService } from '../src/services/appointmentService';
 import { supabase } from '../src/supabaseClient';
 
@@ -39,9 +39,23 @@ const AppointmentDetailsModal: React.FC<AppointmentDetailsModalProps> = ({ isOpe
         setLoading(false);
         if (result.success) {
             onUpdate();
+            // Don't close, let them see the Open Comanda button
+        } else {
+            alert(result.message);
+        }
+    };
+
+    const handleOpenComanda = async () => {
+        setLoading(true);
+        const result = await appointmentService.openComandaFromAppointment(appointment.id);
+        setLoading(true); // Keep loading true while we refresh and close
+        if (result.success) {
+            alert(result.message);
+            onUpdate();
             onClose();
         } else {
             alert(result.message);
+            setLoading(false);
         }
     };
 
@@ -164,8 +178,24 @@ const AppointmentDetailsModal: React.FC<AppointmentDetailsModalProps> = ({ isOpe
                                             <CheckCircle size={20} /> Ativar/Confirmar Agenda
                                         </button>
                                     ) : (
-                                        <div className="bg-green-500/10 border border-green-500/20 text-green-500 p-4 rounded-xl font-black flex items-center justify-center gap-2">
-                                            <CheckCircle size={20} /> Agendamento Confirmado
+                                        <div className="space-y-3">
+                                            <div className="bg-green-500/10 border border-green-500/20 text-green-500 p-4 rounded-xl font-black flex items-center justify-center gap-2">
+                                                <CheckCircle size={20} /> Agendamento Confirmado
+                                            </div>
+
+                                            {!appointment.comanda_id ? (
+                                                <button
+                                                    onClick={handleOpenComanda}
+                                                    disabled={loading}
+                                                    className="w-full flex items-center justify-center gap-3 bg-primary-500 hover:bg-primary-600 active:scale-[0.98] text-dark-950 p-4 rounded-xl font-black transition-all shadow-lg shadow-primary-500/10 disabled:opacity-50"
+                                                >
+                                                    <ClipboardList size={20} /> Abrir Comanda Agora
+                                                </button>
+                                            ) : (
+                                                <div className="bg-primary-500/10 border border-primary-500/20 text-primary-500 p-4 rounded-xl font-black flex items-center justify-center gap-2">
+                                                    <ClipboardList size={20} /> Comanda já Aberta
+                                                </div>
+                                            )}
                                         </div>
                                     )}
 

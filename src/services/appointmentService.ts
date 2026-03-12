@@ -75,6 +75,29 @@ export const appointmentService = {
 
     async confirmAppointment(appointmentId: string): Promise<{ success: boolean; message: string }> {
         try {
+            // 1. Update appointment status to Confirmado
+            const { error: updateError } = await supabase
+                .from('appointments')
+                .update({ status: 'Confirmado' })
+                .eq('id', appointmentId);
+
+            if (updateError) throw updateError;
+
+            return {
+                success: true,
+                message: 'Agendamento confirmado com sucesso! A comanda agora pode ser aberta manualmente.'
+            };
+        } catch (error: any) {
+            console.error('Confirm Error:', error);
+            return {
+                success: false,
+                message: error.message || 'Erro ao confirmar agendamento.'
+            };
+        }
+    },
+
+    async openComandaFromAppointment(appointmentId: string): Promise<{ success: boolean; message: string; comandaId?: string }> {
+        try {
             // 1. Fetch appointment details with related data
             const { data: appt, error: fetchError } = await supabase
                 .from('appointments')
@@ -91,15 +114,11 @@ export const appointmentService = {
                 throw new Error('Agendamento não encontrado.');
             }
 
-            // 2. Update appointment status to Confirmado
-            const { error: updateError } = await supabase
-                .from('appointments')
-                .update({ status: 'Confirmado' })
-                .eq('id', appointmentId);
+            if (appt.comanda_id) {
+                throw new Error('Este agendamento já possui uma comanda aberta.');
+            }
 
-            if (updateError) throw updateError;
-
-            // 3. Create comanda automatically
+            // 2. Create comanda
             const comandaData = {
                 client_id: appt.client_id,
                 client_name: appt.clients?.name || 'Cliente',
@@ -117,7 +136,7 @@ export const appointmentService = {
 
             if (comandaError) throw comandaError;
 
-            // 4. Add service as comanda_item
+            // 3. Add service as comanda_item
             const itemData = {
                 comanda_id: newComanda.id,
                 type: 'service',
@@ -135,15 +154,24 @@ export const appointmentService = {
 
             if (itemError) throw itemError;
 
+            // 4. Link comanda back to appointment
+            const { error: linkError } = await supabase
+                .from('appointments')
+                .update({ comanda_id: newComanda.id })
+                .eq('id', appointmentId);
+
+            if (linkError) throw linkError;
+
             return {
                 success: true,
-                message: 'Agendamento confirmado e comanda criada com sucesso!'
+                message: 'Comanda aberta com sucesso!',
+                comandaId: newComanda.id
             };
         } catch (error: any) {
-            console.error('Confirm Error:', error);
+            console.error('Open Comanda Error:', error);
             return {
                 success: false,
-                message: error.message || 'Erro ao confirmar agendamento.'
+                message: error.message || 'Erro ao abrir comanda.'
             };
         }
     },
