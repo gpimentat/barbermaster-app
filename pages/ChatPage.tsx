@@ -52,7 +52,7 @@ const ChatPage: React.FC = () => {
         id: s.id,
         clientId: s.client_id,
         clientName: s.client?.name || 'Cliente',
-        clientAvatar: s.client?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(s.client?.name || 'C')}&background=random`,
+        clientAvatar: s.client?.avatar || null,
         lastMessage: s.last_message,
         lastMessageAt: s.last_message_at,
         unreadCount: s.unread_count,

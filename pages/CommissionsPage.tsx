@@ -345,13 +345,11 @@ const CommissionsPage: React.FC = () => {
                                         <tr key={barber.id} className="hover:bg-gray-800/30 transition-colors">
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 rounded-full border border-gray-700 overflow-hidden">
+                                                    <div className="w-10 h-10 rounded-full border border-gray-700 overflow-hidden bg-dark-950 flex items-center justify-center font-bold text-primary-500">
                                                         {barber.avatar ? (
                                                             <img src={barber.avatar} className="w-full h-full object-cover" />
                                                         ) : (
-                                                            <div className="w-full h-full bg-primary-500 text-dark-950 flex items-center justify-center font-bold">
-                                                                {barber.name.charAt(0).toUpperCase()}
-                                                            </div>
+                                                            <span>{barber.name.charAt(0).toUpperCase()}</span>
                                                         )}
                                                     </div>
                                                     <div><p className="font-bold text-white">{barber.name}</p><p className="text-xs text-gray-500">{barber.role}</p></div>
@@ -425,13 +423,11 @@ const CommissionsPage: React.FC = () => {
                                     {chipStatsData.stats.map(barber => (
                                         <tr key={barber.id} className="hover:bg-gray-800/30 transition-colors">
                                             <td className="px-6 py-4 font-bold text-white flex items-center gap-2">
-                                                <div className="w-8 h-8 rounded-full border border-gray-700 overflow-hidden">
+                                                <div className="w-8 h-8 rounded-full border border-gray-700 overflow-hidden bg-dark-950 flex items-center justify-center font-bold text-xs text-primary-500">
                                                     {barber.avatar ? (
                                                         <img src={barber.avatar} className="w-full h-full object-cover" />
                                                     ) : (
-                                                        <div className="w-full h-full bg-primary-500 text-dark-950 flex items-center justify-center font-bold text-xs">
-                                                            {barber.name.charAt(0).toUpperCase()}
-                                                        </div>
+                                                        <span>{barber.name.charAt(0).toUpperCase()}</span>
                                                     )}
                                                 </div>
                                                 {barber.name}
@@ -454,13 +450,11 @@ const CommissionsPage: React.FC = () => {
                     <div className="bg-dark-900 rounded-xl border border-gray-800 shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh]">
                         <div className="flex items-center justify-between p-6 border-b border-gray-800 bg-gray-900/50">
                             <div className="flex items-center gap-3">
-                                <div className="w-12 h-12 rounded-full border border-gray-700 overflow-hidden">
+                                <div className="w-12 h-12 rounded-full border border-gray-700 overflow-hidden bg-dark-950 flex items-center justify-center font-bold text-lg text-primary-500">
                                     {selectedBarber.avatar ? (
                                         <img src={selectedBarber.avatar} className="w-full h-full object-cover" />
                                     ) : (
-                                        <div className="w-full h-full bg-primary-500 text-dark-950 flex items-center justify-center font-bold text-lg">
-                                            {selectedBarber.name.charAt(0).toUpperCase()}
-                                        </div>
+                                        <span>{selectedBarber.name.charAt(0).toUpperCase()}</span>
                                     )}
                                 </div>
                                 <div>
@@ -492,9 +486,10 @@ const CommissionsPage: React.FC = () => {
                                 const totalPayout = selectedBarber.commissionValue + (chipStatsData.stats.find(s => s.id === selectedBarber.id)?.payoutValue || 0);
                                 if (window.confirm(`Pagar R$ ${totalPayout.toFixed(2)} (${selectedBarber.name})?`)) {
                                     try {
+                                        const formatDateBr = (dateStr: string) => new Date(dateStr).toLocaleDateString('pt-BR');
                                         const { error } = await supabase.from('transactions').insert([{
                                             date: new Date().toISOString().split('T')[0],
-                                            description: `Pagamento Comissão/Rateio: ${selectedBarber.name}`,
+                                            description: `Comissão: ${selectedBarber.name} [${formatDateBr(dateRange.start)} a ${formatDateBr(dateRange.end)}]`,
                                             amount: totalPayout,
                                             type: 'expense',
                                             category: 'Comissões',

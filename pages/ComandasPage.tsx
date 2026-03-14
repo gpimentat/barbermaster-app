@@ -949,7 +949,13 @@ const ComandasPage: React.FC = () => {
                                       onClick={() => setSelectedBarberId(b.id)}
                                       className={`p-3 rounded-2xl border transition-all flex flex-col items-center gap-2 group ${selectedBarberId === b.id ? 'bg-primary-500/10 border-primary-500 ring-2 ring-primary-500/20' : 'bg-dark-950 border-gray-800/80 hover:border-gray-600'}`}
                                     >
-                                      <img src={b.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(b.name)}`} className="w-10 h-10 rounded-xl" alt="" />
+                                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-xs ring-2 ring-inset ${selectedBarberId === b.id ? 'bg-primary-500 text-dark-950 ring-primary-500/20' : 'bg-dark-800 text-primary-500 ring-gray-700'}`}>
+                                        {b.avatar ? (
+                                          <img src={b.avatar} className="w-full h-full object-cover rounded-xl" alt="" />
+                                        ) : (
+                                          <span>{b.name.charAt(0).toUpperCase()}</span>
+                                        )}
+                                      </div>
                                       <span className={`text-[9px] font-black uppercase truncate w-full text-center ${selectedBarberId === b.id ? 'text-primary-500' : 'text-gray-500'}`}>{b.name.split(' ')[0]}</span>
                                     </button>
                                   ))}

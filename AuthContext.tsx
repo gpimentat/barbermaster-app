@@ -150,7 +150,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
 
     // Filter by staff roles to avoid showing "clients" or "users" without roles in the agenda
-    // Valid roles: admin, super_admin, barber, receptionist (others are treated as clients)
+    // Valid roles: admin, super_admin, barber, receptionist
     query = query.in('role', ['admin', 'super_admin', 'barber', 'receptionist', 'Barbeiro', 'Recepcionista', 'Administrador']);
 
     const { data, error } = await query;

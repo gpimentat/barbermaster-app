@@ -44,7 +44,7 @@ const ClientsPage: React.FC = () => {
                     birthDate: c.birth_date, // Map from DB
                     totalVisits: c.total_visits || 0,
                     loyaltyPoints: c.loyalty_points || 0,
-                    avatar: c.avatar || `https://ui-avatars.com/api/?name=${c.name}&background=random`,
+                    avatar: c.avatar || null,
                     subscriptionStatus: c.subscription_status,
                     subscriptionPlanId: c.subscription_plan_id,
                     subscriptionRenewsAt: c.subscription_renews_at,

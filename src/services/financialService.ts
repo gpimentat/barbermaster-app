@@ -167,7 +167,7 @@ export const financialService = {
                 id: b.id,
                 name: b.name,
                 role: b.role,
-                avatar: b.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(b.name)}&background=random`,
+                avatar: b.avatar || null,
                 commissionRate: Number(b.commission_rate) || 0,
                 active: b.active
             })) || [];

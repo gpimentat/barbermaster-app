@@ -87,7 +87,7 @@ const WaitingListPage: React.FC = () => {
                 name: c.name,
                 email: c.email,
                 phone: c.phone,
-                avatar: c.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(c.name)}&background=random`,
+                avatar: c.avatar || null,
                 totalVisits: c.total_visits || 0,
                 loyaltyPoints: c.loyalty_points || 0,
                 subscriptionStatus: c.subscription_status
@@ -97,7 +97,7 @@ const WaitingListPage: React.FC = () => {
                 id: b.id,
                 name: b.name,
                 role: b.role,
-                avatar: b.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(b.name)}&background=random`,
+                avatar: b.avatar || null,
                 email: b.email,
                 active: b.active,
                 commissionRate: b.commission_rate
@@ -183,6 +183,7 @@ const WaitingListPage: React.FC = () => {
 
             const entry = queue[index];
             const clientName = dbClients.find(c => c.id === entry.clientId)?.name || 'Cliente';
+            const clientAvatar = dbClients.find(c => c.id === entry.clientId)?.avatar || null;
 
             await supabase.from('waitlist').update({ status: 'notified' }).eq('id', entry.id);
             setWaitlist(prev => prev.map(w => w.id === entry.id ? { ...w, status: 'notified' } : w));
