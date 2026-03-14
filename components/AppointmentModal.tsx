@@ -395,6 +395,10 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ isOpen, onClose, on
                                     onChange={e => setSelectedServiceId(e.target.value)}
                                     required
                                 >
+                                    <option value="">Selecione um serviço...</option>
+                                    {services.map(s => (
+                                        <option key={s.id} value={s.id}>{s.name} (R$ {s.price})</option>
+                                    ))}
                                 </select>
                             </div>
                         </div>
@@ -439,7 +443,7 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ isOpen, onClose, on
                                     }
                                     select.value = '';
                                 }}
-                                className="w-full flex items-center justify-center gap-2 py-2 border border-dashed border-gray-700 rounded-xl text-gray-500 hover:text-primary-500 hover:border-primary-500 transition-all text-xs font-bold"
+                                className="w-full relative flex items-center justify-center gap-2 py-2 border border-dashed border-gray-700 rounded-xl text-gray-500 hover:text-primary-500 hover:border-primary-500 transition-all text-xs font-bold"
                             >
                                 <Plus size={14} /> Adicionar Serviço Extra
                                 <select
