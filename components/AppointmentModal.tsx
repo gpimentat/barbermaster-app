@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Calendar, Clock, User, Scissors, Save, AlertCircle, Plus } from 'lucide-react';
+import { appointmentService } from '../src/services/appointmentService';
 import { supabase } from '../src/supabaseClient'; // Corrected path
 import { useAuth } from '../AuthContext';
 import { Client, Barber, Service } from '../types';
@@ -90,37 +91,6 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ isOpen, onClose, on
     // Removed local filtering, now using server-side 'clients' state directly
     const displayClients = clients;
 
-    const checkAvailability = async (barberId: string, date: string, time: string, duration: number) => {
-        // Calculate End Time
-        const [hours, minutes] = time.split(':').map(Number);
-        const startTotal = hours * 60 + minutes;
-        const endTotal = startTotal + duration;
-
-        // Fetch appointments for that day/barber
-        const { data: appts } = await supabase
-            .from('appointments')
-            .select('start_time, end_time')
-            .eq('barber_id', barberId)
-            .eq('date', date)
-            .neq('status', 'Cancelado');
-
-        if (!appts) return true;
-
-        // Check overlap
-        for (const appt of appts) {
-            const [appStartH, appStartM] = appt.start_time.split(':').map(Number);
-            const [appEndH, appEndM] = appt.end_time.split(':').map(Number);
-
-            const appStartTotal = appStartH * 60 + appStartM;
-            const appEndTotal = appEndH * 60 + appEndM;
-
-            // Overlap Condition: (StartA < EndB) and (EndA > StartB)
-            if (startTotal < appEndTotal && endTotal > appStartTotal) {
-                return false; // Conflict
-            }
-        }
-        return true;
-    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -154,27 +124,31 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ isOpen, onClose, on
                 finalClientPhone = client.phone;
             }
 
-            // 2. Get Service Duration
+            // 2. Check Availability
             const service = services.find(s => s.id === selectedServiceId);
             if (!service) throw new Error("Selecione um serviço.");
 
             const totalAdditionalPrice = additionalServices.reduce((sum, s) => sum + s.price, 0);
-            const totalDuration = service.durationMinutes + durationOverride;
+            const totalDuration = (service.durationMinutes || 30) + durationOverride;
 
-            // 3. Calc End Time
-            const [h, m] = selectedTime.split(':').map(Number);
-            const dateObj = new Date();
-            // Using totalDuration instead of just service.durationMinutes
-            dateObj.setHours(h, m + totalDuration);
-            const endTime = dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+            const isAvailable = await appointmentService.checkAvailability(
+                selectedBarberId,
+                selectedDate,
+                selectedTime,
+                totalDuration
+            );
 
-            // 4. Validate Conflict
-            const isAvailable = await checkAvailability(selectedBarberId, selectedDate, selectedTime, totalDuration);
             if (!isAvailable) {
                 alert('❌ Horário indisponível! Já existe um agendamento neste intervalo.');
                 setLoading(false);
                 return;
             }
+
+            // 3. Calc End Time
+            const [h, m] = selectedTime.split(':').map(Number);
+            const dateObj = new Date();
+            dateObj.setHours(h, m + totalDuration);
+            const endTime = dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
             // 5. Create Appointment
             const { data, error: apptError } = await supabase.from('appointments').insert([{

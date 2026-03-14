@@ -26,6 +26,11 @@ const AppointmentDetailsModal: React.FC<AppointmentDetailsModalProps> = ({ isOpe
     const [pendingExtraService, setPendingExtraService] = useState<any>(null);
     const [isSavingExtras, setIsSavingExtras] = useState(false);
 
+    // Reschedule states
+    const [isRescheduling, setIsRescheduling] = useState(false);
+    const [newDate, setNewDate] = useState(appointment?.date || '');
+    const [newTime, setNewTime] = useState(appointment?.startTime || '');
+
     // Fetch services when modal opens
     React.useEffect(() => {
         if (isOpen) {
@@ -43,8 +48,10 @@ const AppointmentDetailsModal: React.FC<AppointmentDetailsModalProps> = ({ isOpe
         if (appointment) {
             setExtraServices(appointment.additional_services || []);
             setDurationOverride(appointment.duration_override || 0);
+            setNewDate(appointment.date);
+            setNewTime(appointment.startTime);
         }
-    }, [appointment?.id, appointment?.additional_services, appointment?.duration_override]);
+    }, [appointment?.id, appointment?.additional_services, appointment?.duration_override, appointment?.date, appointment?.startTime]);
 
     if (!isOpen || !appointment) return null;
 
@@ -308,13 +315,22 @@ const AppointmentDetailsModal: React.FC<AppointmentDetailsModalProps> = ({ isOpe
 
                                     <div className="grid grid-cols-2 gap-3">
                                         <button
+                                            disabled={loading}
+                                            onClick={() => setIsRescheduling(true)}
+                                            className="flex items-center justify-center gap-2 bg-primary-500/10 hover:bg-primary-500/20 text-primary-500 border border-primary-500/20 p-3 rounded-xl font-bold transition-all disabled:opacity-50"
+                                        >
+                                            <Calendar size={18} /> Reagendar
+                                        </button>
+                                        <button
                                             onClick={() => setIsEditingService(true)}
                                             disabled={loading}
                                             className="flex items-center justify-center gap-2 bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700 p-3 rounded-xl font-bold transition-all disabled:opacity-50"
                                         >
                                             <Scissors size={18} /> Alterar
                                         </button>
+                                    </div>
 
+                                    <div className="grid grid-cols-2 gap-3 mt-3">
                                         <button
                                             onClick={() => setIsCancelling(true)}
                                             disabled={loading}
@@ -322,15 +338,103 @@ const AppointmentDetailsModal: React.FC<AppointmentDetailsModalProps> = ({ isOpe
                                         >
                                             <AlertTriangle size={18} /> Cancelar
                                         </button>
-                                    </div>
 
-                                    <button
-                                        onClick={handleDelete}
-                                        disabled={loading}
-                                        className="w-full flex items-center justify-center gap-2 bg-red-600/10 hover:bg-red-600/20 text-red-500 border border-red-600/20 p-3 rounded-xl font-bold transition-all disabled:opacity-50 mt-2"
-                                    >
-                                        <X size={18} /> Excluir Permanentemente
-                                    </button>
+                                        <button
+                                            onClick={handleDelete}
+                                            disabled={loading}
+                                            className="flex items-center justify-center gap-2 bg-red-600/10 hover:bg-red-600/20 text-red-500 border border-red-600/20 p-3 rounded-xl font-bold transition-all disabled:opacity-50"
+                                        >
+                                            <X size={18} /> Excluir
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Reschedule Section */}
+                            {isRescheduling && (
+                                <div className="bg-primary-500/5 border border-primary-500/20 p-4 rounded-xl animate-in slide-in-from-bottom-2 space-y-4">
+                                    <p className="text-xs font-black text-primary-500 uppercase tracking-widest">Remarcar para novo dia/horário:</p>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] text-gray-500 uppercase font-black">Data</label>
+                                            <input
+                                                type="date"
+                                                value={newDate}
+                                                onChange={e => setNewDate(e.target.value)}
+                                                className="w-full bg-dark-950 border border-gray-800 rounded-lg p-3 text-white text-sm outline-none focus:border-primary-500"
+                                            />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] text-gray-500 uppercase font-black">Horário</label>
+                                            <input
+                                                type="time"
+                                                value={newTime}
+                                                onChange={e => setNewTime(e.target.value)}
+                                                className="w-full bg-dark-950 border border-gray-800 rounded-lg p-3 text-white text-sm outline-none focus:border-primary-500"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={async () => {
+                                                setLoading(true);
+                                                try {
+                                                    // Duration = total duration (base + durationOverride)
+                                                    const baseDuration = services.find(s => s.id === appointment.service_id)?.duration_minutes || 30;
+                                                    const totalDuration = baseDuration + durationOverride;
+
+                                                    // Check Availability
+                                                    const isAvailable = await appointmentService.checkAvailability(
+                                                        appointment.barber_id,
+                                                        newDate,
+                                                        newTime,
+                                                        totalDuration,
+                                                        appointment.id
+                                                    );
+
+                                                    if (!isAvailable) {
+                                                        alert('Este horário já está ocupado para este profissional.');
+                                                        setLoading(false);
+                                                        return;
+                                                    }
+
+                                                    // Calculate End Time
+                                                    const [h, m] = newTime.split(':').map(Number);
+                                                    const endTotal = h * 60 + m + totalDuration;
+                                                    const endH = Math.floor(endTotal / 60);
+                                                    const endM = endTotal % 60;
+                                                    const endTimeStr = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+
+                                                    const result = await appointmentService.updateAppointment(appointment.id, {
+                                                        date: newDate,
+                                                        start_time: newTime,
+                                                        end_time: endTimeStr
+                                                    });
+
+                                                    if (result.success) {
+                                                        onUpdate();
+                                                        onClose();
+                                                    } else {
+                                                        alert(result.message);
+                                                    }
+                                                } catch (err: any) {
+                                                    alert('Erro ao remarcar: ' + err.message);
+                                                } finally {
+                                                    setLoading(false);
+                                                }
+                                            }}
+                                            disabled={loading}
+                                            className="flex-1 bg-primary-500 hover:bg-primary-600 text-dark-950 p-3 rounded-lg font-bold text-sm disabled:opacity-50"
+                                        >
+                                            {loading ? 'Processando...' : 'Confirmar'}
+                                        </button>
+                                        <button
+                                            onClick={() => setIsRescheduling(false)}
+                                            className="px-4 py-3 bg-gray-800 text-gray-400 rounded-lg font-bold text-sm hover:text-white transition-colors"
+                                        >
+                                            Voltar
+                                        </button>
+                                    </div>
                                 </div>
                             )}
 

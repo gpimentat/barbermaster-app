@@ -226,5 +226,43 @@ export const appointmentService = {
             console.error('Update Error:', error);
             return { success: false, message: error.message || 'Erro ao atualizar agendamento.' };
         }
+    },
+
+    async checkAvailability(barberId: string, date: string, time: string, duration: number, excludeAppointmentId?: string): Promise<boolean> {
+        // Calculate End Time
+        const [hours, minutes] = time.split(':').map(Number);
+        const startTotal = hours * 60 + minutes;
+        const endTotal = startTotal + duration;
+
+        // Fetch appointments for that day/barber
+        let query = supabase
+            .from('appointments')
+            .select('start_time, end_time')
+            .eq('barber_id', barberId)
+            .eq('date', date)
+            .neq('status', 'Cancelado');
+
+        if (excludeAppointmentId) {
+            query = query.neq('id', excludeAppointmentId);
+        }
+
+        const { data: appts } = await query;
+
+        if (!appts) return true;
+
+        // Check overlap
+        for (const appt of appts) {
+            const [appStartH, appStartM] = appt.start_time.split(':').map(Number);
+            const [appEndH, appEndM] = appt.end_time.split(':').map(Number);
+
+            const appStartTotal = appStartH * 60 + appStartM;
+            const appEndTotal = appEndH * 60 + appEndM;
+
+            // Overlap Condition: (StartA < EndB) and (EndA > StartB)
+            if (startTotal < appEndTotal && endTotal > appStartTotal) {
+                return false; // Conflict
+            }
+        }
+        return true;
     }
 };
