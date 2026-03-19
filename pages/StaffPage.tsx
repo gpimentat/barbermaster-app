@@ -1,6 +1,6 @@
 
 import React, { useState, useRef } from 'react';
-import { Star, MoreHorizontal, Plus, X, Save, DollarSign, Percent, User, Briefcase, Upload, Image as ImageIcon, Trash2, Lock, Shield, CheckSquare, Square, Check, Mail, KeyRound } from 'lucide-react';
+import { Star, MoreHorizontal, Plus, X, Save, DollarSign, Percent, User, Briefcase, Upload, Image as ImageIcon, Trash2, Lock, Shield, CheckSquare, Square, Check, Mail, KeyRound, Calendar } from 'lucide-react';
 import { Barber } from '../types';
 import { useAuth } from '../AuthContext';
 import { supabase } from '../src/supabaseClient';
@@ -117,7 +117,8 @@ const StaffPage: React.FC = () => {
             commission_rate: selectedBarber.commissionRate || 0,
             permissions: selectedBarber.permissions || [],
             login_enabled: selectedBarber.loginEnabled || false,
-            tenant_id: tenantIdToSend
+            tenant_id: tenantIdToSend,
+            work_settings: selectedBarber.workSettings || {}
           })
         }
       );
@@ -473,6 +474,50 @@ const StaffPage: React.FC = () => {
                       </div>
                     </div>
                   </div>
+
+                  {/* Days Off Section */}
+                  <div className="pt-6 border-t border-gray-800">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="p-2 bg-primary-500/10 rounded-lg text-primary-500">
+                        <Calendar size={18} />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-black text-white uppercase tracking-wider">Folgas na Agenda</h3>
+                        <p className="text-[10px] text-gray-400 font-medium">Configure os dias em que a agenda estará bloqueada</p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'].map((day, index) => {
+                        const currentSetting = selectedBarber.workSettings?.daysOff?.[index] || 'work';
+                        return (
+                          <div key={index} className="bg-gray-800/20 border border-gray-700/50 p-3 rounded-xl flex items-center justify-between">
+                            <span className="text-sm font-bold text-gray-300">{day}</span>
+                            <select
+                              value={currentSetting}
+                              onChange={(e) => {
+                                const newSettings = { ...selectedBarber.workSettings };
+                                if (!newSettings.daysOff) newSettings.daysOff = {};
+                                
+                                if (e.target.value === 'work') {
+                                  delete newSettings.daysOff[index];
+                                } else {
+                                  newSettings.daysOff[index] = e.target.value;
+                                }
+                                
+                                updateField('workSettings', newSettings);
+                              }}
+                              className="bg-dark-900 border border-gray-700 text-xs font-bold text-white p-2 rounded-lg outline-none focus:border-primary-500"
+                            >
+                              <option value="work">Trabalha</option>
+                              <option value="all">Folga toda {day.toLowerCase()}</option>
+                              <option value="alternate">Folga alternada (1 sim, 1 não)</option>
+                            </select>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
                 </div>
               </div>
 

@@ -225,6 +225,37 @@ export const clientService = {
 
     // Buscar slots disponíveis considerando horário de funcionamento e agendamentos
     async getAvailableSlots(tenantId: string, barberId: string, date: string, durationMinutes: number) {
+        // 0. Check Days Off
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('work_settings')
+            .eq('id', barberId)
+            .single();
+
+        if (profile?.work_settings?.daysOff) {
+            const dateObj = new Date(date + 'T12:00:00Z');
+            const dayOfWeek = dateObj.getUTCDay();
+            const config = profile.work_settings.daysOff[dayOfWeek];
+
+            if (config) {
+                if (config === 'all') return [];
+                
+                if (config === 'alternate') {
+                    const target = new Date(dateObj.valueOf());
+                    const dayNr = (dateObj.getUTCDay() + 6) % 7;
+                    target.setUTCDate(target.getUTCDate() - dayNr + 3);
+                    const firstThursday = target.valueOf();
+                    target.setUTCMonth(0, 1);
+                    if (target.getUTCDay() !== 4) {
+                        target.setUTCMonth(0, 1 + ((4 - target.getUTCDay()) + 7) % 7);
+                    }
+                    const weekNum = 1 + Math.ceil((firstThursday - target.valueOf()) / 604800000);
+                    
+                    if (weekNum % 2 === 0) return [];
+                }
+            }
+        }
+
         // 1. Buscar horários de funcionamento do tenant
         const { data: tenant } = await supabase
             .from('tenants')

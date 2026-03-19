@@ -35,6 +35,7 @@ export interface Barber {
   tenantName?: string; // Display name
   subscriptionStatus?: 'active' | 'inactive' | 'past_due';
   weeklyGoal?: number; // Nova: Meta semanal de faturamento
+  workSettings?: any; // Configurações de trabalho (ex: folgas)
 }
 
 export interface Service {
