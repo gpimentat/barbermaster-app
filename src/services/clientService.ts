@@ -213,7 +213,7 @@ export const clientService = {
             .from('appointments')
             .select(`
         *,
-        service:services(name, price, duration),
+        service:services(name, price, duration_minutes),
         barber:profiles(name)
       `)
             .eq('client_id', clientId)
