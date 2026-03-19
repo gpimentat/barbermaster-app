@@ -41,6 +41,7 @@ const Schedule: React.FC = () => {
   const [scheduleBlocks, setScheduleBlocks] = useState<any[]>([]);
   const [isBlockModalOpen, setIsBlockModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [tenantHours, setTenantHours] = useState<any>(null);
 
   const fetchAppointments = async () => {
     try {
@@ -89,6 +90,18 @@ const Schedule: React.FC = () => {
       if (blocksData) {
         setScheduleBlocks(blocksData);
       }
+
+      if (currentUser?.tenantId) {
+        const { data: tenant } = await supabase
+          .from('tenants')
+          .select('settings')
+          .eq('id', currentUser.tenantId)
+          .single();
+        if (tenant?.settings?.app_config?.hours) {
+          setTenantHours(tenant.settings.app_config.hours);
+        }
+      }
+
     } catch (err) {
       console.error('Error fetching appointments:', err);
     } finally {
@@ -198,7 +211,33 @@ const Schedule: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex-1 overflow-x-auto overflow-y-auto custom-scrollbar bg-dark-950/20">
+        <div className="flex-1 overflow-x-auto overflow-y-auto custom-scrollbar bg-dark-950/20 relative">
+          
+          {(() => {
+            if (!tenantHours || !Array.isArray(tenantHours)) return null;
+            const daysOfWeek = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+            const currentDayStr = daysOfWeek[selectedDate.getDay()];
+            const dayConfig = tenantHours.find((h: any) => h.day === currentDayStr);
+            const isClosed = dayConfig ? dayConfig.isOpen === false : false;
+
+            if (isClosed) {
+              return (
+                <div className="absolute inset-0 z-50 bg-dark-950/80 backdrop-blur-md flex flex-col items-center justify-center pt-20">
+                  <div className="p-8 bg-gray-800/50 rounded-[2rem] border border-gray-700/50 flex flex-col items-center gap-4 shadow-2xl animate-in zoom-in-95 duration-500">
+                    <div className="w-20 h-20 bg-gray-900 rounded-full flex items-center justify-center border border-gray-700 shadow-inner">
+                      <span className="text-4xl filter grayscale">🚪</span>
+                    </div>
+                    <div className="text-center">
+                      <span className="block text-xl font-black text-white tracking-widest uppercase mb-2">Barbearia Fechada</span>
+                      <span className="block text-sm text-gray-500 font-bold tracking-wider uppercase">Não há expediente neste dia</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+            return null;
+          })()}
+
           <div className="flex min-w-full h-full" style={{ width: 'max-content' }}>
             {(() => {
               const filteredBarbers = (role === 'barber' && currentUser && !canViewAll
