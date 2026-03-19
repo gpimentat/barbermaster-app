@@ -41,7 +41,7 @@ const ClientHome: React.FC<ClientHomeProps> = ({ tenant, clientData }) => {
             if (clientData?.clientId) {
                 const appointments = await clientService.getAppointments(clientData.clientId);
                 const upcoming = appointments.find((apt: any) =>
-                    apt.status === 'pending' || apt.status === 'confirmed'
+                    apt.status === 'Agendado' || apt.status === 'pending' || apt.status === 'confirmed'
                 );
                 setNextAppointment(upcoming);
 
