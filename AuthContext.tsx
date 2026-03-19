@@ -171,7 +171,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         commissionRate: d.commission_rate,
         permissions: d.permissions,
         loginEnabled: d.login_enabled,
-        tenantId: d.tenant_id
+        tenantId: d.tenant_id,
+        workSettings: d.work_settings
       }));
       setBarbers(mapped);
     }

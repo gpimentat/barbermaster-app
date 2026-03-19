@@ -209,11 +209,34 @@ const Schedule: React.FC = () => {
               return filteredBarbers.map((barber) => {
                 const barberAppts = displayAppointments.filter(a => a.barberId === barber.id);
 
+                // Check days off for visual block
+                const dateString = selectedDate.toISOString().split('T')[0];
+                const dateObj = new Date(dateString + 'T12:00:00Z');
+                const dayOfWeek = dateObj.getUTCDay();
+                const config = barber.workSettings?.daysOff?.[dayOfWeek];
+                
+                let isOff = false;
+                if (config) {
+                  if (config === 'all') isOff = true;
+                  if (config === 'alternate') {
+                    const target = new Date(dateObj.valueOf());
+                    const dayNr = (target.getUTCDay() + 6) % 7;
+                    target.setUTCDate(target.getUTCDate() - dayNr + 3);
+                    const firstThursday = target.valueOf();
+                    target.setUTCMonth(0, 1);
+                    if (target.getUTCDay() !== 4) {
+                        target.setUTCMonth(0, 1 + ((4 - target.getUTCDay()) + 7) % 7);
+                    }
+                    const weekNum = 1 + Math.ceil((firstThursday - target.valueOf()) / 604800000);
+                    if (weekNum % 2 === 0) isOff = true;
+                  }
+                }
+
                 return (
                   <div key={barber.id} className="min-w-[280px] md:min-w-[320px] w-72 md:w-80 border-r border-gray-800/30 last:border-r-0 flex flex-col group/col">
                     {/* Header do Profissional - Premium Stick */}
                     <div className="p-5 border-b border-gray-800/30 bg-dark-900/80 sticky top-0 z-10 flex items-center gap-4 backdrop-blur-md group-hover/col:bg-dark-900 transition-colors">
-                      <div className="w-12 h-12 rounded-2xl bg-dark-950 border border-gray-800 flex items-center justify-center text-primary-500 font-black overflow-hidden shadow-2xl relative">
+                      <div className={`w-12 h-12 rounded-2xl bg-dark-950 border border-gray-800 flex items-center justify-center font-black overflow-hidden shadow-2xl relative ${isOff ? 'text-gray-600 grayscale' : 'text-primary-500'}`}>
                         {barber.avatar ? (
                           <img src={barber.avatar} alt={barber.name} className="w-full h-full object-cover" />
                         ) : (
@@ -232,6 +255,21 @@ const Schedule: React.FC = () => {
 
                     {/* Lista de Agendamentos - Grid Based */}
                     <div className="relative flex-1 overflow-y-auto custom-scrollbar bg-dark-950/30">
+                      
+                      {isOff && (
+                        <div className="absolute inset-0 z-10 bg-dark-950/80 backdrop-blur-sm flex flex-col items-center justify-center" style={{ pointerEvents: 'all' }}>
+                          <div className="p-5 bg-gray-800/50 rounded-[2rem] border border-gray-700/50 flex flex-col items-center gap-4 shadow-2xl backdrop-blur-lg transform -translate-y-20">
+                            <div className="w-16 h-16 bg-gray-900 rounded-full flex items-center justify-center border border-gray-700 shadow-inner">
+                              <span className="text-3xl filter grayscale opacity-80">😴</span>
+                            </div>
+                            <div className="text-center">
+                              <span className="block text-sm font-black text-gray-400 tracking-widest uppercase mb-1">Folga</span>
+                              <span className="block text-[10px] text-gray-500 font-bold uppercase tracking-widest">Agenda Bloqueada</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
                       {/* Background Time Slots */}
                       <div className="absolute inset-0 min-h-[1680px]"> {/* 14 hours * 120px */}
                         {Array.from({ length: 15 }, (_, i) => i + 7).map((hour) => (
