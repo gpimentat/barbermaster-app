@@ -490,28 +490,33 @@ const StaffPage: React.FC = () => {
                       {['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'].map((day, index) => {
                         const currentSetting = selectedBarber.workSettings?.daysOff?.[index] || 'work';
                         return (
-                          <div key={index} className="bg-gray-800/20 border border-gray-700/50 p-3 rounded-xl flex items-center justify-between">
-                            <span className="text-sm font-bold text-gray-300">{day}</span>
-                            <select
-                              value={currentSetting}
-                              onChange={(e) => {
-                                const newSettings = { ...selectedBarber.workSettings };
-                                if (!newSettings.daysOff) newSettings.daysOff = {};
-                                
-                                if (e.target.value === 'work') {
-                                  delete newSettings.daysOff[index];
-                                } else {
-                                  newSettings.daysOff[index] = e.target.value;
-                                }
-                                
-                                updateField('workSettings', newSettings);
-                              }}
-                              className="bg-dark-900 border border-gray-700 text-xs font-bold text-white p-2 rounded-lg outline-none focus:border-primary-500"
-                            >
-                              <option value="work">Trabalha</option>
-                              <option value="all">Folga toda {day.toLowerCase()}</option>
-                              <option value="alternate">Folga alternada (1 sim, 1 não)</option>
-                            </select>
+                          <div key={index} className="bg-gray-800/30 border border-gray-700/50 p-3.5 rounded-xl flex flex-col gap-2.5 transition-all hover:bg-gray-800/50">
+                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">{day}</span>
+                            <div className="relative">
+                              <select
+                                value={currentSetting}
+                                onChange={(e) => {
+                                  const newSettings = { ...selectedBarber.workSettings };
+                                  if (!newSettings.daysOff) newSettings.daysOff = {};
+                                  
+                                  if (e.target.value === 'work') {
+                                    delete newSettings.daysOff[index];
+                                  } else {
+                                    newSettings.daysOff[index] = e.target.value;
+                                  }
+                                  
+                                  updateField('workSettings', newSettings);
+                                }}
+                                className="w-full bg-dark-900 border border-gray-700 text-xs font-bold text-white p-2.5 rounded-lg outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500/50 cursor-pointer appearance-none pr-8"
+                              >
+                                <option value="work">Trabalha Normalmente</option>
+                                <option value="all">Folga (Toda {day})</option>
+                                <option value="alternate">Folga Alternada (1 sim, 1 não)</option>
+                              </select>
+                              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
+                                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                              </div>
+                            </div>
                           </div>
                         );
                       })}
