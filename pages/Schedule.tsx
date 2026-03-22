@@ -326,8 +326,13 @@ const Schedule: React.FC = () => {
                         {barberAppts.map((appt) => {
                           const [h, m] = (appt.startTime || '07:00').split(':').map(Number);
                           const startMins = (h - 7) * 60 + m; // Starts at 07:00
+                          
+                          const [endH, endM] = (appt.endTime || '08:00').split(':').map(Number);
+                          let durationMins = (endH * 60 + endM) - (h * 60 + m);
+                          if (durationMins <= 0) durationMins = appt.service?.durationMinutes || 60;
+
                           const top = (startMins / 60) * 120;
-                          const height = (Math.max(appt.service?.durationMinutes || 60, 15) / 60) * 120;
+                          const height = (Math.max(durationMins, 15) / 60) * 120;
 
                           return (
                             <div
