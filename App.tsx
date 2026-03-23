@@ -192,26 +192,17 @@ const Sidebar = ({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
   ];
 
   const visibleLinks = links.filter(link => {
-    if (link.requiredPermission === 'public') return true;
-    if (role === 'super_admin') return true;
-    if (link.requiredPermission === 'super_admin' && role !== 'super_admin') return false;
-    // Show Sales Map only for saas_sales / saas_manager roles
-    if (link.requiredPermission === 'saas_map') {
-      const dbRole = currentUser?.role || '';
-      const perms = currentUser?.permissions || [];
-      return dbRole.startsWith('saas_') || perms.some((p: string) => ['saas_sales', 'saas_manager'].includes(p));
-    }
-    if (role === 'admin') return true;
+    if (role === 'admin' || role === 'super_admin') return true;
+    
+    // Safety check for receptionist role
     if (role === 'receptionist') {
-      // Receptionist has access to almost everything except specific admin-only pages
-      if (['Financeiro', 'Profissionais', 'App do Cliente', 'Super Admin'].includes(link.name)) return false;
+      const blockedForRecep = ['Financeiro', 'Profissionais', 'App do Cliente', 'Super Admin'];
+      if (blockedForRecep.includes(link.name)) return false;
       return true;
     }
 
-    if (link.path === '/schedule') {
-      return hasPermission('view_own_schedule') || hasPermission('view_full_schedule');
-    }
-
+    // Default permission check for barbers and others
+    if (link.requiredPermission === 'public') return true;
     return hasPermission(link.requiredPermission);
   });
 
@@ -314,8 +305,9 @@ const Sidebar = ({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
         </nav>
 
         <div className="p-8 border-t border-gray-800/30">
-          <div className="bg-dark-900/50 p-4 rounded-2xl border border-gray-800/50 text-center">
-            <p className="text-[8px] font-black text-gray-600 uppercase tracking-[0.4em]">v1.4.2 Premium</p>
+          <div className="bg-dark-900/50 p-4 rounded-2xl border border-gray-800/50 flex items-center justify-between">
+            <span className="text-[8px] font-black text-gray-600 uppercase tracking-[0.4em]">v1.4.2 Premium</span>
+            <span className="text-[8px] font-black text-primary-500/50 uppercase tracking-[0.2em]">[v1.2 SYNC]</span>
           </div>
         </div>
       </aside>
