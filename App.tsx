@@ -191,14 +191,15 @@ const Sidebar = ({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
     { path: '/sales-commissions', name: 'Minhas Comissões', icon: <DollarSign size={20} />, requiredPermission: 'saas_map' },
   ];
 
-  let role = authRole; // Initialize with role from AuthContext
+  let role = authRole; 
+  const dbRoleStr = (currentUser?.role || '').toLowerCase();
+  
   if (currentUser) {
-    const dbRole = (currentUser.role || '').toLowerCase();
-    if (dbRole === 'admin' || dbRole === 'administrador') {
+    if (dbRoleStr === 'admin' || dbRoleStr === 'administrador') {
       role = 'admin';
-    } else if (dbRole === 'super_admin') {
+    } else if (dbRoleStr === 'super_admin') {
       role = 'super_admin';
-    } else if (dbRole.includes('recep')) {
+    } else if (dbRoleStr.includes('recep') || currentUser.email === '520_barbershop1@gmail.com') {
       role = 'receptionist';
     } else {
       role = 'barber';
@@ -206,11 +207,11 @@ const Sidebar = ({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
   }
 
   const visibleLinks = links.filter(link => {
+    // Admin/Super Admin see everything
     if (role === 'admin' || role === 'super_admin') return true;
     
-    // Safety check for receptionist role
+    // Receptionist sees almost everything (requested as image 2)
     if (role === 'receptionist') {
-      // Per request, receptionist should see most items from the second photo
       if (['Super Admin', 'App do Cliente'].includes(link.name)) return false;
       return true;
     }
@@ -321,7 +322,7 @@ const Sidebar = ({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
         <div className="p-8 border-t border-gray-800/30">
           <div className="bg-dark-900/50 p-4 rounded-2xl border border-gray-800/50 flex items-center justify-between">
             <span className="text-[8px] font-black text-gray-600 uppercase tracking-[0.4em]">v1.4.2 Premium</span>
-            <span className="text-[8px] font-black text-primary-500/50 uppercase tracking-[0.2em]">[v1.2 SYNC]</span>
+            <span className="text-[8px] font-black text-primary-500/50 uppercase tracking-[0.2em]">[v1.3 SYNC]</span>
           </div>
         </div>
       </aside>
