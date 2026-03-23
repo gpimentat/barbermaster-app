@@ -26,14 +26,14 @@ export const dashboardService = {
         const targetAdminEmail = adminEmail || 'g.pimentat@gmail.com';
 
         // 1. Fetch only account OWNER profiles (excluding the system owner)
-        const { data: ownerProfiles, error: profileError } = await supabase
+        const { data: ownerProfiles, error: ownerError } = await supabase
             .from('profiles')
-            .select('*, tenants(*)')
+            .select('*, tenants!profiles_tenant_id_fkey(*)')
             .in('role', ['admin', 'super_admin'])
             .neq('email', targetAdminEmail)
             .order('name');
 
-        if (profileError) throw profileError;
+        if (ownerError) throw ownerError;
 
         // 2. Identify unique Tenants that belong to these owners
         const realTenantsMap = new Map();

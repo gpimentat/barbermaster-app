@@ -77,7 +77,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // console.log('🔍 Fetching profile for:', userId);
     const { data, error } = await supabase
       .from('profiles')
-      .select('*, tenants (name, subscription_status)')
+      .select('*, tenants!profiles_tenant_id_fkey (name, subscription_status)')
       .eq('id', userId)
       .single();
 
