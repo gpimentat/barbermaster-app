@@ -2,7 +2,8 @@
 import React, { useEffect, useState } from 'react';
 import {
   Users, DollarSign, Activity, TrendingUp, TrendingDown, UserPlus, X,
-  BarChart2, Briefcase, Shield, Headphones, ChevronDown, Edit2, ToggleLeft, ToggleRight, Check
+  BarChart2, Briefcase, Shield, Headphones, ChevronDown, Edit2, ToggleLeft, ToggleRight, Check,
+  ShoppingBag, CheckCircle, AlertCircle, Clock, Wallet
 } from 'lucide-react';
 import { supabase } from '../src/supabaseClient';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
@@ -18,6 +19,28 @@ interface SaasStaff {
   permissions?: string[];
   active: boolean;
   created_at?: string;
+  saas_commission_new?: number;
+  saas_commission_recurring?: number;
+  saas_commission_recurring_type?: 'flat' | 'percent';
+}
+
+interface SaasSalesSubmission {
+  id: string;
+  salesperson_id: string;
+  shop_name: string;
+  manager_name: string;
+  manager_email: string;
+  manager_password: string;
+  plan_value: number;
+  payment_method: string;
+  commission_percentage: number;
+  commission_recurring_value: number;
+  commission_recurring_type: string;
+  status: 'pending' | 'approved' | 'rejected';
+  finance_notes?: string;
+  created_at: string;
+  approved_at?: string;
+  salesperson?: { name: string };
 }
 
 const SAAS_ROLES = [
@@ -33,7 +56,7 @@ const getRoleInfo = (role: string) =>
 // --- Main Component ---
 const SaasAdminPage: React.FC = () => {
   const { currentUser } = useAuth();
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'team'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'team' | 'sales'>('dashboard');
 
   // Dashboard state
   const [loading, setLoading] = useState(true);
@@ -57,8 +80,23 @@ const SaasAdminPage: React.FC = () => {
     commission_recurring_type: 'flat' as 'flat' | 'percent',
   });
 
+  // Sales Workflow state
+  const [submissions, setSubmissions] = useState<SaasSalesSubmission[]>([]);
+  const [loadingSales, setLoadingSales] = useState(false);
+  const [isNewSubmissionModalOpen, setIsNewSubmissionModalOpen] = useState(false);
+  const [savingSubmission, setSavingSubmission] = useState(false);
+  const [submissionForm, setSubmissionForm] = useState({
+    shopName: '', managerName: '', email: '', password: '', planValue: '', paymentMethod: 'pix'
+  });
+
+  // Permissions helpers
+  const isSales = currentUser?.role === 'saas_sales' || currentUser?.permissions?.includes('saas_sales');
+  const isFinance = currentUser?.role === 'saas_finance' || currentUser?.permissions?.includes('saas_finance');
+  const isManager = currentUser?.role === 'saas_manager' || currentUser?.role === 'super_admin' || currentUser?.email === 'g.pimentat@gmail.com';
+
   useEffect(() => { fetchStats(); }, []);
   useEffect(() => { if (activeTab === 'team') fetchSaasTeam(); }, [activeTab]);
+  useEffect(() => { if (activeTab === 'sales') fetchSubmissions(); }, [activeTab]);
 
   const fetchStats = async () => {
     try {
@@ -198,7 +236,6 @@ const SaasAdminPage: React.FC = () => {
     if (!error) fetchSaasTeam();
   };
 
-  // Create barbershop client (existing logic)
   const handleCreateShop = async (e: React.FormEvent) => {
     e.preventDefault();
     if (savingShop) return;
@@ -243,6 +280,166 @@ const SaasAdminPage: React.FC = () => {
     }
   };
 
+  const fetchSubmissions = async () => {
+    try {
+      setLoadingSales(true);
+      let query = supabase
+        .from('saas_sales_submissions')
+        .select('*, salesperson:profiles(name)')
+        .order('created_at', { ascending: false });
+
+      if (isSales && !isManager) {
+        query = query.eq('salesperson_id', currentUser?.id);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      setSubmissions(data || []);
+    } catch (err) {
+      console.error('Erro ao buscar propostas:', err);
+    } finally {
+      setLoadingSales(false);
+    }
+  };
+
+  const handleSaveSubmission = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (savingSubmission) return;
+    if (!submissionForm.shopName || !submissionForm.managerName || !submissionForm.email || !submissionForm.password || !submissionForm.planValue) {
+      alert('Preencha todos os campos obrigatórios.');
+      return;
+    }
+
+    try {
+      setSavingSubmission(true);
+      
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('saas_commission_new, saas_commission_recurring, saas_commission_recurring_type')
+        .eq('id', currentUser?.id)
+        .single();
+
+      const { error } = await supabase
+        .from('saas_sales_submissions')
+        .insert({
+          salesperson_id: currentUser?.id,
+          shop_name: submissionForm.shopName,
+          manager_name: submissionForm.managerName,
+          manager_email: submissionForm.email,
+          manager_password: submissionForm.password,
+          plan_value: Number(submissionForm.planValue),
+          payment_method: submissionForm.paymentMethod,
+          commission_percentage: profile?.saas_commission_new || 0,
+          commission_recurring_value: profile?.saas_commission_recurring || 0,
+          commission_recurring_type: profile?.saas_commission_recurring_type || 'flat',
+          status: 'pending'
+        });
+
+      if (error) throw error;
+
+      alert('✅ Proposta enviada com sucesso! Aguarde a aprovação do financeiro.');
+      setIsNewSubmissionModalOpen(false);
+      setSubmissionForm({ shopName: '', managerName: '', email: '', password: '', planValue: '', paymentMethod: 'pix' });
+      fetchSubmissions();
+    } catch (err: any) {
+      alert(`❌ Erro ao enviar proposta: ${err.message}`);
+    } finally {
+      setSavingSubmission(false);
+    }
+  };
+
+  const handleApproveSubmission = async (sub: SaasSalesSubmission) => {
+    if (!confirm(`Aprovar e liberar acesso para "${sub.shop_name}"?`)) return;
+
+    try {
+      setLoadingSales(true);
+      
+      const slug = sub.shop_name.toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').trim();
+
+      const { data: tenant, error: tenantError } = await supabase
+        .from('tenants')
+        .insert({ 
+          name: sub.shop_name, 
+          slug, 
+          subscription_status: 'active', 
+          settings: {},
+          referral_salesperson_id: sub.salesperson_id,
+          recurring_commission_value: sub.commission_recurring_value,
+        })
+        .select().single();
+      if (tenantError) throw tenantError;
+
+      const { data: { session } } = await supabase.auth.getSession();
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-staff`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${session?.access_token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: sub.manager_name, email: sub.manager_email, password: sub.manager_password,
+          role: 'admin', active: true, tenant_id: tenant.id, login_enabled: true,
+          commission_rate: 0, permissions: ['view_full_schedule', 'manage_schedule', 'manage_clients', 'view_financial'],
+        })
+      });
+
+      const result = await response.json();
+      if (!result.success) throw new Error(result.error || 'Erro ao criar gestor');
+
+      const initialCommissionAmount = sub.plan_value * (sub.commission_percentage / 100);
+      await supabase.from('saas_commissions').insert({
+        salesperson_id: sub.salesperson_id,
+        tenant_id: tenant.id,
+        amount: initialCommissionAmount,
+        type: 'new_client',
+        status: 'pending',
+        month: new Date().toISOString().substring(0, 7),
+        description: `Comissão inicial - ${sub.shop_name}`
+      });
+
+      await supabase.from('saas_notifications').insert({
+        user_id: sub.salesperson_id,
+        title: 'Sistema Liberado!',
+        message: `O acesso para a barbearia "${sub.shop_name}" foi aprovado e liberado pelo financeiro.`
+      });
+
+      await supabase.from('saas_sales_submissions')
+        .update({ status: 'approved', approved_at: new Date().toISOString(), approved_by: currentUser?.id })
+        .eq('id', sub.id);
+
+      alert('✅ Venda aprovada! A barbearia foi criada e o vendedor notificado.');
+      fetchSubmissions();
+      fetchStats();
+    } catch (err: any) {
+      alert(`❌ Erro ao aprovar: ${err.message}`);
+    } finally {
+      setLoadingSales(false);
+    }
+  };
+
+  const handleRejectSubmission = async (sub: SaasSalesSubmission) => {
+    const reason = prompt('Motivo da rejeição:');
+    if (reason === null) return;
+
+    try {
+      setLoadingSales(true);
+      await supabase.from('saas_sales_submissions')
+        .update({ status: 'rejected', finance_notes: reason })
+        .eq('id', sub.id);
+      
+      await supabase.from('saas_notifications').insert({
+          user_id: sub.salesperson_id,
+          title: 'Venda Rejeitada',
+          message: `A proposta para "${sub.shop_name}" foi rejeitada. Motivo: ${reason}`
+      });
+
+      fetchSubmissions();
+    } catch (err: any) {
+      alert('Erro ao rejeitar proposta');
+    } finally {
+      setLoadingSales(false);
+    }
+  };
+
   if (loading && activeTab === 'dashboard') {
     return (
       <div className="h-full flex flex-col items-center justify-center space-y-4 animate-in fade-in">
@@ -258,8 +455,8 @@ const SaasAdminPage: React.FC = () => {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black text-white uppercase tracking-tight">Painel Super Admin</h1>
-          <p className="text-gray-500 text-sm font-bold uppercase tracking-widest mt-1">Controle SaaS Global</p>
+          <h1 className="text-3xl font-black text-white uppercase tracking-tight">Painel Super Admin [v1.1]</h1>
+          <p className="text-gray-500 text-sm font-bold uppercase tracking-widest mt-1">Gerenciamento Global de Vendas e Equipe</p>
         </div>
       </div>
 
@@ -279,12 +476,19 @@ const SaasAdminPage: React.FC = () => {
           <Briefcase size={16} />
           Equipe SaaS
         </button>
+        <button
+          onClick={() => setActiveTab('sales')}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-black uppercase tracking-widest transition-all ${activeTab === 'sales' ? 'bg-primary-500 text-dark-950 shadow-lg' : 'text-gray-400 hover:text-white'}`}
+        >
+          <ShoppingBag size={16} />
+          Vendas
+        </button>
       </div>
 
       {/* ── TAB: DASHBOARD ── */}
-      {activeTab === 'dashboard' && stats && (
+      {activeTab === 'dashboard' && stats ? (
         <div className="space-y-6">
-          {/* Stats Cards */}
+          {/* Stats Cards ... (keep existing cards) ... */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div className="bg-dark-900 border border-gray-800 p-6 rounded-2xl">
               <div className="flex justify-between items-start mb-4">
@@ -405,9 +609,129 @@ const SaasAdminPage: React.FC = () => {
             </div>
           </div>
         </div>
+      ) : activeTab === 'dashboard' && !loading && (
+        <div className="py-20 flex flex-col items-center gap-4 text-center border border-gray-800 rounded-3xl bg-dark-900/40">
+           <AlertCircle size={48} className="text-yellow-500 opacity-50" />
+           <p className="text-white font-black text-lg uppercase tracking-tight">Falha ao carregar dashboard</p>
+           <p className="text-gray-500 text-sm max-w-sm">Não conseguimos obter as estatísticas da rede. Verifique sua conexão ou permissões.</p>
+           <button onClick={() => fetchStats()} className="mt-4 px-6 py-2 bg-gray-800 text-white rounded-xl hover:bg-gray-700 font-bold transition-all">Tentar novamente</button>
+        </div>
       )}
 
-      {/* ── TAB: EQUIPE SAAS ── */}
+      {/* ── TAB: VENDAS ── */}
+      {activeTab === 'sales' && (
+        <div className="space-y-6">
+          {/* Quick Actions for Sales */}
+          {isSales && (
+            <div className="flex justify-end">
+              <button
+                onClick={() => setIsNewSubmissionModalOpen(true)}
+                className="flex items-center gap-2 bg-primary-500 hover:bg-primary-600 text-dark-950 px-6 py-3 rounded-2xl text-sm font-black uppercase tracking-widest transition-all shadow-xl shadow-primary-500/20"
+              >
+                <ShoppingBag size={18} /> Registrar Nova Venda
+              </button>
+            </div>
+          )}
+
+          {/* Submissions Table */}
+          <div className="bg-dark-900 border border-gray-800 rounded-2xl overflow-hidden">
+            <div className="p-6 border-b border-gray-800">
+              <h3 className="text-lg font-bold text-white">Solicitações de Venda</h3>
+              <p className="text-xs text-gray-500 mt-0.5">
+                {isFinance || isManager ? 'Propostas aguardando aprovação financeira' : 'Minhas vendas registradas'}
+              </p>
+            </div>
+
+            {loadingSales ? (
+              <div className="py-16 flex items-center justify-center">
+                <div className="w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
+              </div>
+            ) : submissions.length === 0 ? (
+              <div className="py-20 flex flex-col items-center gap-4 text-center">
+                <span className="text-5xl">💼</span>
+                <p className="text-white font-black text-lg uppercase tracking-tight">Nenhuma venda registrada</p>
+                <p className="text-gray-500 text-sm">As vendas registradas pela equipe aparecerão aqui.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead className="bg-gray-800/50 text-gray-400 text-xs uppercase">
+                    <tr>
+                      <th className="px-6 py-4 font-bold">Cliente / Barbearia</th>
+                      <th className="px-6 py-4 font-bold">Vendedor</th>
+                      <th className="px-6 py-4 font-bold">Plano / PGTO</th>
+                      <th className="px-6 py-4 font-bold">Data</th>
+                      <th className="px-6 py-4 font-bold">Status</th>
+                      <th className="px-6 py-4 font-bold text-right">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-800">
+                    {submissions.map((sub) => (
+                      <tr key={sub.id} className="hover:bg-gray-800/30 transition-colors group">
+                        <td className="px-6 py-4">
+                          <div>
+                            <p className="font-black text-white text-sm">{sub.shop_name}</p>
+                            <p className="text-xs text-gray-500">{sub.manager_name} ({sub.manager_email})</p>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <p className="text-sm font-bold text-gray-300">{sub.salesperson?.name || 'Sistema'}</p>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div>
+                            <p className="text-sm font-black text-primary-500">R$ {sub.plan_value.toLocaleString('pt-BR')}</p>
+                            <p className="text-[10px] text-gray-500 uppercase font-black">{sub.payment_method}</p>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-xs text-gray-400 font-medium">
+                          {new Date(sub.created_at).toLocaleDateString('pt-BR')}
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${
+                            sub.status === 'approved' ? 'bg-green-500/10 border-green-500/30 text-green-400' :
+                            sub.status === 'rejected' ? 'bg-red-500/10 border-red-500/30 text-red-400' :
+                            'bg-yellow-500/10 border-yellow-500/30 text-yellow-400'
+                          }`}>
+                            {sub.status === 'approved' && <CheckCircle size={12} />}
+                            {sub.status === 'rejected' && <AlertCircle size={12} />}
+                            {sub.status === 'pending' && <Clock size={12} />}
+                            {sub.status === 'approved' ? 'Aprovado' : sub.status === 'rejected' ? 'Rejeitado' : 'Pendente'}
+                          </span>
+                          {sub.finance_notes && (
+                            <p className="text-[10px] text-red-400 mt-1 italic max-w-[200px] truncate" title={sub.finance_notes}>
+                                Obs: {sub.finance_notes}
+                            </p>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          {sub.status === 'pending' && (isFinance || isManager) && (
+                            <div className="flex justify-end gap-2">
+                              <button
+                                onClick={() => handleRejectSubmission(sub)}
+                                className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
+                                title="Rejeitar"
+                              >
+                                <X size={18} />
+                              </button>
+                              <button
+                                onClick={() => handleApproveSubmission(sub)}
+                                className="p-2 text-green-400 hover:bg-green-500/10 rounded-lg transition-all"
+                                title="Aprovar e Liberar"
+                              >
+                                <Check size={18} />
+                              </button>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
       {activeTab === 'team' && (
         <div className="space-y-6">
           {/* Role summary cards */}
@@ -521,6 +845,74 @@ const SaasAdminPage: React.FC = () => {
                 </table>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal: Registrar Nova Venda ── */}
+      {isNewSubmissionModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-dark-900 border border-gray-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6 border-b border-gray-800 flex justify-between items-center bg-gradient-to-r from-dark-900 to-gray-900">
+              <div>
+                <h2 className="text-xl font-black text-white">Registrar Venda</h2>
+                <p className="text-xs text-gray-500 mt-0.5">Submeta os dados para aprovação financeira</p>
+              </div>
+              <button onClick={() => setIsNewSubmissionModalOpen(false)} className="text-gray-400 hover:text-white p-2 hover:bg-gray-800 rounded-xl transition-all"><X size={20} /></button>
+            </div>
+
+            <form onSubmit={handleSaveSubmission} className="p-6 space-y-4">
+              <div className="space-y-3">
+                <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-1">Dados da Barbearia</p>
+                <div>
+                  <label className="block text-xs font-bold text-gray-400 mb-1">Nome da Barbearia</label>
+                  <input type="text" value={submissionForm.shopName} onChange={e => setSubmissionForm({ ...submissionForm, shopName: e.target.value })}
+                    className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-primary-500" placeholder="Ex: Barbearia do Centro" required />
+                </div>
+              </div>
+
+              <div className="space-y-3 pt-2">
+                <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-1">Dados do Gestor</p>
+                <input type="text" value={submissionForm.managerName} onChange={e => setSubmissionForm({ ...submissionForm, managerName: e.target.value })}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-primary-500" placeholder="Nome do Gestor" required />
+                <input type="email" value={submissionForm.email} onChange={e => setSubmissionForm({ ...submissionForm, email: e.target.value })}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-primary-500" placeholder="Email do Gestor" required />
+                <input type="password" value={submissionForm.password} onChange={e => setSubmissionForm({ ...submissionForm, password: e.target.value })}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-primary-500" placeholder="Defina uma senha provisória" required />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 pt-2">
+                <div>
+                  <label className="block text-xs font-bold text-gray-400 mb-1">Valor do Plano (R$)</label>
+                  <input type="number" value={submissionForm.planValue} onChange={e => setSubmissionForm({ ...submissionForm, planValue: e.target.value })}
+                    className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-primary-500" placeholder="0.00" required />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-400 mb-1">Pagamento</label>
+                  <select value={submissionForm.paymentMethod} onChange={e => setSubmissionForm({ ...submissionForm, paymentMethod: e.target.value })}
+                    className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-primary-500 appearance-none">
+                    <option value="pix">PIX</option>
+                    <option value="cartao">Cartão de Crédito</option>
+                    <option value="boleto">Boleto</option>
+                    <option value="dinheiro">Dinheiro / Outro</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="bg-primary-500/5 border border-primary-500/20 rounded-xl p-3 flex gap-3 items-start">
+                <AlertCircle className="text-primary-500 shrink-0" size={16} />
+                <p className="text-[10px] text-gray-400 leading-relaxed italic">
+                  Sua comissão (fixa definida pelo admin) será capturada e bloqueada no momento da aprovação desta venda.
+                </p>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button type="button" onClick={() => setIsNewSubmissionModalOpen(false)} className="flex-1 py-3 bg-gray-800 hover:bg-gray-700 text-white font-bold rounded-xl border border-gray-700 transition-all uppercase tracking-widest text-xs">Cancelar</button>
+                <button type="submit" disabled={savingSubmission} className="flex-1 py-3 bg-primary-500 hover:bg-primary-600 text-dark-950 font-black rounded-xl transition-all shadow-lg shadow-primary-500/20 disabled:opacity-50 uppercase tracking-widest text-xs">
+                  {savingSubmission ? 'Enviando...' : 'Enviar Venda'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

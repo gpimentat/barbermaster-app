@@ -21,8 +21,10 @@ import {
   Link as LinkIcon,
   Clock,
   User,
-  MapPin
+  MapPin,
+  Bell
 } from 'lucide-react';
+import { supabase } from './src/supabaseClient';
 
 // Context
 import { AuthProvider, useAuth } from './AuthContext';
@@ -123,6 +125,8 @@ const Sidebar = ({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
   const location = useLocation();
   const { hasPermission, role, logout, currentUser } = useAuth();
 
+  const [unreadNotifications, setUnreadNotifications] = React.useState(0);
+
   // Bloquear scroll quando a sidebar está aberta no mobile
   React.useEffect(() => {
     if (isOpen && window.innerWidth < 768) {
@@ -131,6 +135,40 @@ const Sidebar = ({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
       document.body.style.overflow = 'unset';
     }
   }, [isOpen]);
+
+  // Fetch SaaS notifications
+  React.useEffect(() => {
+    if (!currentUser) return;
+
+    const fetchNotifications = async () => {
+      const { count, error } = await supabase
+        .from('saas_notifications')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', currentUser.id)
+        .eq('read', false);
+      
+      if (!error) setUnreadNotifications(count || 0);
+    };
+
+    fetchNotifications();
+
+    // Realtime subscription
+    const channel = supabase
+      .channel('saas_notifications_changes')
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'saas_notifications',
+        filter: `user_id=eq.${currentUser.id}`
+      }, () => {
+        fetchNotifications();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [currentUser]);
 
   const links = [
     { path: '/', name: 'Dashboard', icon: <LayoutDashboard size={20} tracking-tight />, requiredPermission: 'public' },
@@ -228,10 +266,20 @@ const Sidebar = ({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
                   : 'text-gray-500 hover:bg-gray-800/50 hover:text-white'
                   }`}
               >
-                <div className={`${isActive ? 'text-dark-950' : 'text-gray-600 group-hover:text-primary-500'} transition-colors duration-300`}>
+                <div className={`${isActive ? 'text-dark-950' : 'text-gray-600 group-hover:text-primary-500'} transition-colors duration-300 relative`}>
                   {link.icon}
+                  {unreadNotifications > 0 && (link.path === '/saas-admin' || link.path === '/sales-commissions') && (
+                    <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 border-2 border-dark-950 rounded-full animate-pulse" />
+                  )}
                 </div>
-                <span className="text-[11px] uppercase font-black tracking-widest">{link.name}</span>
+                <span className="text-[11px] uppercase font-black tracking-widest flex items-center gap-2">
+                  {link.name}
+                  {unreadNotifications > 0 && (link.path === '/saas-admin' || link.path === '/sales-commissions') && (
+                    <span className="bg-red-500 text-white text-[8px] px-1.5 py-0.5 rounded-full min-w-[18px] text-center shadow-lg shadow-red-500/20">
+                      {unreadNotifications}
+                    </span>
+                  )}
+                </span>
               </Link>
             );
           })}
