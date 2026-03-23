@@ -202,7 +202,11 @@ const Sidebar = ({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
       return dbRole.startsWith('saas_') || perms.some((p: string) => ['saas_sales', 'saas_manager'].includes(p));
     }
     if (role === 'admin') return true;
-    if (role === 'receptionist' && ['Financeiro', 'Profissionais', 'App do Cliente'].includes(link.name)) return false;
+    if (role === 'receptionist') {
+      // Receptionist has access to almost everything except specific admin-only pages
+      if (['Financeiro', 'Profissionais', 'App do Cliente', 'Super Admin'].includes(link.name)) return false;
+      return true;
+    }
 
     if (link.path === '/schedule') {
       return hasPermission('view_own_schedule') || hasPermission('view_full_schedule');
