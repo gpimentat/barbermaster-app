@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { HashRouter, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
 import {
@@ -199,7 +198,7 @@ const Sidebar = ({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
       role = 'admin';
     } else if (dbRoleStr === 'super_admin') {
       role = 'super_admin';
-    } else if (dbRoleStr.includes('recep') || currentUser.email === '520_barbershop1@gmail.com') {
+    } else if (dbRoleStr.includes('recep') || currentUser.email === '520_barbershop1@gmail.com' || currentUser.email === '520barbershop@gmail.com') {
       role = 'receptionist';
     } else {
       role = 'barber';
@@ -322,7 +321,7 @@ const Sidebar = ({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
         <div className="p-8 border-t border-gray-800/30">
           <div className="bg-dark-900/50 p-4 rounded-2xl border border-gray-800/50 flex items-center justify-between">
             <span className="text-[8px] font-black text-gray-600 uppercase tracking-[0.4em]">v1.4.2 Premium</span>
-            <span className="text-[8px] font-black text-primary-500/50 uppercase tracking-[0.2em]">[v1.3 SYNC]</span>
+            <span className="text-[8px] font-black text-primary-500/50 uppercase tracking-[0.2em]">[v1.4 SYNC]</span>
           </div>
         </div>
       </aside>
