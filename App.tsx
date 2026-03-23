@@ -20,7 +20,8 @@ import {
   MessageSquare,
   Link as LinkIcon,
   Clock,
-  User
+  User,
+  MapPin
 } from 'lucide-react';
 
 // Context
@@ -47,6 +48,7 @@ import ReviewsPage from './pages/ReviewsPage';
 import SignUpPage from './pages/SignUpPage';
 import AppointmentActionPage from './pages/AppointmentActionPage';
 import SaasAdminPage from './pages/SaasAdminPage';
+import SalesMapPage from './pages/SalesMapPage';
 import SubscriptionLockedPage from './pages/SubscriptionLockedPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 // import ProfilePage from './pages/ProfilePage'; // Removed in favor of consolidated SettingsPage
@@ -146,12 +148,19 @@ const Sidebar = ({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
     { path: '/reviews', name: 'Avaliações', icon: <MessageSquare size={20} />, requiredPermission: 'manage_clients' },
     { path: '/integrations', name: 'Integrações', icon: <LinkIcon size={20} />, requiredPermission: 'manage_integrations' },
     { path: '/saas-admin', name: 'Super Admin', icon: <Crown size={20} />, requiredPermission: 'super_admin' },
+    { path: '/sales-map', name: 'Prospecção', icon: <MapPin size={20} />, requiredPermission: 'saas_map' },
   ];
 
   const visibleLinks = links.filter(link => {
     if (link.requiredPermission === 'public') return true;
     if (role === 'super_admin') return true;
     if (link.requiredPermission === 'super_admin' && role !== 'super_admin') return false;
+    // Show Sales Map only for saas_sales / saas_manager roles
+    if (link.requiredPermission === 'saas_map') {
+      const dbRole = currentUser?.role || '';
+      const perms = currentUser?.permissions || [];
+      return dbRole.startsWith('saas_') || perms.some((p: string) => ['saas_sales', 'saas_manager'].includes(p));
+    }
     if (role === 'admin') return true;
     if (role === 'receptionist' && ['Financeiro', 'Profissionais', 'App do Cliente'].includes(link.name)) return false;
 
@@ -353,6 +362,7 @@ const MainLayout: React.FC = () => {
             <Route path="/signup" element={<SignUpPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/saas-admin" element={<SaasAdminPage />} />
+            <Route path="/sales-map" element={<SalesMapPage />} />
             <Route path="/schedule" element={<Schedule />} />
             <Route path="/waiting-list" element={<WaitingListPage />} />
             <Route path="/appt/:id/:action" element={<AppointmentActionPage />} />
