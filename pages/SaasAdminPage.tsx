@@ -15,6 +15,7 @@ interface SaasStaff {
   name: string;
   email: string;
   role: string;
+  permissions?: string[];
   active: boolean;
   created_at?: string;
 }
@@ -48,9 +49,8 @@ const SaasAdminPage: React.FC = () => {
   const [isStaffModalOpen, setIsStaffModalOpen] = useState(false);
   const [editingStaff, setEditingStaff] = useState<SaasStaff | null>(null);
   const [savingStaff, setSavingStaff] = useState(false);
-  const [staffForm, setStaffForm] = useState({
-    name: '', email: '', password: '', role: 'saas_support'
-  });
+  const [selectedRoles, setSelectedRoles] = useState<string[]>(['saas_support']);
+  const [staffForm, setStaffForm] = useState({ name: '', email: '', password: '' });
 
   useEffect(() => { fetchStats(); }, []);
   useEffect(() => { if (activeTab === 'team') fetchSaasTeam(); }, [activeTab]);
@@ -74,7 +74,7 @@ const SaasAdminPage: React.FC = () => {
       // SaaS staff have no tenant_id and have saas_ roles
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, name, email, role, active, created_at')
+        .select('id, name, email, role, permissions, active, created_at')
         .is('tenant_id', null)
         .like('role', 'saas_%')
         .order('created_at', { ascending: false });
@@ -88,15 +88,30 @@ const SaasAdminPage: React.FC = () => {
     }
   };
 
+  const toggleRole = (role: string) => {
+    setSelectedRoles(prev =>
+      prev.includes(role) ? prev.filter(r => r !== role) : [...prev, role]
+    );
+  };
+
+  // Derive all roles for a member: primary role + saas_ entries in permissions
+  const getMemberRoles = (member: SaasStaff): string[] => {
+    const extra = (member.permissions || []).filter(p => p.startsWith('saas_'));
+    const all = [member.role, ...extra.filter(e => e !== member.role)];
+    return all.filter(Boolean);
+  };
+
   const openCreateStaff = () => {
     setEditingStaff(null);
-    setStaffForm({ name: '', email: '', password: '', role: 'saas_support' });
+    setStaffForm({ name: '', email: '', password: '' });
+    setSelectedRoles(['saas_support']);
     setIsStaffModalOpen(true);
   };
 
   const openEditStaff = (member: SaasStaff) => {
     setEditingStaff(member);
-    setStaffForm({ name: member.name, email: member.email, password: '', role: member.role });
+    setStaffForm({ name: member.name, email: member.email, password: '' });
+    setSelectedRoles(getMemberRoles(member));
     setIsStaffModalOpen(true);
   };
 
@@ -107,19 +122,25 @@ const SaasAdminPage: React.FC = () => {
       alert('Preencha todos os campos obrigatórios.');
       return;
     }
+    if (selectedRoles.length === 0) {
+      alert('Selecione pelo menos um cargo.');
+      return;
+    }
 
     try {
       setSavingStaff(true);
       const { data: { session } } = await supabase.auth.getSession();
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 
+      // Primary role = first selected; extras stored in permissions array
+      const primaryRole = selectedRoles[0];
       const payload: any = {
         name: staffForm.name,
         email: staffForm.email,
-        role: staffForm.role,
+        role: primaryRole,
         active: true,
         commission_rate: 0,
-        permissions: [],
+        permissions: selectedRoles, // all selected roles stored here
         login_enabled: true,
         tenant_id: null, // SaaS staff — no barbershop
       };
@@ -429,13 +450,14 @@ const SaasAdminPage: React.FC = () => {
                   </thead>
                   <tbody className="divide-y divide-gray-800">
                     {saasStaff.map((member) => {
-                      const roleInfo = getRoleInfo(member.role);
+                      const allRoles = getMemberRoles(member);
+                      const primaryRoleInfo = getRoleInfo(allRoles[0]);
                       return (
                         <tr key={member.id} className="hover:bg-gray-800/30 transition-colors group">
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-3">
-                              <div className={`w-10 h-10 rounded-2xl border flex items-center justify-center text-lg font-black ${roleInfo.bg}`}>
-                                {roleInfo.icon}
+                              <div className={`w-10 h-10 rounded-2xl border flex items-center justify-center text-lg font-black ${primaryRoleInfo.bg}`}>
+                                {primaryRoleInfo.icon}
                               </div>
                               <div>
                                 <p className="font-black text-white text-sm">{member.name}</p>
@@ -444,9 +466,16 @@ const SaasAdminPage: React.FC = () => {
                             </div>
                           </td>
                           <td className="px-6 py-4">
-                            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black border ${roleInfo.bg} ${roleInfo.color}`}>
-                              {roleInfo.icon} {roleInfo.label}
-                            </span>
+                            <div className="flex flex-wrap gap-1.5">
+                              {allRoles.map(r => {
+                                const info = getRoleInfo(r);
+                                return (
+                                  <span key={r} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black border ${info.bg} ${info.color}`}>
+                                    {info.icon} {info.label}
+                                  </span>
+                                );
+                              })}
+                            </div>
                           </td>
                           <td className="px-6 py-4">
                             <button
@@ -528,24 +557,34 @@ const SaasAdminPage: React.FC = () => {
             </div>
 
             <form onSubmit={handleSaveStaff} className="p-6 space-y-5">
-              {/* Role Selector */}
+              {/* Multi-Role Selector */}
               <div>
-                <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-3">Função no SaaS</label>
+                <div className="flex items-center justify-between mb-3">
+                  <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Cargos no SaaS</label>
+                  <span className="text-[10px] text-gray-600 font-bold">{selectedRoles.length} selecionado{selectedRoles.length !== 1 ? 's' : ''}</span>
+                </div>
                 <div className="grid grid-cols-2 gap-2">
-                  {SAAS_ROLES.map((role) => (
-                    <button
-                      key={role.value}
-                      type="button"
-                      onClick={() => setStaffForm({ ...staffForm, role: role.value })}
-                      className={`flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${staffForm.role === role.value ? `${role.bg} ${role.color} font-black` : 'border-gray-700 text-gray-500 hover:border-gray-600'}`}
-                    >
-                      <span className="text-xl">{role.icon}</span>
-                      <div>
-                        <p className="text-xs font-black leading-tight">{role.label}</p>
-                        {staffForm.role === role.value && <Check size={10} className="mt-0.5" />}
-                      </div>
-                    </button>
-                  ))}
+                  {SAAS_ROLES.map((role) => {
+                    const isSelected = selectedRoles.includes(role.value);
+                    return (
+                      <button
+                        key={role.value}
+                        type="button"
+                        onClick={() => toggleRole(role.value)}
+                        className={`flex items-center gap-3 p-3 rounded-xl border text-left transition-all relative ${
+                          isSelected ? `${role.bg} ${role.color} font-black` : 'border-gray-700 text-gray-500 hover:border-gray-600 hover:text-gray-400'
+                        }`}
+                      >
+                        <span className="text-xl">{role.icon}</span>
+                        <p className="text-xs font-black leading-tight flex-1">{role.label}</p>
+                        <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-all ${
+                          isSelected ? 'bg-current border-current' : 'border-gray-600'
+                        }`}>
+                          {isSelected && <Check size={10} className="text-dark-950" />}
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
