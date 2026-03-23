@@ -123,7 +123,7 @@ const ForcePasswordChangeModal = () => {
 // Sidebar Component
 const Sidebar = ({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolean) => void }) => {
   const location = useLocation();
-  const { hasPermission, role, logout, currentUser } = useAuth();
+  const { hasPermission, role: authRole, logout, currentUser } = useAuth();
 
   const [unreadNotifications, setUnreadNotifications] = React.useState(0);
 
@@ -191,13 +191,27 @@ const Sidebar = ({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
     { path: '/sales-commissions', name: 'Minhas Comissões', icon: <DollarSign size={20} />, requiredPermission: 'saas_map' },
   ];
 
+  let role = authRole; // Initialize with role from AuthContext
+  if (currentUser) {
+    const dbRole = (currentUser.role || '').toLowerCase();
+    if (dbRole === 'admin' || dbRole === 'administrador') {
+      role = 'admin';
+    } else if (dbRole === 'super_admin') {
+      role = 'super_admin';
+    } else if (dbRole.includes('recep')) {
+      role = 'receptionist';
+    } else {
+      role = 'barber';
+    }
+  }
+
   const visibleLinks = links.filter(link => {
     if (role === 'admin' || role === 'super_admin') return true;
     
     // Safety check for receptionist role
     if (role === 'receptionist') {
-      const blockedForRecep = ['Financeiro', 'Profissionais', 'App do Cliente', 'Super Admin'];
-      if (blockedForRecep.includes(link.name)) return false;
+      // Per request, receptionist should see most items from the second photo
+      if (['Super Admin', 'App do Cliente'].includes(link.name)) return false;
       return true;
     }
 
