@@ -50,7 +50,12 @@ const SaasAdminPage: React.FC = () => {
   const [editingStaff, setEditingStaff] = useState<SaasStaff | null>(null);
   const [savingStaff, setSavingStaff] = useState(false);
   const [selectedRoles, setSelectedRoles] = useState<string[]>(['saas_support']);
-  const [staffForm, setStaffForm] = useState({ name: '', email: '', password: '' });
+  const [staffForm, setStaffForm] = useState({
+    name: '', email: '', password: '',
+    commission_new: '0',
+    commission_recurring: '0',
+    commission_recurring_type: 'flat' as 'flat' | 'percent',
+  });
 
   useEffect(() => { fetchStats(); }, []);
   useEffect(() => { if (activeTab === 'team') fetchSaasTeam(); }, [activeTab]);
@@ -103,14 +108,19 @@ const SaasAdminPage: React.FC = () => {
 
   const openCreateStaff = () => {
     setEditingStaff(null);
-    setStaffForm({ name: '', email: '', password: '' });
+    setStaffForm({ name: '', email: '', password: '', commission_new: '0', commission_recurring: '0', commission_recurring_type: 'flat' });
     setSelectedRoles(['saas_support']);
     setIsStaffModalOpen(true);
   };
 
   const openEditStaff = (member: SaasStaff) => {
     setEditingStaff(member);
-    setStaffForm({ name: member.name, email: member.email, password: '' });
+    setStaffForm({
+      name: member.name, email: member.email, password: '',
+      commission_new: String((member as any).saas_commission_new ?? 0),
+      commission_recurring: String((member as any).saas_commission_recurring ?? 0),
+      commission_recurring_type: (member as any).saas_commission_recurring_type ?? 'flat',
+    });
     setSelectedRoles(getMemberRoles(member));
     setIsStaffModalOpen(true);
   };
@@ -163,6 +173,13 @@ const SaasAdminPage: React.FC = () => {
 
       const result = await response.json();
       if (!result.success) throw new Error(result.error || 'Erro ao salvar membro');
+
+      // Persist commission settings (new columns not in edge function)
+      await supabase.from('profiles').update({
+        saas_commission_new: Number(staffForm.commission_new) || 0,
+        saas_commission_recurring: Number(staffForm.commission_recurring) || 0,
+        saas_commission_recurring_type: staffForm.commission_recurring_type,
+      }).eq('id', result.id);
 
       setIsStaffModalOpen(false);
       fetchSaasTeam();
@@ -607,6 +624,35 @@ const SaasAdminPage: React.FC = () => {
                     className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-primary-500" placeholder={editingStaff ? '••••••••' : 'Mínimo 6 caracteres'} />
                 </div>
               </div>
+
+              {/* Commission Settings - show when sales/manager role is selected */}
+              {selectedRoles.some(r => ['saas_sales', 'saas_manager'].includes(r)) && (
+                <div className="border border-primary-500/20 bg-primary-500/5 rounded-2xl p-4 space-y-3">
+                  <p className="text-xs font-black text-primary-500 uppercase tracking-widest">Configuracao de Comissao</p>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 mb-1">Por novo cliente (R$)</label>
+                    <input type="number" step="0.01" min="0" value={staffForm.commission_new}
+                      onChange={e => setStaffForm({ ...staffForm, commission_new: e.target.value })}
+                      className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-primary-500 text-sm" placeholder="Ex: 100.00" />
+                    <p className="text-[10px] text-gray-600 mt-1">Pago uma vez quando a barbearia assina</p>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 mb-1">Comissao recorrente (por renovacao)</label>
+                    <div className="flex gap-2">
+                      <input type="number" step="0.01" min="0" value={staffForm.commission_recurring}
+                        onChange={e => setStaffForm({ ...staffForm, commission_recurring: e.target.value })}
+                        className="flex-1 bg-gray-800 border border-gray-700 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-primary-500 text-sm" placeholder="0" />
+                      <select value={staffForm.commission_recurring_type}
+                        onChange={e => setStaffForm({ ...staffForm, commission_recurring_type: e.target.value as 'flat' | 'percent' })}
+                        className="bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-primary-500">
+                        <option value="flat">R$ fixo</option>
+                        <option value="percent">% mensalidade</option>
+                      </select>
+                    </div>
+                    <p className="text-[10px] text-gray-600 mt-1">Pago todo mes enquanto o cliente renovar</p>
+                  </div>
+                </div>
+              )}
 
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setIsStaffModalOpen(false)} className="flex-1 py-2.5 bg-gray-800 hover:bg-gray-700 text-white font-bold rounded-xl border border-gray-700 transition-all">Cancelar</button>

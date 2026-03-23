@@ -49,6 +49,7 @@ import SignUpPage from './pages/SignUpPage';
 import AppointmentActionPage from './pages/AppointmentActionPage';
 import SaasAdminPage from './pages/SaasAdminPage';
 import SalesMapPage from './pages/SalesMapPage';
+import SalesCommissionsPage from './pages/SalesCommissionsPage';
 import SubscriptionLockedPage from './pages/SubscriptionLockedPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 // import ProfilePage from './pages/ProfilePage'; // Removed in favor of consolidated SettingsPage
@@ -149,6 +150,7 @@ const Sidebar = ({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
     { path: '/integrations', name: 'Integrações', icon: <LinkIcon size={20} />, requiredPermission: 'manage_integrations' },
     { path: '/saas-admin', name: 'Super Admin', icon: <Crown size={20} />, requiredPermission: 'super_admin' },
     { path: '/sales-map', name: 'Prospecção', icon: <MapPin size={20} />, requiredPermission: 'saas_map' },
+    { path: '/sales-commissions', name: 'Minhas Comissões', icon: <DollarSign size={20} />, requiredPermission: 'saas_map' },
   ];
 
   const visibleLinks = links.filter(link => {
@@ -363,6 +365,7 @@ const MainLayout: React.FC = () => {
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/saas-admin" element={<SaasAdminPage />} />
             <Route path="/sales-map" element={<SalesMapPage />} />
+            <Route path="/sales-commissions" element={<SalesCommissionsPage />} />
             <Route path="/schedule" element={<Schedule />} />
             <Route path="/waiting-list" element={<WaitingListPage />} />
             <Route path="/appt/:id/:action" element={<AppointmentActionPage />} />
