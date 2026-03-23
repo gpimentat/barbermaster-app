@@ -209,10 +209,10 @@ const Sidebar = ({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
     // Admin/Super Admin see everything
     if (role === 'admin' || role === 'super_admin') return true;
     
-    // Receptionist sees almost everything (requested as image 2)
+    // Receptionist sees operational items but not financial or SaaS tools
     if (role === 'receptionist') {
-      const saasLinks = ['Super Admin', 'App do Cliente', 'Prospecção', 'Minhas Comissões'];
-      if (saasLinks.includes(link.name)) return false;
+      const blockedLinks = ['Super Admin', 'App do Cliente', 'Prospecção', 'Minhas Comissões', 'Financeiro'];
+      if (blockedLinks.includes(link.name)) return false;
       return true;
     }
 
@@ -322,7 +322,7 @@ const Sidebar = ({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
         <div className="p-8 border-t border-gray-800/30">
           <div className="bg-dark-900/50 p-4 rounded-2xl border border-gray-800/50 flex items-center justify-between">
             <span className="text-[8px] font-black text-gray-600 uppercase tracking-[0.4em]">v1.4.2 Premium</span>
-            <span className="text-[8px] font-black text-primary-500/50 uppercase tracking-[0.2em]">[v1.5 SYNC]</span>
+            <span className="text-[8px] font-black text-primary-500/50 uppercase tracking-[0.2em]">[v1.6 SYNC]</span>
           </div>
         </div>
       </aside>
