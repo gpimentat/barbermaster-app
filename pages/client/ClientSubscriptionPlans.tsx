@@ -47,14 +47,14 @@ const ClientSubscriptionPlans: React.FC<ClientSubscriptionPlansProps> = ({ tenan
             setSubscribingId(planId);
             const response = await clientService.subscribeToPlan(tenant.id, clientData.id, planId);
 
-            if (response.init_point) {
+            if (response.success && response.init_point) {
                 window.location.href = response.init_point;
             } else {
-                alert('Erro ao gerar checkout. Tente novamente.');
+                alert(response.error || 'Erro ao gerar checkout. Tente novamente.');
             }
-        } catch (err) {
+        } catch (err: any) {
             console.error('Error initiating subscription:', err);
-            alert('Não foi possível iniciar a assinatura. Verifique sua conexão.');
+            alert(`Erro ao iniciar assinatura: ${err.message || 'Erro de conexão'}`);
         } finally {
             setSubscribingId(null);
         }
@@ -120,7 +120,9 @@ const ClientSubscriptionPlans: React.FC<ClientSubscriptionPlansProps> = ({ tenan
                                         <h3 className="text-xl font-black uppercase tracking-tight italic" style={{ color: primaryColor }}>{plan.name}</h3>
                                         <div className="flex items-baseline gap-1">
                                             <span className="text-3xl font-black tracking-tighter">R$ {plan.price.toFixed(0)}</span>
-                                            <span className="text-xs text-gray-500 font-bold">/mês</span>
+                                            <span className="text-xs text-gray-500 font-bold">
+                                                /{plan.frequency === 'monthly' ? 'mês' : plan.frequency === 'quarterly' ? 'trimestre' : 'ano'}
+                                            </span>
                                         </div>
                                     </div>
                                     <Zap className="text-gray-800" size={24} />

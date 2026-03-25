@@ -546,13 +546,16 @@ export const clientService = {
     },
 
     // Iniciar checkout de assinatura
-    async subscribeToPlan(tenantId: string, clientId: string, planId: string): Promise<{ init_point: string }> {
+    async subscribeToPlan(tenantId: string, clientId: string, planId: string): Promise<any> {
         const { data, error } = await supabase.functions.invoke('create-checkout-session', {
             body: { tenantId, clientId, planId }
         });
 
-        if (error) throw error;
-        return data; // Contém o init_point do Mercado Pago
+        if (error) {
+            console.error('Invoke Error:', error);
+            return { success: false, error: 'Erro ao processar assinatura. Tente novamente.' };
+        }
+        return data; 
     },
 
     // Buscar pacotes ativos do cliente

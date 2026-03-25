@@ -497,7 +497,18 @@ const SubscriptionsPage: React.FC = () => {
                                 </div>
 
                                 <div className="p-6 border-b border-gray-800">
-                                    <h3 className="text-xl font-bold text-white">{plan.name}</h3>
+                                    <div className="flex justify-between items-start">
+                                        <h3 className="text-xl font-bold text-white">{plan.name}</h3>
+                                        {plan.gateway_plan_id ? (
+                                            <span className="bg-green-500/10 text-green-500 text-[10px] px-2 py-0.5 rounded border border-green-500/20 font-bold uppercase flex items-center gap-1">
+                                                <ShieldCheck size={10} /> Sincronizado
+                                            </span>
+                                        ) : (
+                                            <span className="bg-amber-500/10 text-amber-500 text-[10px] px-2 py-0.5 rounded border border-amber-500/20 font-bold uppercase flex items-center gap-1">
+                                                <Clock size={10} /> Não Sincronizado
+                                            </span>
+                                        )}
+                                    </div>
                                     <div className="mt-4 flex items-baseline gap-1">
                                         <span className="text-3xl font-bold text-primary-500">R$ {plan.price.toFixed(2)}</span>
                                         <span className="text-sm text-gray-500">/{plan.frequency === 'monthly' ? 'mês' : 'ano'}</span>
