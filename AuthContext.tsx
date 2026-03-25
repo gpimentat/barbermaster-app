@@ -5,7 +5,7 @@ import { supabase } from './src/supabaseClient';
 import { Session } from '@supabase/supabase-js';
 
 // Tipo para o usuário logado
-export type UserRole = 'admin' | 'barber' | 'receptionist' | 'super_admin';
+export type UserRole = 'admin' | 'barber' | 'receptionist' | 'super_admin' | string;
 
 interface AuthContextType {
   currentUser: Barber | null;
@@ -232,6 +232,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       role = 'super_admin';
     } else if (dbRole.toLowerCase().includes('recep')) {
       role = 'receptionist';
+    } else if (dbRole.toLowerCase().startsWith('saas_')) {
+      role = dbRole as UserRole;
     } else {
       role = 'barber';
     }

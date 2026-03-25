@@ -283,7 +283,7 @@ const Sidebar = ({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
                   )}
                 </div>
                 <span className="text-[11px] uppercase font-black tracking-widest flex items-center gap-2">
-                  {link.name}
+                  {link.name === 'Super Admin' && role.startsWith('saas_') ? 'Painel SaaS' : link.name}
                   {unreadNotifications > 0 && (link.path === '/saas-admin' || link.path === '/sales-commissions') && (
                     <span className="bg-red-500 text-white text-[8px] px-1.5 py-0.5 rounded-full min-w-[18px] text-center shadow-lg shadow-red-500/20">
                       {unreadNotifications}
@@ -322,7 +322,7 @@ const Sidebar = ({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
         <div className="p-8 border-t border-gray-800/30">
           <div className="bg-dark-900/50 p-4 rounded-2xl border border-gray-800/50 flex items-center justify-between">
             <span className="text-[8px] font-black text-gray-600 uppercase tracking-[0.4em]">v1.4.2 Premium</span>
-            <span className="text-[8px] font-black text-primary-500/50 uppercase tracking-[0.2em]">[v1.7 SYNC]</span>
+            <span className="text-[8px] font-black text-primary-500/50 uppercase tracking-[0.2em]">[v1.8 SYNC]</span>
           </div>
         </div>
       </aside>
