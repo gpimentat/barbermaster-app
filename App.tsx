@@ -200,6 +200,8 @@ const Sidebar = ({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
       role = 'super_admin';
     } else if (dbRoleStr.includes('recep') || currentUser.email === '520_barbershop1@gmail.com' || currentUser.email === '520barbershop@gmail.com') {
       role = 'receptionist';
+    } else if (dbRoleStr.startsWith('saas_')) {
+      role = dbRoleStr; // e.g. 'saas_sales', 'saas_support'
     } else {
       role = 'barber';
     }
@@ -208,8 +210,14 @@ const Sidebar = ({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
   const visibleLinks = links.filter(link => {
     // Admin/Super Admin see everything
     if (role === 'admin' || role === 'super_admin') return true;
+
+    // SaaS Roles see only their own tools
+    if (role.startsWith('saas_')) {
+      const saasAllowedLinks = ['Dashboard', 'Minhas Comissões', 'Prospecção', 'Super Admin'];
+      return saasAllowedLinks.includes(link.name);
+    }
     
-    // Receptionist sees operational items but not financial or SaaS tools
+    // Receptionist sees operational items but NOT financial or SaaS tools
     if (role === 'receptionist') {
       const blockedLinks = ['Super Admin', 'App do Cliente', 'Prospecção', 'Minhas Comissões', 'Financeiro'];
       if (blockedLinks.includes(link.name)) return false;
@@ -322,7 +330,7 @@ const Sidebar = ({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
         <div className="p-8 border-t border-gray-800/30">
           <div className="bg-dark-900/50 p-4 rounded-2xl border border-gray-800/50 flex items-center justify-between">
             <span className="text-[8px] font-black text-gray-600 uppercase tracking-[0.4em]">v1.4.2 Premium</span>
-            <span className="text-[8px] font-black text-primary-500/50 uppercase tracking-[0.2em]">[v2.0 SYNC]</span>
+            <span className="text-[8px] font-black text-primary-500/50 uppercase tracking-[0.2em]">[v2.2 SYNC]</span>
           </div>
         </div>
       </aside>
