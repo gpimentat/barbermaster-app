@@ -115,7 +115,15 @@ Deno.serve(async (req) => {
 
     if (!mpData.init_point) {
         console.error('CRITICAL: Mercado Pago did not return init_point. Response:', mpData);
-        throw new Error('Erro ao gerar checkout: ' + (mpData.message || 'O Mercado Pago não retornou um link de pagamento. Verifique se o MASTER_TOKEN é válido.'));
+        // Retornar 200 com success false para o app conseguir ler o erro JSON
+        return new Response(
+            JSON.stringify({ 
+                success: false, 
+                error: `Erro MP: ${mpData.message || 'Link de pagamento não gerado. Verifique o MASTER_TOKEN.'}`,
+                details: mpData
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+        );
     }
 
     return new Response(
@@ -130,7 +138,7 @@ Deno.serve(async (req) => {
     console.error('Create Checkout Error:', error);
     return new Response(
       JSON.stringify({ success: false, error: error.message }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 } // Retornando 200 para capturar o erro no app
     );
   }
 });

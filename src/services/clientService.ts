@@ -556,6 +556,11 @@ export const clientService = {
             const errorMessage = data?.error || 'Erro ao processar assinatura. Tente novamente.';
             return { success: false, error: errorMessage };
         }
+        
+        if (data && data.success === false) {
+            return data;
+        }
+
         return data; 
     },
 
