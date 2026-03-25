@@ -553,7 +553,8 @@ export const clientService = {
 
         if (error) {
             console.error('Invoke Error:', error);
-            return { success: false, error: 'Erro ao processar assinatura. Tente novamente.' };
+            const errorMessage = data?.error || 'Erro ao processar assinatura. Tente novamente.';
+            return { success: false, error: errorMessage };
         }
         return data; 
     },
