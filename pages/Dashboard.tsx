@@ -40,7 +40,7 @@ const Dashboard: React.FC = () => {
   const [activeModal, setActiveModal] = useState<'production' | 'commission' | 'appointments' | null>(null);
 
   useEffect(() => {
-    if (currentUser?.tenantId) {
+    if (currentUser) {
       loadData();
     }
   }, [currentUser, role]);
