@@ -711,7 +711,7 @@ const Dashboard: React.FC = () => {
               <Briefcase size={20} className="text-primary-500" />
               Minhas Vendas
             </Link>
-            <Link to="/prospeccao" className="p-4 bg-dark-950 rounded-2xl border border-gray-800 hover:border-blue-500/50 transition-all font-black text-xs text-white uppercase tracking-widest flex flex-col items-center gap-2">
+            <Link to="/sales-map" className="p-4 bg-dark-950 rounded-2xl border border-gray-800 hover:border-blue-500/50 transition-all font-black text-xs text-white uppercase tracking-widest flex flex-col items-center gap-2">
               <Package size={20} className="text-blue-500" />
               Prospecção
             </Link>
