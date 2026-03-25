@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import {
   Users, DollarSign, Activity, TrendingUp, TrendingDown, UserPlus, X,
   BarChart2, Briefcase, Shield, Headphones, ChevronDown, Edit2, ToggleLeft, ToggleRight, Check,
-  ShoppingBag, CheckCircle, AlertCircle, Clock, Wallet
+  ShoppingBag, CheckCircle, AlertCircle, Clock, Wallet, Target
 } from 'lucide-react';
 import { supabase } from '../src/supabaseClient';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
@@ -22,6 +22,7 @@ interface SaasStaff {
   saas_commission_new?: number;
   saas_commission_recurring?: number;
   saas_commission_recurring_type?: 'flat' | 'percent';
+  monthly_sales_goal?: number;
 }
 
 interface SaasSalesSubmission {
@@ -78,6 +79,7 @@ const SaasAdminPage: React.FC = () => {
     commission_new: '0',
     commission_recurring: '0',
     commission_recurring_type: 'flat' as 'flat' | 'percent',
+    monthly_sales_goal: '0',
   });
 
   // Sales Workflow state
@@ -146,7 +148,12 @@ const SaasAdminPage: React.FC = () => {
 
   const openCreateStaff = () => {
     setEditingStaff(null);
-    setStaffForm({ name: '', email: '', password: '', commission_new: '0', commission_recurring: '0', commission_recurring_type: 'flat' });
+    setStaffForm({ 
+      name: '', email: '', password: '', 
+      commission_new: '0', commission_recurring: '0', 
+      commission_recurring_type: 'flat',
+      monthly_sales_goal: '0' 
+    });
     setSelectedRoles(['saas_support']);
     setIsStaffModalOpen(true);
   };
@@ -158,6 +165,7 @@ const SaasAdminPage: React.FC = () => {
       commission_new: String((member as any).saas_commission_new ?? 0),
       commission_recurring: String((member as any).saas_commission_recurring ?? 0),
       commission_recurring_type: (member as any).saas_commission_recurring_type ?? 'flat',
+      monthly_sales_goal: String(member.monthly_sales_goal ?? 0),
     });
     setSelectedRoles(getMemberRoles(member));
     setIsStaffModalOpen(true);
@@ -212,11 +220,12 @@ const SaasAdminPage: React.FC = () => {
       const result = await response.json();
       if (!result.success) throw new Error(result.error || 'Erro ao salvar membro');
 
-      // Persist commission settings (new columns not in edge function)
+      // Persist commission and goal settings (new columns not in edge function)
       await supabase.from('profiles').update({
         saas_commission_new: Number(staffForm.commission_new) || 0,
         saas_commission_recurring: Number(staffForm.commission_recurring) || 0,
         saas_commission_recurring_type: staffForm.commission_recurring_type,
+        monthly_sales_goal: parseInt(staffForm.monthly_sales_goal) || 0,
       }).eq('id', result.id);
 
       setIsStaffModalOpen(false);
@@ -1042,6 +1051,15 @@ const SaasAdminPage: React.FC = () => {
                       </select>
                     </div>
                     <p className="text-[10px] text-gray-600 mt-1">Pago todo mes enquanto o cliente renovar</p>
+                  </div>
+                  <div className="pt-2 border-t border-primary-500/10">
+                    <label className="block text-xs font-bold text-gray-500 mb-1 flex items-center gap-2">
+                      <Target size={12} className="text-primary-500" /> Meta de Vendas Mensal (Fechamentos)
+                    </label>
+                    <input type="number" min="0" value={staffForm.monthly_sales_goal}
+                      onChange={e => setStaffForm({ ...staffForm, monthly_sales_goal: e.target.value })}
+                      className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-primary-500 text-sm" placeholder="Ex: 10" />
+                    <p className="text-[10px] text-gray-600 mt-1">Quantidade de novos clientes que o vendedor deve fechar</p>
                   </div>
                 </div>
               )}

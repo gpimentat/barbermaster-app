@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { supabase } from '../src/supabaseClient';
 import {
   BarChart3,
   Users,
@@ -14,7 +15,12 @@ import {
   Plus,
   Loader2,
   Package,
-  Briefcase
+  Briefcase,
+  Target,
+  MapPin,
+  CheckCircle2,
+  AlertCircle,
+  PhoneCall
 } from 'lucide-react';
 import {
   AreaChart,
@@ -38,6 +44,7 @@ const Dashboard: React.FC = () => {
   const [activeTabBarber, setActiveTabBarber] = useState<'summary' | 'goals'>('summary');
   const [newGoal, setNewGoal] = useState<string>('');
   const [activeModal, setActiveModal] = useState<'production' | 'commission' | 'appointments' | null>(null);
+  const [saasStats, setSaasStats] = useState<{ closedThisMonth: number; monthlyGoal: number; recentLeads: any[] }>({ closedThisMonth: 0, monthlyGoal: 0, recentLeads: [] });
 
   useEffect(() => {
     if (currentUser) {
@@ -48,13 +55,39 @@ const Dashboard: React.FC = () => {
   const loadData = async () => {
     try {
       setLoading(true);
-      // SaaS roles do not have a tenant_id, so they shouldn't fetch shop stats
-      if (role?.startsWith('saas_')) {
+
+      // SaaS roles: fetch their personal sales stats and recent leads
+      if (role?.startsWith('saas_') && currentUser?.id) {
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+
+        const [submissionsRes, profileRes, leadsRes] = await Promise.all([
+          supabase.from('saas_sales_submissions')
+            .select('id, shop_name, status, created_at')
+            .eq('salesperson_id', currentUser.id)
+            .in('status', ['approved', 'paid'])
+            .gte('created_at', startOfMonth),
+          supabase.from('profiles')
+            .select('monthly_sales_goal')
+            .eq('id', currentUser.id)
+            .single(),
+          supabase.from('saas_leads')
+            .select('id, place_name, status, contacted_at, notes')
+            .eq('salesperson_id', currentUser.id)
+            .order('contacted_at', { ascending: false })
+            .limit(5),
+        ]);
+
+        setSaasStats({
+          closedThisMonth: submissionsRes.data?.length || 0,
+          monthlyGoal: profileRes.data?.monthly_sales_goal || 0,
+          recentLeads: leadsRes.data || [],
+        });
         setLoading(false);
         return;
       }
-      
-      if (!currentUser?.tenantId) return;
+
+      if (!currentUser?.tenantId) { setLoading(false); return; }
 
       if (role === 'barber') {
         const data = await dashboardService.getBarberStats(currentUser.tenantId, currentUser.id);
@@ -693,29 +726,125 @@ const Dashboard: React.FC = () => {
 
   // --- RENDERIZAÇÃO: VISÃO SaaS ---
   if (role?.startsWith('saas_')) {
+    const { closedThisMonth, monthlyGoal, recentLeads } = saasStats;
+    const goalProgress = monthlyGoal > 0 ? Math.min(100, Math.round((closedThisMonth / monthlyGoal) * 100)) : 0;
+    const now = new Date();
+    const monthName = now.toLocaleString('pt-BR', { month: 'long' });
+
+    const leadStatusIcon = (status: string) => {
+      if (status === 'Fechado') return <CheckCircle2 size={14} className="text-green-400" />;
+      if (status === 'Contactado') return <PhoneCall size={14} className="text-blue-400" />;
+      return <AlertCircle size={14} className="text-yellow-400" />;
+    };
+
     return (
-      <div className="space-y-10 animate-in fade-in duration-500 pb-10 flex flex-col items-center justify-center min-h-[60vh] text-center">
-        <div className="w-24 h-24 bg-primary-500/10 rounded-full flex items-center justify-center text-primary-500 mb-4 border border-primary-500/20 shadow-2xl">
-          <TrendingUp size={48} />
-        </div>
-        <div>
-          <h1 className="text-3xl md:text-4xl font-black text-white uppercase tracking-tight">Painel SaaS 🚀</h1>
-          <p className="text-gray-500 font-bold uppercase tracking-[0.2em] text-xs mt-3">Sua central de vendas e gestão</p>
-        </div>
-        <div className="max-w-md w-full bg-dark-900/50 p-8 rounded-[2rem] border border-gray-800 shadow-xl space-y-4">
-          <p className="text-sm text-gray-400">
-            Bem-vindo à equipe Mestre da Barbearia! Utilize o menu lateral para registrar novas vendas, acompanhar suas prospecções e gerenciar suas comissões.
-          </p>
-          <div className="grid grid-cols-2 gap-4 mt-6">
-            <Link to="/saas-admin" className="p-4 bg-dark-950 rounded-2xl border border-gray-800 hover:border-primary-500/50 transition-all font-black text-xs text-white uppercase tracking-widest flex flex-col items-center gap-2">
-              <Briefcase size={20} className="text-primary-500" />
-              Minhas Vendas
+      <div className="space-y-8 animate-in fade-in duration-500 pb-10">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl md:text-4xl font-black text-white uppercase tracking-tight">Olá, {currentUser?.name?.split(' ')[0]} 🚀</h1>
+            <p className="text-gray-500 font-bold uppercase tracking-[0.2em] text-[10px] mt-2">Painel de vendas • {monthName.charAt(0).toUpperCase() + monthName.slice(1)} {now.getFullYear()}</p>
+          </div>
+          <div className="flex gap-3">
+            <Link to="/saas-admin" className="flex items-center gap-2 px-4 py-2.5 bg-primary-500 hover:bg-primary-600 text-dark-950 rounded-xl font-black text-xs uppercase tracking-wider transition-all">
+              <Briefcase size={16} /> Nova Venda
             </Link>
-            <Link to="/sales-map" className="p-4 bg-dark-950 rounded-2xl border border-gray-800 hover:border-blue-500/50 transition-all font-black text-xs text-white uppercase tracking-widest flex flex-col items-center gap-2">
-              <Package size={20} className="text-blue-500" />
-              Prospecção
+            <Link to="/sales-map" className="flex items-center gap-2 px-4 py-2.5 bg-dark-800 hover:bg-dark-700 text-white border border-gray-700 rounded-xl font-black text-xs uppercase tracking-wider transition-all">
+              <MapPin size={16} /> Prospecção
             </Link>
           </div>
+        </div>
+
+        {/* Stats row */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          {/* Fechamentos no mês */}
+          <div className="bg-dark-900 border border-gray-800 rounded-2xl p-6 flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Fechamentos este mês</p>
+              <CheckCircle2 size={18} className="text-green-400" />
+            </div>
+            <p className="text-5xl font-black text-white mt-1">{closedThisMonth}</p>
+            <p className="text-xs text-gray-500">vendas aprovadas / pagas</p>
+          </div>
+
+          {/* Meta do mês */}
+          <div className="bg-dark-900 border border-gray-800 rounded-2xl p-6 flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Meta do mês</p>
+              <Target size={18} className="text-primary-500" />
+            </div>
+            <p className="text-5xl font-black text-white mt-1">{monthlyGoal > 0 ? monthlyGoal : '—'}</p>
+            <p className="text-xs text-gray-500">{monthlyGoal > 0 ? 'fechamentos definidos pelo gestor' : 'meta não definida ainda'}</p>
+          </div>
+
+          {/* Leads ativos */}
+          <div className="bg-dark-900 border border-gray-800 rounded-2xl p-6 flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Leads em andamento</p>
+              <MapPin size={18} className="text-blue-400" />
+            </div>
+            <p className="text-5xl font-black text-white mt-1">{recentLeads.filter(l => l.status !== 'Fechado').length}</p>
+            <p className="text-xs text-gray-500">prospects ainda ativos</p>
+          </div>
+        </div>
+
+        {/* Progress bar */}
+        {monthlyGoal > 0 && (
+          <div className="bg-dark-900 border border-gray-800 rounded-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-black text-white uppercase tracking-widest">Progresso da meta mensal</p>
+              <span className={`text-lg font-black ${ goalProgress >= 100 ? 'text-green-400' : goalProgress >= 60 ? 'text-yellow-400' : 'text-red-400'}`}>{goalProgress}%</span>
+            </div>
+            <div className="w-full bg-gray-800 rounded-full h-4 overflow-hidden">
+              <div
+                className={`h-4 rounded-full transition-all duration-700 ${ goalProgress >= 100 ? 'bg-green-500' : goalProgress >= 60 ? 'bg-yellow-500' : 'bg-primary-500'}`}
+                style={{ width: `${goalProgress}%` }}
+              />
+            </div>
+            <p className="text-xs text-gray-500">
+              {closedThisMonth} de {monthlyGoal} fechamentos •&nbsp;
+              {goalProgress >= 100 ? '🏆 Meta batida! Parabéns!' : `faltam ${monthlyGoal - closedThisMonth} para bater a meta`}
+            </p>
+          </div>
+        )}
+
+        {/* Recent leads */}
+        <div className="bg-dark-900 border border-gray-800 rounded-2xl overflow-hidden">
+          <div className="p-5 border-b border-gray-800 flex items-center justify-between">
+            <h3 className="font-black text-white uppercase tracking-widest text-sm">Últimos Leads / Prospecções</h3>
+            <Link to="/sales-map" className="text-xs text-primary-500 hover:text-primary-400 font-bold uppercase tracking-wider transition-colors">Ver todos →</Link>
+          </div>
+          {recentLeads.length === 0 ? (
+            <div className="p-10 text-center text-gray-600">
+              <MapPin size={32} className="mx-auto mb-3 opacity-40" />
+              <p className="text-sm font-bold">Nenhum lead registrado ainda.</p>
+              <Link to="/sales-map" className="text-primary-500 text-xs hover:underline mt-2 inline-block">Iniciar prospecção →</Link>
+            </div>
+          ) : (
+            <ul className="divide-y divide-gray-800">
+              {recentLeads.map(lead => (
+                <li key={lead.id} className="px-5 py-4 flex items-center gap-4 hover:bg-gray-800/30 transition-colors">
+                  <div className="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center flex-shrink-0">
+                    {leadStatusIcon(lead.status)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-white truncate">{lead.place_name || 'Lead sem nome'}</p>
+                    <p className="text-xs text-gray-500 mt-0.5 truncate">{lead.notes || 'Sem observações'}</p>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                      lead.status === 'Fechado' ? 'bg-green-500/10 text-green-400' :
+                      lead.status === 'Contactado' ? 'bg-blue-500/10 text-blue-400' :
+                      'bg-yellow-500/10 text-yellow-400'
+                    }`}>{lead.status || 'Novo'}</span>
+                    {lead.contacted_at && (
+                      <p className="text-[10px] text-gray-600 mt-1">{new Date(lead.contacted_at).toLocaleDateString('pt-BR')}</p>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </div>
     );
