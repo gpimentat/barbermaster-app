@@ -78,6 +78,8 @@ interface Lead {
   notes?: string;
   contacted_at?: string;
   created_at: string;
+  salesperson_id?: string;
+  salesperson?: { name: string };
 }
 
 interface OSMPlace {
@@ -115,12 +117,10 @@ const SalesMapPage: React.FC = () => {
   useEffect(() => { fetchLeads(); }, []);
 
   const fetchLeads = async () => {
-    if (!currentUser?.id) return;
     setLoadingLeads(true);
     const { data } = await supabase
       .from('saas_leads')
-      .select('*')
-      .eq('salesperson_id', currentUser.id)
+      .select('*, salesperson:profiles(name)')
       .order('created_at', { ascending: false });
     setLeads(data || []);
     setLoadingLeads(false);
@@ -208,7 +208,7 @@ const SalesMapPage: React.FC = () => {
       place.tags['addr:housenumber'],
       place.tags['addr:suburb'] || place.tags['addr:city'],
     ].filter(Boolean).join(', ');
-
+  
     const { data, error } = await supabase.from('saas_leads').insert({
       salesperson_id: currentUser.id,
       osm_id: place.id,
@@ -218,9 +218,16 @@ const SalesMapPage: React.FC = () => {
       lng: place.lon,
       phone: place.tags.phone || place.tags['contact:phone'] || null,
       status: 'not_contacted',
-    }).select().single();
-
-    if (!error && data) {
+    }).select('*, salesperson:profiles(name)').single();
+  
+    if (error) {
+      if (error.code === '23505') {
+        alert('Este lead já foi capturado por outro vendedor!');
+        fetchLeads(); // Refresh to show the owner
+      } else {
+        alert('Erro ao salvar lead.');
+      }
+    } else if (data) {
       setLeads(prev => [data, ...prev]);
       setSidebarTab('leads');
     }
@@ -303,13 +310,26 @@ const SalesMapPage: React.FC = () => {
 
             {/* OSM found places */}
             {osmPlaces.map(place => {
-              const alreadySaved = isAlreadyLead(place.id);
               const savedLead = leads.find(l => l.osm_id === place.id);
+              const alreadySaved = !!savedLead;
+              const isMine = savedLead?.salesperson_id === currentUser?.id;
+              
+              // Custom icon for leads belonging to others
+              const markerIcon = isMine 
+                ? leadIcon(savedLead.status) 
+                : (alreadySaved 
+                    ? L.divIcon({
+                        className: '',
+                        html: `<div style="width:36px;height:36px;background:#4b5563;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid #374151;box-shadow:0 2px 10px rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;"><span style="transform:rotate(45deg);font-size:16px;">👤</span></div>`,
+                        iconSize: [36, 36], iconAnchor: [18, 36], popupAnchor: [0, -36],
+                      })
+                    : barbershopIcon);
+
               return (
                 <Marker
                   key={place.id}
                   position={[place.lat, place.lon]}
-                  icon={savedLead ? leadIcon(savedLead.status) : barbershopIcon}
+                  icon={markerIcon}
                 >
                   <Popup>
                     <div style={{ minWidth: 200, fontFamily: 'sans-serif' }}>
@@ -325,8 +345,8 @@ const SalesMapPage: React.FC = () => {
                         </p>
                       )}
                       {alreadySaved ? (
-                        <div style={{ background: '#16a34a20', border: '1px solid #16a34a40', borderRadius: 8, padding: '6px 12px', textAlign: 'center', fontSize: 12, color: '#4ade80', fontWeight: 700 }}>
-                          ✅ Já está na sua lista
+                        <div style={{ background: isMine ? '#16a34a20' : '#374151', border: isMine ? '1px solid #16a34a40' : '1px solid #4b5563', borderRadius: 8, padding: '6px 12px', textAlign: 'center', fontSize: 12, color: isMine ? '#4ade80' : '#9ca3af', fontWeight: 700 }}>
+                          {isMine ? '✅ Na sua lista' : `🔒 Lead de ${savedLead?.salesperson?.name || 'outro vendedor'}`}
                         </div>
                       ) : (
                         <button
@@ -420,18 +440,24 @@ const SalesMapPage: React.FC = () => {
                   </div>
                 ) : (
                   osmPlaces.map(place => {
-                    const alreadySaved = isAlreadyLead(place.id);
+                    const savedLead = leads.find(l => l.osm_id === place.id);
+                    const alreadySaved = !!savedLead;
+                    const isMine = savedLead?.salesperson_id === currentUser?.id;
                     const phone = place.tags.phone || place.tags['contact:phone'];
                     const address = [place.tags['addr:street'], place.tags['addr:housenumber']].filter(Boolean).join(' ');
                     return (
-                      <div key={place.id} className={`bg-dark-900 border rounded-2xl p-4 transition-all ${alreadySaved ? 'border-green-500/30' : 'border-gray-800/50 hover:border-gray-700'}`}>
+                      <div key={place.id} className={`bg-dark-900 border rounded-2xl p-4 transition-all ${alreadySaved ? (isMine ? 'border-green-500/30' : 'border-gray-700 opacity-60') : 'border-gray-800/50 hover:border-gray-700'}`}>
                         <div className="flex justify-between items-start gap-2 mb-2">
                           <p className="font-black text-white text-sm leading-tight">{place.name}</p>
-                          {alreadySaved && <Check size={14} className="text-green-500 flex-shrink-0 mt-0.5" />}
+                          {alreadySaved && (isMine ? <Check size={14} className="text-green-500 flex-shrink-0 mt-0.5" /> : <X size={14} className="text-gray-600 flex-shrink-0 mt-0.5" />)}
                         </div>
                         {address && <p className="text-xs text-gray-500 mb-1">📍 {address}</p>}
                         {phone && <p className="text-xs text-gray-500 mb-3">📞 {phone}</p>}
-                        {!alreadySaved && (
+                        {alreadySaved ? (
+                          <p className={`text-[10px] font-black uppercase tracking-widest ${isMine ? 'text-green-500' : 'text-gray-500'}`}>
+                            {isMine ? 'Seu Lead' : `Lead de ${savedLead?.salesperson?.name || 'Outro'}`}
+                          </p>
+                        ) : (
                           <button
                             onClick={() => saveLead(place)}
                             disabled={savingLead === place.id}
@@ -472,7 +498,9 @@ const SalesMapPage: React.FC = () => {
                     <p className="text-gray-600 text-xs">Busque uma região e salve barbearias</p>
                   </div>
                 ) : (
-                  filteredLeads.map(lead => {
+                  filteredLeads
+                    .filter(l => l.salesperson_id === currentUser?.id)
+                    .map(lead => {
                     const statusConf = STATUS_CONFIG[lead.status];
                     return (
                       <div key={lead.id} className="bg-dark-900 border border-gray-800/50 rounded-2xl p-4 hover:border-gray-700 transition-all">
