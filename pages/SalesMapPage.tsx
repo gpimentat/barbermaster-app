@@ -320,7 +320,7 @@ const SalesMapPage: React.FC = () => {
                 : (alreadySaved 
                     ? L.divIcon({
                         className: '',
-                        html: `<div style="width:36px;height:36px;background:#4b5563;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid #374151;box-shadow:0 2px 10px rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;"><span style="transform:rotate(45deg);font-size:16px;">👤</span></div>`,
+                        html: `<div style="width:36px;height:36px;background:#ef4444;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid #7f1d1d;box-shadow:0 0 15px rgba(239,68,68,0.5);display:flex;align-items:center;justify-content:center;"><span style="transform:rotate(45deg);font-size:16px;">🔒</span></div>`,
                         iconSize: [36, 36], iconAnchor: [18, 36], popupAnchor: [0, -36],
                       })
                     : barbershopIcon);
