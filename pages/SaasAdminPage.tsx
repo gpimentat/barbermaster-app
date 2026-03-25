@@ -117,10 +117,10 @@ const SaasAdminPage: React.FC = () => {
       // SaaS staff have no tenant_id and have saas_ roles
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, name, email, role, permissions, active, created_at')
+        .select('id, name, email, role, permissions, active, updated_at')
         .is('tenant_id', null)
         .like('role', 'saas_%')
-        .order('created_at', { ascending: false });
+        .order('updated_at', { ascending: false });
 
       if (error) throw error;
       setSaasStaff(data || []);

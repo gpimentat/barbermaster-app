@@ -13,7 +13,8 @@ import {
   User,
   Plus,
   Loader2,
-  Package
+  Package,
+  Briefcase
 } from 'lucide-react';
 import {
   AreaChart,
@@ -47,11 +48,19 @@ const Dashboard: React.FC = () => {
   const loadData = async () => {
     try {
       setLoading(true);
+      // SaaS roles do not have a tenant_id, so they shouldn't fetch shop stats
+      if (role?.startsWith('saas_')) {
+        setLoading(false);
+        return;
+      }
+      
+      if (!currentUser?.tenantId) return;
+
       if (role === 'barber') {
-        const data = await dashboardService.getBarberStats(currentUser!.tenantId, currentUser!.id);
+        const data = await dashboardService.getBarberStats(currentUser.tenantId, currentUser.id);
         setBarberStats(data);
       } else {
-        const data = await dashboardService.getAdminStats(currentUser!.tenantId, currentUser!.email);
+        const data = await dashboardService.getAdminStats(currentUser.tenantId, currentUser.email);
         setStats(data);
       }
     } catch (error) {
@@ -676,6 +685,36 @@ const Dashboard: React.FC = () => {
                 "O sucesso é a soma de pequenos esforços repetidos dia após dia."
               </p>
             </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // --- RENDERIZAÇÃO: VISÃO SaaS ---
+  if (role?.startsWith('saas_')) {
+    return (
+      <div className="space-y-10 animate-in fade-in duration-500 pb-10 flex flex-col items-center justify-center min-h-[60vh] text-center">
+        <div className="w-24 h-24 bg-primary-500/10 rounded-full flex items-center justify-center text-primary-500 mb-4 border border-primary-500/20 shadow-2xl">
+          <TrendingUp size={48} />
+        </div>
+        <div>
+          <h1 className="text-3xl md:text-4xl font-black text-white uppercase tracking-tight">Painel SaaS 🚀</h1>
+          <p className="text-gray-500 font-bold uppercase tracking-[0.2em] text-xs mt-3">Sua central de vendas e gestão</p>
+        </div>
+        <div className="max-w-md w-full bg-dark-900/50 p-8 rounded-[2rem] border border-gray-800 shadow-xl space-y-4">
+          <p className="text-sm text-gray-400">
+            Bem-vindo à equipe Mestre da Barbearia! Utilize o menu lateral para registrar novas vendas, acompanhar suas prospecções e gerenciar suas comissões.
+          </p>
+          <div className="grid grid-cols-2 gap-4 mt-6">
+            <Link to="/saas-admin" className="p-4 bg-dark-950 rounded-2xl border border-gray-800 hover:border-primary-500/50 transition-all font-black text-xs text-white uppercase tracking-widest flex flex-col items-center gap-2">
+              <Briefcase size={20} className="text-primary-500" />
+              Minhas Vendas
+            </Link>
+            <Link to="/prospeccao" className="p-4 bg-dark-950 rounded-2xl border border-gray-800 hover:border-blue-500/50 transition-all font-black text-xs text-white uppercase tracking-widest flex flex-col items-center gap-2">
+              <Package size={20} className="text-blue-500" />
+              Prospecção
+            </Link>
           </div>
         </div>
       </div>
