@@ -74,10 +74,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   const fetchProfile = async (userId: string) => {
-    // console.log('🔍 Fetching profile for:', userId);
     const { data, error } = await supabase
       .from('profiles')
-      .select('*, tenants(name, subscription_status)')
+      .select('id, name, email, role, avatar, active, commission_rate, permissions, login_enabled, tenant_id, weekly_goal')
       .eq('id', userId)
       .single();
 
@@ -86,6 +85,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
 
     if (data) {
+      // Optionally fetch tenant name separately (only if tenant_id exists)
+      let tenantName: string | undefined = undefined;
+      let subscriptionStatus: string | undefined = undefined;
+      if (data.tenant_id) {
+        const { data: tenantData } = await supabase
+          .from('tenants')
+          .select('name, subscription_status')
+          .eq('id', data.tenant_id)
+          .single();
+        tenantName = tenantData?.name;
+        subscriptionStatus = tenantData?.subscription_status;
+      }
+
       // Adapt DB profile to Barber interface
       const barber: Barber = {
         id: data.id,
@@ -98,10 +110,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         permissions: data.permissions || [],
         loginEnabled: data.login_enabled,
         tenantId: data.tenant_id,
-        // @ts-ignore - Supabase join returns object
-        tenantName: data.tenants?.name,
-        // @ts-ignore
-        subscriptionStatus: data.tenants?.subscription_status,
+        tenantName,
+        subscriptionStatus: subscriptionStatus as any,
         weeklyGoal: data.weekly_goal || 0
       };
       setCurrentUser(barber);

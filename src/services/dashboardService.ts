@@ -28,16 +28,34 @@ export const dashboardService = {
         // 1. Fetch only account OWNER profiles (excluding the system owner)
         const { data: ownerProfiles, error: ownerError } = await supabase
             .from('profiles')
-            .select('*, tenants(*)')
+            .select('id, name, email, role, active, tenant_id')
             .in('role', ['admin', 'super_admin'])
             .neq('email', targetAdminEmail)
             .order('name');
 
         if (ownerError) throw ownerError;
 
-        // 2. Identify unique Tenants that belong to these owners
+        // 2. Fetch tenants separately for matched tenant_ids
+        const tenantIds = [...new Set((ownerProfiles || []).map(p => p.tenant_id).filter(Boolean))];
+        let tenantsData: any[] = [];
+        if (tenantIds.length > 0) {
+            const { data: fetchedTenants } = await supabase
+                .from('tenants')
+                .select('id, name, subscription_status, created_at')
+                .in('id', tenantIds);
+            tenantsData = fetchedTenants || [];
+        }
+        const tenantsMap = new Map(tenantsData.map(t => [t.id, t]));
+
+        // Attach tenant data to profiles (matching how the old join worked)
+        const ownerProfilesWithTenants = (ownerProfiles || []).map(p => ({
+            ...p,
+            tenants: tenantsMap.get(p.tenant_id) || null,
+        }));
+
+        // 3. Identify unique Tenants that belong to these owners
         const realTenantsMap = new Map();
-        ownerProfiles?.forEach(p => {
+        ownerProfilesWithTenants.forEach(p => {
             if (p.tenants && !realTenantsMap.has(p.tenant_id)) {
                 realTenantsMap.set(p.tenant_id, p.tenants);
             }
@@ -75,7 +93,7 @@ export const dashboardService = {
             const monthRangeEnd = new Date(d.getFullYear(), d.getMonth() + 1, 0);
 
             // Count unique owners created up to this specific month
-            const ownersUpToMonth = ownerProfiles?.filter(p => p.tenants?.created_at && new Date(p.tenants.created_at) <= monthRangeEnd) || [];
+            const ownersUpToMonth = ownerProfilesWithTenants.filter(p => p.tenants?.created_at && new Date(p.tenants.created_at) <= monthRangeEnd) || [];
             const uniqueTenantsUpToMonthIds = new Set(ownersUpToMonth.map(p => p.tenant_id));
 
             let monthlyMrr = 0;
