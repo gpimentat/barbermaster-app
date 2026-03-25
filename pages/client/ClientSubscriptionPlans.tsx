@@ -43,6 +43,7 @@ const ClientSubscriptionPlans: React.FC<ClientSubscriptionPlansProps> = ({ tenan
     };
 
     const handleSubscribe = async (planId: string) => {
+        console.log('Subscribing to plan:', { planId, clientId: clientData?.id, tenantId: tenant?.id });
         try {
             setSubscribingId(planId);
             const response = await clientService.subscribeToPlan(tenant.id, clientData.id, planId);
