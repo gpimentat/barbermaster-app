@@ -28,7 +28,7 @@ export const dashboardService = {
         // 1. Fetch only account OWNER profiles (excluding the system owner)
         const { data: ownerProfiles, error: ownerError } = await supabase
             .from('profiles')
-            .select('*, tenants!profiles_tenant_id_fkey(*)')
+            .select('*, tenants(*)')
             .in('role', ['admin', 'super_admin'])
             .neq('email', targetAdminEmail)
             .order('name');
