@@ -41,7 +41,10 @@ Deno.serve(async (req) => {
     
     if (!mpAccessToken) {
         console.error('CRITICAL: MERCADO_PAGO_MASTER_TOKEN not found in env');
-        throw new Error('Configuração Global do Mercado Pago (MASTER_TOKEN) não encontrada.');
+        return new Response(
+            JSON.stringify({ error: 'Plano não encontrado no banco de dados da plataforma.' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        );
     }
 
     // 4. Verificar se o plano já existe no MP Master
@@ -115,10 +118,8 @@ Deno.serve(async (req) => {
 
     if (!mpData.init_point) {
         console.error('CRITICAL: Mercado Pago did not return init_point. Response:', mpData);
-        // Retornar 200 com success false para o app conseguir ler o erro JSON
         return new Response(
             JSON.stringify({ 
-                success: false, 
                 error: `Erro MP: ${mpData.message || 'Link de pagamento não gerado. Verifique o MASTER_TOKEN.'}`,
                 details: mpData
             }),
@@ -137,8 +138,8 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('Create Checkout Error:', error);
     return new Response(
-      JSON.stringify({ success: false, error: error.message }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      JSON.stringify({ error: error.message }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
     );
   }
 });
