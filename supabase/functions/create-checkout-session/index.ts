@@ -99,7 +99,12 @@ Deno.serve(async (req) => {
     }
 
     // 5. Criar a Assinatura (Pre-approval)
-    console.log(`Creating subscription for ${client.email} using plan ${gatewayPlanId}`);
+    console.log(`Creating subscription for ${client.email}`);
+    
+    let frequencySub = 1;
+    if (plan.frequency === 'quarterly') frequencySub = 3;
+    if (plan.frequency === 'yearly') frequencySub = 12;
+
     const mpResponse = await fetch('https://api.mercadopago.com/preapproval', {
         method: 'POST',
         headers: {
@@ -107,10 +112,16 @@ Deno.serve(async (req) => {
             'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-            preapproval_plan_id: gatewayPlanId,
+            reason: `Assinatura ${plan.name}`,
             payer_email: client.email || 'cliente@barbermaster.com.br',
-            status: 'pending',
-            external_reference: `${tenantId}|${clientId}|${planId}` 
+            external_reference: `${tenantId}|${clientId}|${planId}`,
+            back_url: `https://barbermaster.com.br`,
+            auto_recurring: {
+                frequency: frequencySub,
+                frequency_type: 'months',
+                transaction_amount: plan.price,
+                currency_id: 'BRL'
+            }
         })
     });
 
