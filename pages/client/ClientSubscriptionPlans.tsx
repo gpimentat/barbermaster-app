@@ -43,15 +43,24 @@ const ClientSubscriptionPlans: React.FC<ClientSubscriptionPlansProps> = ({ tenan
     };
 
     const handleSubscribe = async (planId: string) => {
-        console.log('Subscribing to plan:', { planId, clientId: clientData?.id, tenantId: tenant?.id });
+        const clientId = clientData?.id || clientData?.clientId;
+        console.log('Subscribing to plan:', { planId, clientId, tenantId: tenant?.id });
         try {
             setSubscribingId(planId);
-            const response = await clientService.subscribeToPlan(tenant.id, clientData.id, planId);
+            if (!clientId) {
+                alert('Erro de identificação do cliente. Por favor, saia e entre novamente no app.');
+                setSubscribingId(null);
+                return;
+            }
+
+            const response = await clientService.subscribeToPlan(tenant.id, clientId, planId);
 
             if (response.success && response.init_point) {
                 window.location.href = response.init_point;
             } else {
-                alert(response.error || 'Erro ao gerar checkout. Tente novamente.');
+                console.error('Subscription error response:', response);
+                const errorMsg = response.error || response.details || 'Não foi possível iniciar o pagamento. Tente novamente.';
+                alert(`Erro ao processar: ${errorMsg}`);
             }
         } catch (err: any) {
             console.error('Error initiating subscription:', err);

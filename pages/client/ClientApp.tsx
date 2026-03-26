@@ -221,6 +221,10 @@ const ClientApp: React.FC = () => {
         if (clientSession) {
             try {
                 const data = JSON.parse(clientSession);
+                // Migração: Se tiver clientId mas não id, sincroniza (sessões antigas)
+                if (data.clientId && !data.id) {
+                    data.id = data.clientId;
+                }
                 setClientData(data);
                 setIsAuthenticated(true);
             } catch (error) {

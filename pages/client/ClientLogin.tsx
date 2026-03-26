@@ -76,6 +76,7 @@ const ClientLogin: React.FC<ClientLoginProps> = ({ tenant, onLogin }) => {
 
     const login = (client: any) => {
         const sessionData = {
+            id: client.id, // Adicionado para compatibilidade
             clientId: client.id,
             phone: client.phone,
             name: client.name,

@@ -122,7 +122,7 @@ Deno.serve(async (req) => {
                 error: `Erro MP: ${mpData.message || 'Link de pagamento não gerado. Verifique o MASTER_TOKEN.'}`,
                 details: mpData
             }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
         );
     }
 
@@ -138,7 +138,7 @@ Deno.serve(async (req) => {
     console.error('Create Checkout Error:', error);
     return new Response(
       JSON.stringify({ success: false, error: error.message }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 } // Retornando 200 para capturar o erro no app
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
     );
   }
 });
