@@ -98,7 +98,7 @@ const ForcePasswordChangeModal = () => {
           <input
             type="password"
             value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewPassword(e.target.value)}
             className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:border-primary-500"
             placeholder="Nova senha"
             required
@@ -106,7 +106,7 @@ const ForcePasswordChangeModal = () => {
           <input
             type="password"
             value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
             className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:border-primary-500"
             placeholder="Confirme a nova senha"
             required
@@ -122,7 +122,7 @@ const ForcePasswordChangeModal = () => {
 // Sidebar Component
 const Sidebar = ({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolean) => void }) => {
   const location = useLocation();
-  const { hasPermission, role: authRole, logout, currentUser } = useAuth();
+  const { hasPermission, role: authRole, logout, currentUser, isDemoMode } = useAuth();
 
   const [unreadNotifications, setUnreadNotifications] = React.useState(0);
 
@@ -209,7 +209,7 @@ const Sidebar = ({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
 
   const visibleLinks = links.filter(link => {
     // Admin/Super Admin see everything
-    if (role === 'admin' || role === 'super_admin') return true;
+    if (isDemoMode || role === 'admin' || role === 'super_admin') return true;
 
     // SaaS Roles see only their own tools
     if (role.startsWith('saas_')) {
@@ -340,7 +340,7 @@ const Sidebar = ({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
 
 const MainLayout: React.FC = () => {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
-  const { isAuthenticated, currentUser } = useAuth();
+  const { isAuthenticated, currentUser, isDemoMode, toggleDemoMode } = useAuth();
   const location = useLocation();
   console.log('Current Path:', location.pathname); // DEBUG: Check path
 
@@ -470,6 +470,23 @@ const MainLayout: React.FC = () => {
           </Routes>
         </main>
       </div>
+
+      {/* FLOATING ACTION: EXIT DEMO MODE */}
+      {isDemoMode && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] animate-in slide-in-from-bottom-10 duration-500">
+           <button
+             onClick={() => {
+                toggleDemoMode(false);
+                window.location.hash = '#/saas-admin';
+             }}
+             className="flex items-center gap-3 bg-red-600 hover:bg-red-700 text-white font-black px-8 py-4 rounded-2xl shadow-2xl shadow-red-600/40 border-2 border-red-500/50 transition-all hover:scale-105 active:scale-95 group uppercase tracking-widest text-xs"
+           >
+             <span className="w-2 h-2 bg-white rounded-full animate-ping"></span>
+             Sair do Modo Demo
+             <LogOut size={16} className="group-hover:translate-x-1 transition-transform" />
+           </button>
+        </div>
+      )}
     </div>
   );
 }

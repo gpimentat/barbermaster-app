@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import {
   Users, DollarSign, Activity, TrendingUp, TrendingDown, UserPlus, X,
   BarChart2, Briefcase, Shield, Headphones, ChevronDown, Edit2, ToggleLeft, ToggleRight, Check,
-  ShoppingBag, CheckCircle, AlertCircle, Clock, Wallet, Target
+  ShoppingBag, CheckCircle, AlertCircle, Clock, Wallet, Target, Crown
 } from 'lucide-react';
 import { supabase } from '../src/supabaseClient';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
@@ -56,8 +56,8 @@ const getRoleInfo = (role: string) =>
 
 // --- Main Component ---
 const SaasAdminPage: React.FC = () => {
-  const { currentUser } = useAuth();
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'team' | 'sales'>('dashboard');
+  const { currentUser, isDemoMode, toggleDemoMode } = useAuth();
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'team' | 'sales' | 'demo'>('dashboard');
 
   // Dashboard state
   const [loading, setLoading] = useState(true);
@@ -492,6 +492,13 @@ const SaasAdminPage: React.FC = () => {
           <ShoppingBag size={16} />
           Vendas
         </button>
+        <button
+          onClick={() => setActiveTab('demo')}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-black uppercase tracking-widest transition-all ${activeTab === 'demo' ? 'bg-primary-500 text-dark-950 shadow-lg' : 'text-gray-400 hover:text-white'}`}
+        >
+          <Activity size={16} />
+          Demonstração
+        </button>
       </div>
 
       {/* ── TAB: DASHBOARD ── */}
@@ -741,6 +748,58 @@ const SaasAdminPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* ── TAB: DEMO ── */}
+      {activeTab === 'demo' && (
+        <div className="max-w-2xl mx-auto py-12 text-center space-y-8 animate-in zoom-in-95 duration-500">
+          <div className="inline-flex p-6 bg-primary-500/10 rounded-full border border-primary-500/20 text-primary-500 mb-4">
+             <Activity size={64} strokeWidth={1} />
+          </div>
+          
+          <div>
+            <h2 className="text-3xl font-black text-white uppercase italic tracking-tighter">Ambiente de Demonstração</h2>
+            <p className="text-gray-400 mt-2 font-medium">
+              Entre em uma barbearia real com dados fictícios para apresentar aos seus leads. 
+              <br />Você poderá agendar, vender serviços e mostrar o financeiro completo.
+            </p>
+          </div>
+
+          <div className="bg-dark-900 border border-gray-800 p-8 rounded-3xl text-left space-y-4 shadow-2xl relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+               <Crown size={120} />
+            </div>
+            
+            <h3 className="text-white font-bold flex items-center gap-2 uppercase tracking-widest text-xs opacity-60">Barbearia Master Demo</h3>
+            <ul className="space-y-3">
+               <li className="flex items-center gap-3 text-sm text-gray-300">
+                  <Check size={16} className="text-green-500" /> Agenda Pré-populada para hoje
+               </li>
+               <li className="flex items-center gap-3 text-sm text-gray-300">
+                  <Check size={16} className="text-green-500" /> Saldo fictício na carteira (R$ 1.500,00)
+               </li>
+               <li className="flex items-center gap-3 text-sm text-gray-300">
+                  <Check size={16} className="text-green-500" /> Permissões Totais de Administrador
+               </li>
+            </ul>
+
+            <button
+              onClick={() => {
+                toggleDemoMode(true);
+                window.location.hash = '#/'; // Go to main Dashboard
+              }}
+              className="w-full bg-primary-500 hover:bg-primary-600 text-dark-950 font-black py-4 rounded-2xl uppercase tracking-[0.2em] transition-all shadow-xl shadow-primary-500/20 hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-3"
+            >
+              Iniciar Apresentação <Activity size={20} />
+            </button>
+          </div>
+
+          <p className="text-[10px] text-gray-600 uppercase font-black tracking-widest leading-relaxed">
+            Nota: Este ambiente é compartilhado entre todos os vendedores para testes. <br />
+            As alterações feitas aqui não afetam a plataforma real.
+          </p>
+        </div>
+      )}
+
       {activeTab === 'team' && (
         <div className="space-y-6">
           {/* Role summary cards */}

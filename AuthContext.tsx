@@ -22,6 +22,8 @@ interface AuthContextType {
   updateBarber: (barber: Barber) => void;
   addBarber: (barber: Barber) => void;
   loading: boolean;
+  isDemoMode: boolean;
+  toggleDemoMode: (active: boolean) => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -39,6 +41,8 @@ const AuthContext = createContext<AuthContextType>({
   updateBarber: () => { },
   addBarber: () => { },
   loading: true,
+  isDemoMode: false,
+  toggleDemoMode: () => { },
 });
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -46,6 +50,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [currentUser, setCurrentUser] = useState<Barber | null>(null);
   const [barbers, setBarbers] = useState<Barber[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isDemoMode, setIsDemoMode] = useState(false);
 
   useEffect(() => {
     // 1. Get initial session
@@ -254,7 +259,26 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // FORCE SUPER ADMIN for specific user
   if (currentUser?.email === 'g.pimentat@gmail.com') role = 'super_admin';
 
+  const toggleDemoMode = (active: boolean) => {
+    setIsDemoMode(active);
+    if (active && currentUser) {
+      const demoUser: Barber = {
+        ...currentUser,
+        tenantId: '00000000-0000-0000-0000-000000000000',
+        tenantName: 'Barbearia Master Demo (Ambiente de Teste)',
+        role: 'admin',
+        active: true,
+        loginEnabled: true,
+      };
+      setCurrentUser(demoUser);
+      fetchBarbers('00000000-0000-0000-0000-000000000000');
+    } else if (!active && currentUser) {
+      fetchProfile(currentUser.id);
+    }
+  };
+
   const hasPermission = (permission: string) => {
+    if (isDemoMode) return true;
     if (role === 'admin' || role === 'super_admin') return true;
     if (!currentUser || !currentUser.permissions) return false;
     return currentUser.permissions.includes(permission);
@@ -306,7 +330,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       hasPermission,
       updateBarber,
       addBarber,
-      loading
+      loading,
+      isDemoMode,
+      toggleDemoMode
     }}>
       {children}
     </AuthContext.Provider>
