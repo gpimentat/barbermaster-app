@@ -458,7 +458,7 @@ const ClientsPage: React.FC = () => {
             </div>
 
             {/* Monthly Overview Stats - Only for Admins */}
-            {(currentUser?.role === 'admin' || currentUser?.role === 'superadmin') && (
+            {(currentUser?.role === 'admin' || currentUser?.role === 'superadmin' || currentUser?.role === 'super_admin') && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
                     <div className="bg-dark-900 p-6 rounded-xl border border-gray-800 shadow-lg relative overflow-hidden group">
                         <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
