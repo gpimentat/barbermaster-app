@@ -80,24 +80,24 @@ const ClientsPage: React.FC = () => {
             return createdDate.getFullYear() === now.getFullYear() && createdDate.getMonth() === now.getMonth();
         }).length;
 
-        // 2. Total de Atendimentos e Recorrência
+        // 2. Total de Atendimentos e Recorrência (Março 2026)
         const { data: appointments, error } = await supabase
             .from('appointments')
-            .select('client_id, date')
-            .gte('date', startOfMonth.split('T')[0])
-            .eq('status', 'Concluído');
+            .select('client_id, date, status')
+            .gte('date', '2026-03-01')
+            .lte('date', '2026-03-31');
 
         if (error) {
             console.error('Erro ao buscar atendimentos para stats:', error);
             return;
         }
 
-        const totalApps = appointments?.length || 0;
+        const totalApps = appointments?.filter(app => app.status === 'Concluído' || app.status === 'Agendado').length || 0;
 
-        // Mapa de frequência por cliente
+        // Mapa de frequência por cliente (apenas concluídos ou agendados)
         const clientFrequency: Record<string, number> = {};
         appointments?.forEach(app => {
-            if (app.client_id) {
+            if (app.client_id && (app.status === 'Concluído' || app.status === 'Agendado')) {
                 clientFrequency[app.client_id] = (clientFrequency[app.client_id] || 0) + 1;
             }
         });
