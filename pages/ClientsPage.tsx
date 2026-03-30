@@ -1,5 +1,5 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
-import { Search, Mail, Phone, Crown, Gift, Plus, X, Save, MessageCircle, Upload, Download, Trash2, Edit2, Calendar } from 'lucide-react';
+import { Search, Mail, Phone, Crown, Gift, Plus, X, Save, MessageCircle, Upload, Download, Trash2, Edit2, Calendar, TrendingUp, Users, CheckCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Client } from '../types';
 import { supabase } from '../src/supabaseClient';
@@ -24,6 +24,13 @@ const ClientsPage: React.FC = () => {
         birthDate: ''
     });
 
+    const [stats, setStats] = useState({
+        newClientsMonth: 0,
+        totalAppointmentsMonth: 0,
+        weeklyRecurring: 0,
+        biweeklyRecurring: 0
+    });
+
     // --- FETCH CLIENTS ---
     const fetchClients = async () => {
         try {
@@ -41,16 +48,18 @@ const ClientsPage: React.FC = () => {
                     name: c.name,
                     email: c.email || '',
                     phone: c.phone || '',
-                    birthDate: c.birth_date, // Map from DB
+                    birthDate: c.birth_date,
                     totalVisits: c.total_visits || 0,
                     loyaltyPoints: c.loyalty_points || 0,
                     avatar: c.avatar || null,
                     subscriptionStatus: c.subscription_status,
                     subscriptionPlanId: c.subscription_plan_id,
                     subscriptionRenewsAt: c.subscription_renews_at,
-                    tenant_id: c.tenant_id
+                    tenant_id: c.tenant_id,
+                    created_at: c.created_at
                 }));
                 setClients(mappedClients);
+                calculateMonthlyStats(mappedClients);
             }
         } catch (error) {
             console.error('Erro ao buscar clientes:', error);
@@ -58,6 +67,50 @@ const ClientsPage: React.FC = () => {
         } finally {
             setLoading(false);
         }
+    };
+
+    const calculateMonthlyStats = async (allClients: Client[]) => {
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+        
+        // 1. Novos Clientes no Mês
+        const newClients = allClients.filter(c => {
+            if (!c.created_at) return false;
+            const createdDate = new Date(c.created_at);
+            return createdDate.getFullYear() === now.getFullYear() && createdDate.getMonth() === now.getMonth();
+        }).length;
+
+        // 2. Total de Atendimentos e Recorrência
+        const { data: appointments, error } = await supabase
+            .from('appointments')
+            .select('client_id, date')
+            .gte('date', startOfMonth.split('T')[0])
+            .eq('status', 'Concluído');
+
+        if (error) {
+            console.error('Erro ao buscar atendimentos para stats:', error);
+            return;
+        }
+
+        const totalApps = appointments?.length || 0;
+
+        // Mapa de frequência por cliente
+        const clientFrequency: Record<string, number> = {};
+        appointments?.forEach(app => {
+            if (app.client_id) {
+                clientFrequency[app.client_id] = (clientFrequency[app.client_id] || 0) + 1;
+            }
+        });
+
+        const weekly = Object.values(clientFrequency).filter(count => count >= 4).length;
+        const biweekly = Object.values(clientFrequency).filter(count => count >= 2).length;
+
+        setStats({
+            newClientsMonth: newClients,
+            totalAppointmentsMonth: totalApps,
+            weeklyRecurring: weekly,
+            biweeklyRecurring: biweekly
+        });
     };
 
     useEffect(() => {
@@ -403,6 +456,47 @@ const ClientsPage: React.FC = () => {
                     </button>
                 </div>
             </div>
+
+            {/* Monthly Overview Stats - Only for Admins */}
+            {(currentUser?.role === 'admin' || currentUser?.role === 'superadmin') && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
+                    <div className="bg-dark-900 p-6 rounded-xl border border-gray-800 shadow-lg relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                            <TrendingUp size={48} className="text-primary-500" />
+                        </div>
+                        <p className="text-gray-500 text-sm font-medium mb-1">Recorrência Semanal</p>
+                        <h3 className="text-3xl font-black text-white mb-2">{stats.weeklyRecurring}</h3>
+                        <p className="text-xs text-gray-600">Clientes com 4+ visitas/mês</p>
+                    </div>
+
+                    <div className="bg-dark-900 p-6 rounded-xl border border-gray-800 shadow-lg relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                            <CheckCircle size={48} className="text-primary-500" />
+                        </div>
+                        <p className="text-gray-500 text-sm font-medium mb-1">Recorrência Quinzenal</p>
+                        <h3 className="text-3xl font-black text-white mb-2">{stats.biweeklyRecurring}</h3>
+                        <p className="text-xs text-gray-600">Clientes com 2+ visitas/mês</p>
+                    </div>
+
+                    <div className="bg-dark-900 p-6 rounded-xl border border-gray-800 shadow-lg relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                            <Users size={48} className="text-primary-500" />
+                        </div>
+                        <p className="text-gray-500 text-sm font-medium mb-1">Novos Clientes (Mês)</p>
+                        <h3 className="text-3xl font-black text-white mb-2">{stats.newClientsMonth}</h3>
+                        <p className="text-xs text-gray-600">Cadastrados este mês</p>
+                    </div>
+
+                    <div className="bg-dark-900 p-6 rounded-xl border border-gray-800 shadow-lg relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                            <Calendar size={48} className="text-primary-500" />
+                        </div>
+                        <p className="text-gray-500 text-sm font-medium mb-1">Atendimentos (Mês)</p>
+                        <h3 className="text-3xl font-black text-white mb-2">{stats.totalAppointmentsMonth}</h3>
+                        <p className="text-xs text-gray-600">Total de agendamentos concluídos</p>
+                    </div>
+                </div>
+            )}
 
             {/* Desktop Table View */}
             <div className="hidden md:block bg-dark-900 rounded-xl border border-gray-800 overflow-hidden shadow-xl">

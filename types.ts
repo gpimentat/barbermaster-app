@@ -127,6 +127,7 @@ export interface Client {
   tenant_id: string;
   password?: string;
   mustChangePassword?: boolean;
+  created_at?: string;
 }
 
 export interface Appointment {
