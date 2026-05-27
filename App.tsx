@@ -353,7 +353,8 @@ const MainLayout: React.FC = () => {
     location.pathname === '/login' ||
     location.pathname === '/signup' ||
     location.pathname === '/forgot-password' ||
-    location.pathname.startsWith('/app/'); // Cliente App é público
+    location.pathname.startsWith('/app/') || // Cliente App é público
+    location.pathname.startsWith('/appt/'); // Links de confirmação/cancelamento são públicos
 
   if (!isAuthenticated && !isPublicRoute) {
     return <LoginPage />;

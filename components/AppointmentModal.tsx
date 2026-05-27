@@ -188,10 +188,15 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ isOpen, onClose, on
             const barberName = barbers.find(b => b.id === selectedBarberId)?.name || 'Barbearia';
             const tenantName = tenantData?.name || 'Barbearia';
 
+            const formattedDate = (() => {
+                const parts = selectedDate.split('-');
+                return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : selectedDate;
+            })();
+
             const confirmMsg = msgTemplate
                 .replace('{cliente}', finalClientName)
                 .replace('{barbearia}', tenantName)
-                .replace('{data}', new Date(selectedDate).toLocaleDateString('pt-BR'))
+                .replace('{data}', formattedDate)
                 .replace('{horario}', selectedTime)
                 .replace('{profissional}', barberName)
                 .replace('{servico}', service.name)
@@ -219,7 +224,7 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ isOpen, onClose, on
                         body: {
                             user_id: selectedBarberId,
                             title: 'Novo Horário Agendado! ✂️',
-                            message: `${service.name} com ${finalClientName} em ${new Date(selectedDate).toLocaleDateString('pt-BR')} às ${selectedTime}`,
+                            message: `${service.name} com ${finalClientName} em ${formattedDate} às ${selectedTime}`,
                             url: '/schedule'
                         }
                     });

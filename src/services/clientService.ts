@@ -375,11 +375,16 @@ export const clientService = {
                     supabase.from('clients').select('name').eq('id', data.clientId).single()
                 ]);
 
+                const formattedDate = (() => {
+                    const parts = data.date.split('-');
+                    return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : data.date;
+                })();
+
                 await supabase.functions.invoke('send-push', {
                     body: {
                         user_id: data.barberId,
                         title: 'Novo Horário Agendado! ✂️',
-                        message: `${serviceInfo?.name || 'Serviço'} com ${clientInfo?.name || 'Cliente'} em ${new Date(data.date).toLocaleDateString('pt-BR')} às ${data.time}`,
+                        message: `${serviceInfo?.name || 'Serviço'} com ${clientInfo?.name || 'Cliente'} em ${formattedDate} às ${data.time}`,
                         url: '/schedule'
                     }
                 });

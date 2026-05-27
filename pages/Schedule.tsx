@@ -25,10 +25,14 @@ const Schedule: React.FC = () => {
     return date.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
   };
 
-  const getStatusColor = (status: AppointmentStatus) => {
+  const getStatusColor = (status: AppointmentStatus | string) => {
     switch (status) {
+      case 'Concluído':
       case AppointmentStatus.COMPLETED: return 'bg-green-500/10 text-green-500 border-green-500/20';
+      case 'Confirmado': return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+      case 'Agendado':
       case AppointmentStatus.SCHEDULED: return 'bg-blue-500/10 text-blue-500 border-blue-500/20';
+      case 'Cancelado':
       case AppointmentStatus.CANCELED: return 'bg-red-500/10 text-red-500 border-red-500/20';
       default: return 'bg-gray-500/10 text-gray-500 border-gray-500/20';
     }
@@ -345,6 +349,7 @@ const Schedule: React.FC = () => {
                               className="absolute left-2 right-2 rounded-xl border border-gray-700/50 cursor-pointer pointer-events-auto transition-all hover:scale-[1.02] shadow-lg group overflow-hidden bg-dark-900 z-10 hover:border-primary-500/50 flex flex-col p-3"
                             >
                               <div className={`absolute left-0 top-0 bottom-0 w-1 ${appt.status === 'Concluído' ? 'bg-green-500' :
+                                appt.status === 'Confirmado' ? 'bg-emerald-500' :
                                 appt.status === 'Agendado' ? 'bg-blue-500' : 'bg-gray-700'
                                 }`} />
 
