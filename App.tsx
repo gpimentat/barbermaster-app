@@ -208,8 +208,14 @@ const Sidebar = ({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
   }
 
   const visibleLinks = links.filter(link => {
-    // Admin/Super Admin see everything
-    if (isDemoMode || role === 'admin' || role === 'super_admin') return true;
+    // Super Admin sees everything, including platform-only tools
+    if (isDemoMode || role === 'super_admin') return true;
+
+    // Tenant Admin sees everything except platform-only (Super Admin / SaaS sales) tools
+    if (role === 'admin') {
+      const platformOnlyLinks = ['Super Admin', 'Prospecção', 'Minhas Comissões'];
+      return !platformOnlyLinks.includes(link.name);
+    }
 
     // SaaS Roles see only their own tools
     if (role.startsWith('saas_')) {
@@ -340,7 +346,7 @@ const Sidebar = ({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
 
 const MainLayout: React.FC = () => {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
-  const { isAuthenticated, currentUser, isDemoMode, toggleDemoMode } = useAuth();
+  const { isAuthenticated, currentUser, isDemoMode, toggleDemoMode, role } = useAuth();
   const location = useLocation();
   console.log('Current Path:', location.pathname); // DEBUG: Check path
 
@@ -431,9 +437,9 @@ const MainLayout: React.FC = () => {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignUpPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-            <Route path="/saas-admin" element={<SaasAdminPage />} />
-            <Route path="/sales-map" element={<SalesMapPage />} />
-            <Route path="/sales-commissions" element={<SalesCommissionsPage />} />
+            <Route path="/saas-admin" element={role === 'super_admin' ? <SaasAdminPage /> : <Navigate to="/" replace />} />
+            <Route path="/sales-map" element={(role === 'super_admin' || role.startsWith('saas_')) ? <SalesMapPage /> : <Navigate to="/" replace />} />
+            <Route path="/sales-commissions" element={(role === 'super_admin' || role.startsWith('saas_')) ? <SalesCommissionsPage /> : <Navigate to="/" replace />} />
             <Route path="/schedule" element={<Schedule />} />
             <Route path="/waiting-list" element={<WaitingListPage />} />
             <Route path="/appt/:id/:action" element={<AppointmentActionPage />} />
