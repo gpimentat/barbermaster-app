@@ -1,3 +1,8 @@
+-- ⚠️ HISTORICAL FILE — the RLS policy below (step 2) and the permission check inside
+-- upsert_staff_member (step 3) were superseded by security_hardening_2026_08.sql.
+-- Do not re-run this file against the live database; see that file for the current,
+-- correct definitions (no 'Barbeiro' in the admin list, permission check enforced).
+
 -- Enable pgcrypto for password hashing
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 

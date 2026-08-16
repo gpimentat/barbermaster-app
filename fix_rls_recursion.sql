@@ -1,3 +1,6 @@
+-- ⚠️ HISTORICAL FILE — superseded by security_hardening_2026_08.sql
+-- (is_admin() here still includes 'Barbeiro' as admin; do not re-run this file).
+
 -- Fix RLS Recursion on Profiles Table
 
 -- 1. Create a secure function to check admin status (Bypasses RLS)

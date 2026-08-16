@@ -125,30 +125,27 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         fetchBarbers(data.tenant_id);
       }
     } else {
-      // FALLBACK: User exists in Auth but not in Profiles. 
-      // Recover using Session data to prevent lockout.
-      console.warn('No profile found. Using Session fallback.');
+      // FALLBACK: User exists in Auth but has no row in Profiles yet (e.g. signup trigger
+      // hasn't run). Do NOT infer any role/tenant from the email — grant zero privileges
+      // and no tenant until a real profile row exists, so this can't be used to gain access.
+      console.warn('No profile found for this user yet.');
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user && session.user.id === userId) {
         const user = session.user;
-        const isEmailAdmin = user.email?.includes('admin') || user.email?.includes('barbermaster');
 
         const fallbackUser: Barber = {
           id: user.id,
-          name: user.user_metadata?.name || 'Administrador Temporário',
+          name: user.user_metadata?.name || user.email || 'Usuário',
           email: user.email || '',
-          role: isEmailAdmin ? 'admin' : 'barber',
+          role: 'barber',
           avatar: null,
-          active: true,
+          active: false,
           commissionRate: 0,
           permissions: [],
-          loginEnabled: true,
-          tenantId: '63f22a97-eb14-4862-93b6-815ca41b83a4', // Valid Tenant ID for Gui Pimenta
+          loginEnabled: false,
         };
-        console.log('Using Fallback User:', fallbackUser);
         setCurrentUser(fallbackUser);
       } else {
-        console.warn('No session match for fallback.');
         setCurrentUser(null);
       }
     }
@@ -195,18 +192,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const login = async (email: string, pass: string): Promise<boolean> => {
     try {
-      console.log('Attempting login for:', email);
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email,
         password: pass,
       });
 
       if (error) {
-        console.error('Supabase Login Error:', error.message, error);
+        console.error('Supabase Login Error:', error.message);
         return false;
       }
 
-      console.log('Login success:', data);
       return true;
     } catch (err) {
       console.error('Unexpected Login Error:', err);
@@ -233,11 +228,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setSession(null);
   };
 
-  // Legacy/UI helpers
-  // Legacy/UI helpers
-  const isAdmin = currentUser?.role?.toLowerCase() === 'admin' || currentUser?.role === 'Administrador' || currentUser?.role === 'super_admin' || currentUser?.email === 'g.pimentat@gmail.com';
-  const isAuthenticated = !!session;
-
+  // UI helpers — role comes only from the profiles.role column in the database (never from email)
   let role: UserRole = 'barber';
   if (currentUser) {
     const dbRole = currentUser.role || '';
@@ -254,10 +245,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }
 
-  // Backup check: email contains admin
-  if (currentUser?.email?.includes('admin')) role = 'admin';
-  // FORCE SUPER ADMIN for specific user
-  if (currentUser?.email === 'g.pimentat@gmail.com') role = 'super_admin';
+  const isAdmin = role === 'admin' || role === 'super_admin';
+  const isAuthenticated = !!session;
 
   const toggleDemoMode = (active: boolean) => {
     setIsDemoMode(active);
