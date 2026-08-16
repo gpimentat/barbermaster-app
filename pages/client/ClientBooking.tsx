@@ -172,6 +172,13 @@ const ClientBooking: React.FC<ClientBookingProps> = ({ tenant, clientData }) => 
                 {/* Step 1: Serviço */}
                 {step === 1 && (
                     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        {services.length === 0 ? (
+                            <div className="text-center py-12">
+                                <Scissors className="mx-auto text-gray-600 mb-3" size={48} />
+                                <h3 className="text-white font-bold mb-1">Nenhum serviço disponível</h3>
+                                <p className="text-gray-400 text-sm">Esta barbearia ainda não cadastrou serviços. Volte em breve!</p>
+                            </div>
+                        ) : (
                         <div className="space-y-3">
                             {services.map(service => (
                                 <button
@@ -205,12 +212,20 @@ const ClientBooking: React.FC<ClientBookingProps> = ({ tenant, clientData }) => 
                                 </button>
                             ))}
                         </div>
+                        )}
                     </div>
                 )}
 
                 {/* Step 2: Barbeiro */}
                 {step === 2 && (
                     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        {barbers.length === 0 ? (
+                            <div className="text-center py-12">
+                                <User className="mx-auto text-gray-600 mb-3" size={48} />
+                                <h3 className="text-white font-bold mb-1">Nenhum profissional disponível</h3>
+                                <p className="text-gray-400 text-sm">Esta barbearia ainda não cadastrou barbeiros. Volte em breve!</p>
+                            </div>
+                        ) : (
                         <div className="space-y-3">
                             {barbers.map(barber => (
                                 <button
@@ -240,6 +255,7 @@ const ClientBooking: React.FC<ClientBookingProps> = ({ tenant, clientData }) => 
                                 </button>
                             ))}
                         </div>
+                        )}
                     </div>
                 )}
 
