@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
             if (subParts.length < 3) {
                 return new Response(JSON.stringify({ status: 'ignored', message: 'Invalid external_reference format' }), { status: 200 });
             }
-            const [, subClientId, subPlanId] = subParts;
+            const [subTenantId, subClientId, subPlanId] = subParts;
 
             let newLocalStatus: string | null = null;
             if (preData.status === 'cancelled') newLocalStatus = 'canceled';
@@ -67,13 +67,33 @@ Deno.serve(async (req) => {
                 return new Response(JSON.stringify({ status: 'ignored', message: `Preapproval status: ${preData.status}` }), { status: 200 });
             }
 
-            const { error: subUpdateError } = await supabase
+            // Upsert so we don't silently no-op if this subscription notification
+            // arrives before the first payment ever created the row.
+            const { data: existingForSub } = await supabase
                 .from('client_subscriptions')
-                .update({ status: newLocalStatus, updated_at: new Date().toISOString() })
+                .select('id')
                 .eq('client_id', subClientId)
-                .eq('plan_id', subPlanId);
+                .eq('plan_id', subPlanId)
+                .maybeSingle();
 
-            if (subUpdateError) throw subUpdateError;
+            if (existingForSub) {
+                const { error: subUpdateError } = await supabase
+                    .from('client_subscriptions')
+                    .update({ status: newLocalStatus, gateway_subscription_id: resourceId, updated_at: new Date().toISOString() })
+                    .eq('id', existingForSub.id);
+                if (subUpdateError) throw subUpdateError;
+            } else {
+                const { error: subInsertError } = await supabase
+                    .from('client_subscriptions')
+                    .insert({
+                        tenant_id: subTenantId,
+                        client_id: subClientId,
+                        plan_id: subPlanId,
+                        status: newLocalStatus,
+                        gateway_subscription_id: resourceId
+                    });
+                if (subInsertError) throw subInsertError;
+            }
 
             console.log(`Subscription ${resourceId} -> local status ${newLocalStatus} for client ${subClientId}`);
             return new Response(JSON.stringify({ status: 'success', message: `Subscription marked as ${newLocalStatus}` }), { status: 200 });

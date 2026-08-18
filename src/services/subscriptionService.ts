@@ -127,6 +127,27 @@ const subscriptionService = {
         return data.init_point;
     },
 
+    async cancelSubscription(clientId: string, planId: string): Promise<void> {
+        const { data, error } = await supabase.functions.invoke('cancel-subscription', {
+            body: { clientId, planId }
+        });
+
+        if (error) throw error;
+        if (!data?.success) throw new Error(data?.error || 'Não foi possível cancelar a assinatura');
+    },
+
+    async getClientCurrentSubscription(clientId: string): Promise<any | null> {
+        const { data, error } = await supabase
+            .from('client_subscriptions')
+            .select('*, subscription_plans(name, price, frequency)')
+            .eq('client_id', clientId)
+            .in('status', ['active', 'past_due'])
+            .maybeSingle();
+
+        if (error) throw error;
+        return data;
+    },
+
     // --- WALLET & PAYOUTS ---
     async getBalance(tenantId: string): Promise<any> {
         const { data, error } = await supabase

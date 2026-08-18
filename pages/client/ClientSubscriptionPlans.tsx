@@ -11,6 +11,7 @@ import {
     CreditCard
 } from 'lucide-react';
 import clientService from '../../src/services/clientService';
+import subscriptionService from '../../src/services/subscriptionService';
 
 interface ClientSubscriptionPlansProps {
     tenant: any;
@@ -22,11 +23,14 @@ const ClientSubscriptionPlans: React.FC<ClientSubscriptionPlansProps> = ({ tenan
     const [plans, setPlans] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [subscribingId, setSubscribingId] = useState<string | null>(null);
+    const [currentSub, setCurrentSub] = useState<any | null>(null);
+    const [cancelling, setCancelling] = useState(false);
 
     const primaryColor = tenant?.settings?.app_config?.general?.primaryColor || '#eab308';
 
     useEffect(() => {
         loadPlans();
+        loadCurrentSubscription();
     }, [tenant.id]);
 
     const loadPlans = async () => {
@@ -39,6 +43,35 @@ const ClientSubscriptionPlans: React.FC<ClientSubscriptionPlansProps> = ({ tenan
             console.error('Error loading plans:', err);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const loadCurrentSubscription = async () => {
+        const clientId = clientData?.id || clientData?.clientId;
+        if (!clientId) return;
+        try {
+            const sub = await subscriptionService.getClientCurrentSubscription(clientId);
+            setCurrentSub(sub);
+        } catch (err) {
+            console.error('Error loading current subscription:', err);
+        }
+    };
+
+    const handleCancel = async () => {
+        if (!currentSub) return;
+        const confirmed = window.confirm('Tem certeza que deseja cancelar sua assinatura? Você perderá os benefícios do Clube VIP.');
+        if (!confirmed) return;
+
+        const clientId = clientData?.id || clientData?.clientId;
+        try {
+            setCancelling(true);
+            await subscriptionService.cancelSubscription(clientId, currentSub.plan_id);
+            await loadCurrentSubscription();
+            alert('Assinatura cancelada com sucesso.');
+        } catch (err: any) {
+            alert(`Erro ao cancelar: ${err.message || 'Tente novamente.'}`);
+        } finally {
+            setCancelling(false);
         }
     };
 
@@ -111,6 +144,34 @@ const ClientSubscriptionPlans: React.FC<ClientSubscriptionPlansProps> = ({ tenan
                         </p>
                     </div>
                 </div>
+
+                {/* Assinatura Atual */}
+                {currentSub && (
+                    <div className="bg-gray-900/70 rounded-2xl p-6 border border-primary-500/20 space-y-3">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Sua assinatura atual</p>
+                                <p className="text-white font-black text-lg">{currentSub.subscription_plans?.name}</p>
+                            </div>
+                            <span
+                                className="text-[10px] font-bold uppercase px-3 py-1.5 rounded-full"
+                                style={{
+                                    backgroundColor: currentSub.status === 'active' ? `${primaryColor}20` : '#ef444420',
+                                    color: currentSub.status === 'active' ? primaryColor : '#ef4444'
+                                }}
+                            >
+                                {currentSub.status === 'active' ? 'Ativa' : 'Pagamento pendente'}
+                            </span>
+                        </div>
+                        <button
+                            onClick={handleCancel}
+                            disabled={cancelling}
+                            className="text-xs font-bold text-red-400 hover:text-red-300 transition-colors disabled:opacity-50"
+                        >
+                            {cancelling ? 'Cancelando...' : 'Cancelar assinatura'}
+                        </button>
+                    </div>
+                )}
 
                 {/* Seção de Planos */}
                 <div className="grid grid-cols-1 gap-6">
