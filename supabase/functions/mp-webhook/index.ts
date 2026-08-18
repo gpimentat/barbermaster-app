@@ -105,24 +105,14 @@ Deno.serve(async (req) => {
 
         if (txError) throw txError;
 
-        // 2. Adicionar o dinheiro na Carteira Digital (Wallet) do Tenant
-        const { data: currentBalance } = await supabase
-            .from('tenant_balances')
-            .select('balance')
-            .eq('tenant_id', tenantId)
-            .maybeSingle();
+        // 2. Adicionar o dinheiro na Carteira Digital (Wallet) do Tenant — incremento
+        // atômico no banco, evita perder dinheiro se dois pagamentos chegarem juntos.
+        const { error: creditError } = await supabase.rpc('credit_tenant_balance', {
+            p_tenant_id: tenantId,
+            p_amount: netAmount
+        });
 
-        if (currentBalance) {
-            const newBalance = currentBalance.balance + netAmount;
-            await supabase
-                .from('tenant_balances')
-                .update({ balance: newBalance, updated_at: new Date().toISOString() })
-                .eq('tenant_id', tenantId);
-        } else {
-             await supabase
-                .from('tenant_balances')
-                .insert({ tenant_id: tenantId, balance: netAmount, withdrawn_total: 0, pending_payout: 0 });
-        }
+        if (creditError) throw creditError;
 
         // 3. Ativar/Renovar a assinatura do cliente final dentro do sistema
         const { data: plan } = await supabase
