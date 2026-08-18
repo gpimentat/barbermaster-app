@@ -57,7 +57,7 @@ const getRoleInfo = (role: string) =>
 // --- Main Component ---
 const SaasAdminPage: React.FC = () => {
   const { currentUser, isDemoMode, toggleDemoMode } = useAuth();
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'team' | 'sales' | 'demo'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'team' | 'sales' | 'demo' | 'payouts'>('dashboard');
 
   // Dashboard state
   const [loading, setLoading] = useState(true);
@@ -96,9 +96,14 @@ const SaasAdminPage: React.FC = () => {
   const isFinance = currentUser?.role === 'saas_finance' || currentUser?.permissions?.includes('saas_finance');
   const isManager = currentUser?.role === 'saas_manager' || currentUser?.role === 'super_admin' || currentUser?.email === 'g.pimentat@gmail.com';
 
+  const [payoutRequests, setPayoutRequests] = useState<any[]>([]);
+  const [loadingPayouts, setLoadingPayouts] = useState(false);
+  const [processingPayoutId, setProcessingPayoutId] = useState<string | null>(null);
+
   useEffect(() => { fetchStats(); }, []);
   useEffect(() => { if (activeTab === 'team') fetchSaasTeam(); }, [activeTab]);
   useEffect(() => { if (activeTab === 'sales') fetchSubmissions(); }, [activeTab]);
+  useEffect(() => { if (activeTab === 'payouts') fetchPayoutRequests(); }, [activeTab]);
 
   const fetchStats = async () => {
     try {
@@ -286,6 +291,51 @@ const SaasAdminPage: React.FC = () => {
       alert(`❌ Falha: ${error.message}`);
     } finally {
       setSavingShop(false);
+    }
+  };
+
+  const fetchPayoutRequests = async () => {
+    try {
+      setLoadingPayouts(true);
+      const { data, error } = await supabase
+        .from('payout_requests')
+        .select('*, tenants(name)')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      setPayoutRequests(data || []);
+    } catch (err) {
+      console.error('Error fetching payout requests:', err);
+    } finally {
+      setLoadingPayouts(false);
+    }
+  };
+
+  const handleApprovePayout = async (req: any) => {
+    if (!confirm(`Confirmar que você já transferiu R$ ${Number(req.amount).toFixed(2)} via Pix para "${req.tenants?.name}"?`)) return;
+    try {
+      setProcessingPayoutId(req.id);
+      const { error } = await supabase.rpc('approve_payout_request', { p_request_id: req.id });
+      if (error) throw error;
+      await fetchPayoutRequests();
+    } catch (err: any) {
+      alert(`Erro ao aprovar saque: ${err.message}`);
+    } finally {
+      setProcessingPayoutId(null);
+    }
+  };
+
+  const handleRejectPayout = async (req: any) => {
+    const reason = prompt('Motivo da rejeição:');
+    if (reason === null) return;
+    try {
+      setProcessingPayoutId(req.id);
+      const { error } = await supabase.rpc('reject_payout_request', { p_request_id: req.id, p_reason: reason });
+      if (error) throw error;
+      await fetchPayoutRequests();
+    } catch (err: any) {
+      alert(`Erro ao rejeitar saque: ${err.message}`);
+    } finally {
+      setProcessingPayoutId(null);
     }
   };
 
@@ -499,6 +549,15 @@ const SaasAdminPage: React.FC = () => {
           <Activity size={16} />
           Demonstração
         </button>
+        {(isFinance || isManager) && (
+          <button
+            onClick={() => setActiveTab('payouts')}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-black uppercase tracking-widest transition-all ${activeTab === 'payouts' ? 'bg-primary-500 text-dark-950 shadow-lg' : 'text-gray-400 hover:text-white'}`}
+          >
+            <Wallet size={16} />
+            Saques
+          </button>
+        )}
       </div>
 
       {/* ── TAB: DASHBOARD ── */}
@@ -733,6 +792,102 @@ const SaasAdminPage: React.FC = () => {
                                 onClick={() => handleApproveSubmission(sub)}
                                 className="p-2 text-green-400 hover:bg-green-500/10 rounded-lg transition-all"
                                 title="Aprovar e Liberar"
+                              >
+                                <Check size={18} />
+                              </button>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── TAB: PAYOUTS ── */}
+      {activeTab === 'payouts' && (isFinance || isManager) && (
+        <div className="space-y-6">
+          <div className="bg-dark-900 border border-gray-800 rounded-2xl overflow-hidden">
+            <div className="p-6 border-b border-gray-800">
+              <h3 className="text-lg font-bold text-white">Solicitações de Saque</h3>
+              <p className="text-xs text-gray-500 mt-0.5">Pedidos de repasse Pix das barbearias</p>
+            </div>
+
+            {loadingPayouts ? (
+              <div className="py-16 flex items-center justify-center">
+                <div className="w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
+              </div>
+            ) : payoutRequests.length === 0 ? (
+              <div className="py-20 flex flex-col items-center gap-4 text-center">
+                <Wallet className="text-gray-700" size={40} />
+                <p className="text-white font-black text-lg uppercase tracking-tight">Nenhuma solicitação de saque</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead className="bg-gray-800/50 text-gray-400 text-xs uppercase">
+                    <tr>
+                      <th className="px-6 py-4 font-bold">Barbearia</th>
+                      <th className="px-6 py-4 font-bold">Valor</th>
+                      <th className="px-6 py-4 font-bold">Chave Pix</th>
+                      <th className="px-6 py-4 font-bold">Data</th>
+                      <th className="px-6 py-4 font-bold">Status</th>
+                      <th className="px-6 py-4 font-bold text-right">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-800">
+                    {payoutRequests.map((req) => (
+                      <tr key={req.id} className="hover:bg-gray-800/30 transition-colors group">
+                        <td className="px-6 py-4">
+                          <p className="font-black text-white text-sm">{req.tenants?.name || '—'}</p>
+                        </td>
+                        <td className="px-6 py-4">
+                          <p className="text-sm font-black text-primary-500">R$ {Number(req.amount).toFixed(2)}</p>
+                        </td>
+                        <td className="px-6 py-4">
+                          <p className="text-sm text-gray-300">{req.pix_key}</p>
+                          <p className="text-[10px] text-gray-500 uppercase font-black">{req.pix_key_type}</p>
+                        </td>
+                        <td className="px-6 py-4 text-xs text-gray-400 font-medium">
+                          {new Date(req.created_at).toLocaleDateString('pt-BR')}
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${
+                            req.status === 'completed' ? 'bg-green-500/10 border-green-500/30 text-green-400' :
+                            req.status === 'rejected' ? 'bg-red-500/10 border-red-500/30 text-red-400' :
+                            'bg-yellow-500/10 border-yellow-500/30 text-yellow-400'
+                          }`}>
+                            {req.status === 'completed' && <CheckCircle size={12} />}
+                            {req.status === 'rejected' && <AlertCircle size={12} />}
+                            {req.status === 'pending' && <Clock size={12} />}
+                            {req.status === 'completed' ? 'Pago' : req.status === 'rejected' ? 'Rejeitado' : 'Pendente'}
+                          </span>
+                          {req.notes && (
+                            <p className="text-[10px] text-red-400 mt-1 italic max-w-[200px] truncate" title={req.notes}>
+                              Obs: {req.notes}
+                            </p>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          {req.status === 'pending' && (
+                            <div className="flex justify-end gap-2">
+                              <button
+                                onClick={() => handleRejectPayout(req)}
+                                disabled={processingPayoutId === req.id}
+                                className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-all disabled:opacity-50"
+                                title="Rejeitar"
+                              >
+                                <X size={18} />
+                              </button>
+                              <button
+                                onClick={() => handleApprovePayout(req)}
+                                disabled={processingPayoutId === req.id}
+                                className="p-2 text-green-400 hover:bg-green-500/10 rounded-lg transition-all disabled:opacity-50"
+                                title="Marcar como pago"
                               >
                                 <Check size={18} />
                               </button>
