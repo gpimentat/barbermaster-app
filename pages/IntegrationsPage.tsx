@@ -1,11 +1,72 @@
 
 import React, { useState, useEffect } from 'react';
-import { MessageCircle, QrCode, Smartphone, CheckCircle2, RefreshCw, AlertTriangle, Settings, ArrowRight, X, Play, Scissors, Save } from 'lucide-react';
+import { MessageCircle, QrCode, Smartphone, CheckCircle2, RefreshCw, AlertTriangle, Settings, ArrowRight, X, Play, Scissors, Save, Wallet, Building2, User } from 'lucide-react';
 import { supabase } from '../src/supabaseClient';
 import { useAuth } from '../AuthContext';
 
 const IntegrationsPage: React.FC = () => {
     const { currentUser } = useAuth();
+
+    // --- Payment Gateway (Asaas) ---
+    const [payoutMode, setPayoutMode] = useState<'CNPJ' | 'CPF' | null>(null);
+    const [connectedWallet, setConnectedWallet] = useState<{ walletId: string; personType: string } | null>(null);
+    const [connectingPayout, setConnectingPayout] = useState(false);
+    const [cnpjForm, setCnpjForm] = useState({
+        name: '', cpfCnpj: '', email: '', birthDate: '', companyType: 'MEI', incomeValue: '',
+        phone: '', mobilePhone: '', address: '', addressNumber: '', complement: '', province: '', postalCode: ''
+    });
+    const [cpfApiKey, setCpfApiKey] = useState('');
+
+    useEffect(() => {
+        loadPaymentGateway();
+    }, [currentUser?.tenantId]);
+
+    const loadPaymentGateway = async () => {
+        if (!currentUser?.tenantId) return;
+        const { data } = await supabase
+            .from('tenants')
+            .select('asaas_wallet_id, asaas_person_type')
+            .eq('id', currentUser.tenantId)
+            .single();
+        if (data?.asaas_wallet_id) {
+            setConnectedWallet({ walletId: data.asaas_wallet_id, personType: data.asaas_person_type });
+        }
+    };
+
+    const handleConnectCnpj = async () => {
+        try {
+            setConnectingPayout(true);
+            const { data, error } = await supabase.functions.invoke('asaas-create-subaccount', {
+                body: { tenantId: currentUser?.tenantId, ...cnpjForm, incomeValue: Number(cnpjForm.incomeValue) || undefined }
+            });
+            if (error) throw error;
+            if (!data?.success) throw new Error(data?.error || 'Erro ao conectar');
+            await loadPaymentGateway();
+            alert('Conta conectada com sucesso!');
+        } catch (err: any) {
+            alert(`Erro: ${err.message}`);
+        } finally {
+            setConnectingPayout(false);
+        }
+    };
+
+    const handleConnectCpf = async () => {
+        try {
+            setConnectingPayout(true);
+            const { data, error } = await supabase.functions.invoke('asaas-connect-wallet', {
+                body: { tenantId: currentUser?.tenantId, apiKey: cpfApiKey }
+            });
+            if (error) throw error;
+            if (!data?.success) throw new Error(data?.error || 'Erro ao conectar');
+            setCpfApiKey('');
+            await loadPaymentGateway();
+            alert('Carteira conectada com sucesso!');
+        } catch (err: any) {
+            alert(`Erro: ${err.message}`);
+        } finally {
+            setConnectingPayout(false);
+        }
+    };
     // States for WhatsApp Integration
     const [waStatus, setWaStatus] = useState<'disconnected' | 'qr' | 'connecting' | 'connected'>('disconnected');
     const [waConfig, setWaConfig] = useState<any>({
@@ -137,6 +198,89 @@ const IntegrationsPage: React.FC = () => {
                     <h1 className="text-3xl font-bold text-white">Integrações</h1>
                     <p className="text-gray-400">Conecte canais de comunicação para automatizar sua barbearia.</p>
                 </div>
+            </div>
+
+            {/* Payment Gateway (Asaas) Integration Card */}
+            <div className={`border rounded-xl p-6 transition-all ${connectedWallet ? 'bg-green-500/5 border-green-500/30' : 'bg-dark-900 border-gray-800'}`}>
+                <div className="flex justify-between items-start mb-6">
+                    <div className="flex items-center gap-4">
+                        <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${connectedWallet ? 'bg-green-500 text-white' : 'bg-gray-700 text-gray-400'}`}>
+                            <Wallet size={32} />
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-bold text-white">Recebimento de Pagamentos</h3>
+                            <p className="text-sm text-gray-400">Receba as assinaturas dos seus clientes automaticamente</p>
+                        </div>
+                    </div>
+                    {connectedWallet ? (
+                        <span className="flex items-center gap-1.5 bg-green-500 text-dark-950 px-3 py-1 rounded-full text-xs font-bold uppercase">
+                            <CheckCircle2 size={14} /> Conectado
+                        </span>
+                    ) : (
+                        <span className="flex items-center gap-1.5 bg-gray-700 text-gray-400 px-3 py-1 rounded-full text-xs font-bold uppercase">
+                            Desconectado
+                        </span>
+                    )}
+                </div>
+
+                {connectedWallet ? (
+                    <div className="bg-gray-900/50 rounded-lg p-4 border border-gray-700 flex items-center justify-between">
+                        <div>
+                            <p className="text-white font-medium text-sm">Carteira Asaas conectada</p>
+                            <p className="text-xs text-green-500 font-mono">{connectedWallet.personType === 'CNPJ' ? 'Pessoa Jurídica' : 'Pessoa Física'} • {connectedWallet.walletId}</p>
+                        </div>
+                    </div>
+                ) : !payoutMode ? (
+                    <div className="bg-gray-800/30 rounded-lg p-8 text-center border border-gray-800 border-dashed">
+                        <div className="max-w-md mx-auto space-y-4">
+                            <Wallet size={40} className="mx-auto text-gray-600" />
+                            <h4 className="text-white font-bold">Você tem CNPJ?</h4>
+                            <p className="text-gray-400 text-sm">Isso define como você vai receber automaticamente o dinheiro dos seus clientes.</p>
+                            <div className="flex gap-3 justify-center">
+                                <button onClick={() => setPayoutMode('CNPJ')} className="flex items-center gap-2 bg-primary-500 hover:bg-primary-600 text-dark-950 px-5 py-2.5 rounded-lg font-bold transition-colors">
+                                    <Building2 size={16} /> Sim, tenho CNPJ
+                                </button>
+                                <button onClick={() => setPayoutMode('CPF')} className="flex items-center gap-2 bg-gray-700 hover:bg-gray-600 text-white px-5 py-2.5 rounded-lg font-bold transition-colors">
+                                    <User size={16} /> Não, só CPF
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                ) : payoutMode === 'CNPJ' ? (
+                    <div className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <input placeholder="Nome da barbearia" value={cnpjForm.name} onChange={e => setCnpjForm({ ...cnpjForm, name: e.target.value })} className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white text-sm" />
+                            <input placeholder="CNPJ (só números)" value={cnpjForm.cpfCnpj} onChange={e => setCnpjForm({ ...cnpjForm, cpfCnpj: e.target.value })} className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white text-sm" />
+                            <input placeholder="E-mail" value={cnpjForm.email} onChange={e => setCnpjForm({ ...cnpjForm, email: e.target.value })} className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white text-sm" />
+                            <input placeholder="Celular (DDD + número)" value={cnpjForm.mobilePhone} onChange={e => setCnpjForm({ ...cnpjForm, mobilePhone: e.target.value })} className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white text-sm" />
+                            <input placeholder="CEP" value={cnpjForm.postalCode} onChange={e => setCnpjForm({ ...cnpjForm, postalCode: e.target.value })} className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white text-sm" />
+                            <input placeholder="Endereço" value={cnpjForm.address} onChange={e => setCnpjForm({ ...cnpjForm, address: e.target.value })} className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white text-sm" />
+                            <input placeholder="Número" value={cnpjForm.addressNumber} onChange={e => setCnpjForm({ ...cnpjForm, addressNumber: e.target.value })} className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white text-sm" />
+                            <input placeholder="Bairro" value={cnpjForm.province} onChange={e => setCnpjForm({ ...cnpjForm, province: e.target.value })} className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white text-sm" />
+                        </div>
+                        <div className="flex gap-3">
+                            <button onClick={() => setPayoutMode(null)} className="text-gray-400 hover:text-white text-sm font-bold px-4">Voltar</button>
+                            <button onClick={handleConnectCnpj} disabled={connectingPayout} className="flex-1 bg-primary-500 hover:bg-primary-600 text-dark-950 py-3 rounded-lg font-bold disabled:opacity-50">
+                                {connectingPayout ? 'Conectando...' : 'Conectar Conta'}
+                            </button>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="space-y-4">
+                        <div className="bg-primary-500/5 p-4 rounded-lg border border-primary-500/10 text-sm text-gray-300">
+                            1. Crie sua conta grátis em <a href="https://www.asaas.com" target="_blank" rel="noreferrer" className="text-primary-500 underline">asaas.com</a><br />
+                            2. No painel dela, vá em "Integrações" e gere uma Chave de API<br />
+                            3. Cole a chave abaixo
+                        </div>
+                        <textarea placeholder="Cole aqui sua chave de API da Asaas" value={cpfApiKey} onChange={e => setCpfApiKey(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white text-sm h-20" />
+                        <div className="flex gap-3">
+                            <button onClick={() => setPayoutMode(null)} className="text-gray-400 hover:text-white text-sm font-bold px-4">Voltar</button>
+                            <button onClick={handleConnectCpf} disabled={connectingPayout || !cpfApiKey} className="flex-1 bg-primary-500 hover:bg-primary-600 text-dark-950 py-3 rounded-lg font-bold disabled:opacity-50">
+                                {connectingPayout ? 'Conectando...' : 'Conectar Carteira'}
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* WhatsApp Integration Card */}
