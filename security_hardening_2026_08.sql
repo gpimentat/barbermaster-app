@@ -152,3 +152,71 @@ GRANT EXECUTE ON FUNCTION client_register(UUID, TEXT, TEXT) TO authenticated;
 -- TODO (next step): once the client-facing pages send `access_token` on every request,
 -- replace the open policies on `clients` (view/insert/update = true) with checks against
 -- this token, and tighten "Allow public read/update on appointments" the same way.
+
+-- ============================================================
+-- 4. Payout/subscription audit findings (2026-08-16 follow-up).
+-- ============================================================
+-- update_pending_payout(t_id, amount_to_add) had NO auth check and was granted to
+-- anon — anyone with the public anon key could inflate any tenant's pending_payout
+-- to any value. Now requires an authenticated admin/gerente/super_admin acting on
+-- their own tenant.
+CREATE OR REPLACE FUNCTION public.update_pending_payout(t_id uuid, amount_to_add numeric)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_role TEXT;
+  v_tenant UUID;
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'Não autenticado';
+  END IF;
+
+  SELECT role, tenant_id INTO v_role, v_tenant FROM profiles WHERE id = auth.uid();
+
+  IF v_role IS NULL OR v_role NOT IN ('admin', 'super_admin', 'gerente') THEN
+    RAISE EXCEPTION 'Acesso negado';
+  END IF;
+
+  IF v_role <> 'super_admin' AND v_tenant <> t_id THEN
+    RAISE EXCEPTION 'Você só pode solicitar saque do seu próprio salão';
+  END IF;
+
+  UPDATE public.tenant_balances
+  SET pending_payout = pending_payout + amount_to_add,
+      updated_at = now()
+  WHERE tenant_id = t_id;
+END;
+$$;
+
+REVOKE EXECUTE ON FUNCTION update_pending_payout(uuid, numeric) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION update_pending_payout(uuid, numeric) FROM anon;
+GRANT EXECUTE ON FUNCTION update_pending_payout(uuid, numeric) TO authenticated;
+GRANT EXECUTE ON FUNCTION update_pending_payout(uuid, numeric) TO service_role;
+
+-- client_subscriptions / client_packages had a SELECT policy open to every role
+-- (including authenticated staff of any tenant) — same class of bug as clients/profiles.
+-- Scoped to anon only (the client-facing phone-login app).
+-- ALTER POLICY "Clients can view their own subscriptions" ON client_subscriptions TO anon;
+-- ALTER POLICY "Clients can view their own packages" ON client_packages TO anon;
+
+-- payout_requests let tenant staff run ANY operation on their own requests, including
+-- flipping status to "completed" themselves. Split into view + create only; status
+-- changes now require service_role (i.e. manual processing by the platform).
+-- DROP POLICY "Tenants can manage their own payout requests" ON payout_requests;
+CREATE POLICY "Tenants view own payout requests"
+ON payout_requests FOR SELECT TO authenticated
+USING (auth.uid() IN (SELECT profiles.id FROM profiles WHERE profiles.tenant_id = payout_requests.tenant_id));
+
+CREATE POLICY "Tenants create own payout requests"
+ON payout_requests FOR INSERT TO authenticated
+WITH CHECK (auth.uid() IN (SELECT profiles.id FROM profiles WHERE profiles.tenant_id = payout_requests.tenant_id));
+
+-- Still open (deliberately deferred, discussed with user): no platform-side (Super
+-- Admin) screen exists yet to review/approve payout requests or mark them paid; no
+-- webhook handling for subscription cancellation/failed recurring charges; all
+-- subscription money flows through a single platform Mercado Pago account instead of
+-- a real marketplace split; tenant_balances.balance is updated read-then-write instead
+-- of atomically (race condition under concurrent payments).
